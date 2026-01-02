@@ -2,14 +2,16 @@ import React from 'react'
 
 export default function HeroPastita() {
   return (
-    <section style={sectionStyle}>
+    <section style={sectionStyle} data-step="0">
       <div className="content-block" style={cardStyle}>
         <span style={eyebrowStyle}>Pastita</span>
         <h1 style={titleStyle}>A massa perfeita pra quem quer facilidade sem abrir mão do sabor.</h1>
         <p style={subtitleStyle}>
           Rondellis artesanais, recheios generosos e molhos que abraçam a massa.
         </p>
-        <button style={primaryButtonStyle}>Quero experimentar</button>
+        <a href="#pedido" style={primaryButtonStyle}>
+          Quero experimentar
+        </a>
       </div>
     </section>
   )
@@ -55,6 +57,7 @@ const subtitleStyle = {
 }
 
 const primaryButtonStyle = {
+  display: 'inline-block',
   marginTop: '2.5rem',
   background: '#d4af37',
   color: '#140204',
@@ -64,5 +67,5 @@ const primaryButtonStyle = {
   fontWeight: 700,
   letterSpacing: '2px',
   textTransform: 'uppercase',
-  cursor: 'pointer'
+  textDecoration: 'none'
 }

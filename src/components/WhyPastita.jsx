@@ -2,7 +2,7 @@ import React from 'react'
 
 export default function WhyPastita() {
   return (
-    <section style={sectionStyle}>
+    <section style={sectionStyle} data-step="2">
       <div className="content-block" style={cardStyle}>
         <span style={numberStyle}>02</span>
         <h2 style={titleStyle}>Cozinhar bem não precisa ser complicado.</h2>

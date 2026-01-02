@@ -2,11 +2,13 @@ import React from 'react'
 
 export default function FinalCTA() {
   return (
-    <section style={sectionStyle}>
+    <section style={sectionStyle} id="pedido" data-step="8">
       <div className="content-block" style={cardStyle}>
         <h2 style={titleStyle}>Seu prato principal começa aqui.</h2>
         <p style={subtitleStyle}>Pastita entrega o sabor e o cuidado que fazem o almoço virar ocasião.</p>
-        <button style={buttonStyle}>Peça agora</button>
+        <a href="https://wa.me/5500000000000" style={buttonStyle}>
+          Peça agora
+        </a>
       </div>
     </section>
   )
@@ -43,6 +45,7 @@ const subtitleStyle = {
 }
 
 const buttonStyle = {
+  display: 'inline-block',
   marginTop: '2.5rem',
   background: 'transparent',
   color: '#d4af37',
@@ -52,5 +55,5 @@ const buttonStyle = {
   fontWeight: 700,
   letterSpacing: '3px',
   textTransform: 'uppercase',
-  cursor: 'pointer'
+  textDecoration: 'none'
 }

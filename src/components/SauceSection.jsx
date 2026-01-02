@@ -2,9 +2,9 @@ import React from 'react'
 
 export default function SauceSection() {
   return (
-    <section style={sectionStyle}>
+    <section style={sectionStyle} data-step="7">
       <div className="content-block" style={cardStyle}>
-        <span style={numberStyle}>04</span>
+        <span style={numberStyle}>07</span>
         <h2 style={titleStyle}>Molhos artesanais que abraçam cada rondelli.</h2>
         <p style={subtitleStyle}>
           Nada industrial. Nada sem graça. Receitas pensadas para realçar o recheio e deixar o prato

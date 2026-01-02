@@ -2,7 +2,7 @@ import React from 'react'
 
 export default function UsageMoments() {
   return (
-    <section style={sectionStyle}>
+    <section style={sectionStyle} data-step="3">
       <div className="content-block" style={cardStyle}>
         <span style={numberStyle}>03</span>
         <h2 style={titleStyle}>Pra hoje. Pra família. Pra impressionar.</h2>

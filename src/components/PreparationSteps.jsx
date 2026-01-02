@@ -1,17 +1,20 @@
 import React from 'react'
 
-export default function ProductDescription() {
+export default function PreparationSteps() {
   return (
-    <section style={sectionStyle} data-step="1">
+    <section style={sectionStyle} data-step="6">
       <div className="content-block" style={cardStyle}>
-        <span style={numberStyle}>01</span>
-        <h2 style={titleStyle}>Rondellis artesanais, prontos pra impressionar.</h2>
-        <ul style={listStyle}>
-          <li>Massa leve e macia</li>
-          <li>Recheio de verdade</li>
-          <li>Molhos que finalizam o prato</li>
-        </ul>
-        <p style={subtitleStyle}>É só montar, aquecer e servir.</p>
+        <span style={numberStyle}>06</span>
+        <h2 style={titleStyle}>Modo Pastita: rápido e sem erro.</h2>
+        <ol style={listStyle}>
+          <li>Preaqueça o forno e aqueça o molho.</li>
+          <li>Monte os rondellis, cubra com o molho.</li>
+          <li>Finalizou? É só servir.</li>
+        </ol>
+        <div style={metaStyle}>
+          <span>⏱️ 20 min</span>
+          <span>🍽️ 2 a 3 porções</span>
+        </div>
       </div>
     </section>
   )
@@ -56,9 +59,10 @@ const listStyle = {
   lineHeight: 1.8
 }
 
-const subtitleStyle = {
-  marginTop: '1.5rem',
-  color: '#ffffff',
-  opacity: 0.7,
-  fontSize: '1.05rem'
+const metaStyle = {
+  marginTop: '1.8rem',
+  display: 'flex',
+  gap: '1.5rem',
+  color: '#d4af37',
+  fontWeight: 600
 }
