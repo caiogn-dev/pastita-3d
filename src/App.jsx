@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
@@ -15,8 +15,7 @@ import FinalCTA from './components/FinalCTA'
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 export default function App() {
-  const mainRef = useRef()
-  const contentRef = useRef()
+  const mainRef = useRef(null)
   const [activeStep, setActiveStep] = useState(0)
   const activeStepRef = useRef(0)
 
@@ -66,23 +65,28 @@ export default function App() {
     },
   ]
 
-  useGSAP(() => {
-    // Animação refinada: Texto surge com fade e um leve movimento lateral
-    gsap.utils.toArray('.content-block').forEach((box, i) => {
-      gsap.fromTo(box,
-        { opacity: 0, x: i % 2 === 0 ? -50 : 50 },
-        { 
-          opacity: 1, x: 0, 
-          scrollTrigger: {
-            trigger: box,
-            start: "top 85%",
-            end: "top 40%",
-            scrub: true
+  useGSAP(
+    () => {
+      // animação dos blocos de texto
+      gsap.utils.toArray('.content-block').forEach((box, i) => {
+        gsap.fromTo(
+          box,
+          { opacity: 0, x: i % 2 === 0 ? -50 : 50 },
+          {
+            opacity: 1,
+            x: 0,
+            scrollTrigger: {
+              trigger: box,
+              start: 'top 85%',
+              end: 'top 40%',
+              scrub: true,
+            },
           }
-        }
-      },
-    })
-  }, { scope: mainRef })
+        )
+      })
+    },
+    { scope: mainRef }
+  )
 
   return (
     <SmoothScroll>
@@ -91,7 +95,6 @@ export default function App() {
         className="main-wrapper"
         style={{ ...mainWrapperStyle, minHeight: `${narrativeSteps.length * 120}vh` }}
       >
-        
         {/* Background Marsala Profundo com Vinheta */}
         <div style={vignetteStyle} />
 
@@ -128,5 +131,5 @@ const vignetteStyle = {
   height: '100vh',
   background: 'radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(20,2,4,1) 90%)',
   zIndex: 1,
-  pointerEvents: 'none'
+  pointerEvents: 'none',
 }
