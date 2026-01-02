@@ -1,7 +1,6 @@
-import React, { Suspense, useRef } from 'react'
+import React, { Suspense, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { Center, Environment, ContactShadows, Float } from '@react-three/drei'
-import * as THREE from 'three'
+import { Environment, ContactShadows } from '@react-three/drei'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
@@ -13,28 +12,106 @@ gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 export default function App() {
   const mainRef = useRef()
+  const contentRef = useRef()
+  const [activeStep, setActiveStep] = useState(0)
+  const activeStepRef = useRef(0)
+
+  const narrativeSteps = [
+    {
+      number: '01',
+      title: 'Pastita.',
+      subtitle: 'A massa perfeita pra quem quer facilidade sem abrir mão do sabor.',
+      details: ['Rondellis artesanais, recheios generosos e molhos que abraçam a massa.'],
+      cta: 'Quero experimentar',
+    },
+    {
+      number: '02',
+      title: 'Produto em cena.',
+      subtitle: 'Rondellis artesanais, prontos pra impressionar.',
+      details: [
+        'Massa leve e macia.',
+        'Recheio de verdade.',
+        'Molhos que finalizam o prato. É só montar, aquecer e servir.',
+      ],
+    },
+    {
+      number: '03',
+      title: 'Movimento que abre apetite.',
+      subtitle: 'Como se os rondellis estivessem sendo servidos direto na travessa.',
+      details: [
+        'Entrada de cima pra baixo, como se estivessem chegando direto na travessa.',
+        'Leve gravidade, rotação suave, impacto delicado.',
+      ],
+    },
+    {
+      number: '04',
+      title: 'Cozinhar bem não precisa ser complicado.',
+      subtitle: 'A Pastita resolve isso pra você.',
+      details: [
+        'Você não precisa passar horas na cozinha.',
+        'Pra hoje. Pra família. Pra impressionar.',
+        'Almoço em família, jantar especial, visita de última hora.',
+      ],
+    },
+    {
+      number: '05',
+      title: 'Seu prato principal começa aqui.',
+      subtitle: 'Nada industrial. Nada sem graça.',
+      details: ['✔️ Receita pensada', '✔️ Produção cuidadosa', '✔️ Sabor consistente'],
+      cta: 'Peça agora',
+    },
+  ]
 
   useGSAP(() => {
-    // Animação refinada: Texto surge com fade e um leve movimento lateral
-    gsap.utils.toArray('.content-box').forEach((box, i) => {
-      gsap.fromTo(box, 
-        { opacity: 0, x: i % 2 === 0 ? -50 : 50 },
-        { 
-          opacity: 1, x: 0, 
-          scrollTrigger: {
-            trigger: box,
-            start: "top 85%",
-            end: "top 40%",
-            scrub: true
-          }
+    const segment = 1 / narrativeSteps.length
+    const copyDelay = segment * 0.15
+    const card = contentRef.current
+    const setOpacity = gsap.quickSetter(card, 'opacity')
+    const setY = gsap.quickSetter(card, 'y', 'px')
+    const setScale = gsap.quickSetter(card, 'scale')
+
+    gsap.set(card, { opacity: 0, y: 40, scale: 0.96 })
+
+    ScrollTrigger.create({
+      trigger: mainRef.current,
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: true,
+      onUpdate: (self) => {
+        const progress = self.progress
+        const currentSegment = Math.min(
+          narrativeSteps.length - 1,
+          Math.floor(progress / segment)
+        )
+        const segmentStart = currentSegment * segment
+        const segmentEnd = segmentStart + segment
+        const localProgress = gsap.utils.mapRange(segmentStart, segmentEnd, 0, 1, progress)
+        const eased = gsap.parseEase('power2.out')(localProgress)
+
+        setOpacity(gsap.utils.interpolate(0.2, 1, eased))
+        setY(gsap.utils.interpolate(60, 0, eased))
+        setScale(gsap.utils.interpolate(0.94, 1, eased))
+
+        const delayedIndex = Math.min(
+          narrativeSteps.length - 1,
+          Math.floor(Math.max(0, progress - copyDelay) / segment)
+        )
+
+        if (delayedIndex !== activeStepRef.current) {
+          activeStepRef.current = delayedIndex
+          setActiveStep(delayedIndex)
         }
-      )
+      },
     })
   }, { scope: mainRef })
 
   return (
     <SmoothScroll>
-      <div ref={mainRef} className="main-wrapper" style={mainWrapperStyle}>
+      <div
+        ref={mainRef}
+        className="main-wrapper"
+        style={{ ...mainWrapperStyle, minHeight: `${narrativeSteps.length * 120}vh` }}
+      >
         
         {/* Background Marsala Profundo com Vinheta */}
         <div style={vignetteStyle} />
@@ -60,39 +137,22 @@ export default function App() {
 
         {/* Interface Editorial */}
         <div style={{ position: 'relative', zIndex: 2 }}>
-          
-          <section style={sectionStyle}>
-            <div className="content-box" style={cardStyle}>
-              <span style={numberStyle}>01</span>
-              <h1 style={titleStyle}>PUREZA</h1>
-              <p style={subtitleStyle}>Massa de sêmola de trigo duro. Simples e autêntica.</p>
+          <div style={storyLayerStyle}>
+            <div ref={contentRef} className="content-box" style={cardStyle}>
+              <span style={numberStyle}>{narrativeSteps[activeStep].number}</span>
+              <h1 style={titleStyle}>{narrativeSteps[activeStep].title}</h1>
+              <p style={subtitleStyle}>{narrativeSteps[activeStep].subtitle}</p>
+              {narrativeSteps[activeStep].details?.map((text) => (
+                <p key={text} style={detailStyle}>{text}</p>
+              ))}
+              {narrativeSteps[activeStep].cta && (
+                <button style={btnStyle}>{narrativeSteps[activeStep].cta}</button>
+              )}
             </div>
-          </section>
-
-          <section style={sectionStyle}>
-            <div className="content-box" style={{ ...cardStyle, marginLeft: 'auto', borderLeft: 'none', borderRight: '2px solid #d4af37', textAlign: 'right' }}>
-              <span style={numberStyle}>02</span>
-              <h1 style={titleStyle}>O CORTE</h1>
-              <p style={subtitleStyle}>Rondellis moldados para a retenção perfeita do molho.</p>
-            </div>
-          </section>
-
-          <section style={sectionStyle}>
-            <div className="content-box" style={cardStyle}>
-              <span style={numberStyle}>03</span>
-              <h1 style={titleStyle}>ARTESANAL</h1>
-              <p style={subtitleStyle}>Produção em pequenos lotes para garantir o frescor.</p>
-            </div>
-          </section>
-
-          <section style={finalSectionStyle}>
-            <div className="content-box" style={{ textAlign: 'center' }}>
-              <h1 style={{ ...titleStyle, fontSize: 'clamp(3rem, 15vw, 10rem)' }}>PASTITA</h1>
-              <p style={{ ...subtitleStyle, margin: '0 auto' }}>12 Unidades. Prontas para sua experiência.</p>
-              <button style={btnStyle}>RESERVAR AGORA</button>
-            </div>
-          </section>
-
+          </div>
+          {narrativeSteps.map((step) => (
+            <section key={step.number} style={sectionStyle} aria-hidden="true" />
+          ))}
         </div>
       </div>
     </SmoothScroll>
@@ -129,6 +189,18 @@ const canvasContainerStyle = {
 
 const sectionStyle = {
   height: '120vh', // Mais espaço entre seções para menos poluição
+  display: 'flex',
+  alignItems: 'center',
+  padding: '0 10%',
+  pointerEvents: 'none',
+}
+
+const storyLayerStyle = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100vh',
   display: 'flex',
   alignItems: 'center',
   padding: '0 10%',
@@ -172,12 +244,14 @@ const subtitleStyle = {
   maxWidth: '350px'
 }
 
-const finalSectionStyle = {
-  height: '100vh',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  pointerEvents: 'none'
+const detailStyle = {
+  fontSize: '1rem',
+  color: '#ffffff',
+  opacity: 0.85,
+  marginTop: '0.75rem',
+  fontFamily: 'serif',
+  lineHeight: '1.5',
+  maxWidth: '350px'
 }
 
 const btnStyle = {
