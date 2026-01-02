@@ -16,6 +16,51 @@ gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 export default function App() {
   const mainRef = useRef()
+  const contentRef = useRef()
+  const [activeStep, setActiveStep] = useState(0)
+  const activeStepRef = useRef(0)
+
+  const narrativeSteps = [
+    {
+      number: '01',
+      title: 'Pastita.',
+      subtitle: 'A massa perfeita pra quem quer facilidade sem abrir mão do sabor.',
+      details: ['Rondellis artesanais, recheios generosos e molhos que abraçam a massa.'],
+    },
+    {
+      number: '02',
+      title: 'Sem complicar.',
+      subtitle: 'Cozinhar bem não precisa ser complicado.',
+      details: [
+        'Você não precisa passar horas na cozinha.',
+        'Nem errar ponto de massa ou fazer mil preparos.',
+        'A Pastita resolve isso pra você.',
+      ],
+    },
+    {
+      number: '03',
+      title: 'O produto aparece.',
+      subtitle: 'Rondellis artesanais, prontos pra impressionar.',
+      details: [
+        'Massa leve e macia.',
+        'Recheio de verdade.',
+        'Molhos que finalizam o prato. É só montar, aquecer e servir.',
+      ],
+    },
+    {
+      number: '04',
+      title: 'Pra hoje. Pra família. Pra impressionar.',
+      subtitle: 'Pastita se adapta ao seu momento.',
+      details: ['Almoço em família.', 'Jantar especial.', 'Visita de última hora.'],
+    },
+    {
+      number: '05',
+      title: 'Seu prato principal começa aqui.',
+      subtitle: 'Nada industrial. Nada sem graça. Só receita pensada, produção cuidadosa e sabor consistente.',
+      details: ['👉 Peça agora'],
+      cta: 'Peça agora',
+    },
+  ]
 
   useGSAP(() => {
     // Animação refinada: Texto surge com fade e um leve movimento lateral
@@ -31,13 +76,17 @@ export default function App() {
             scrub: true
           }
         }
-      )
+      },
     })
   }, { scope: mainRef })
 
   return (
     <SmoothScroll>
-      <div ref={mainRef} className="main-wrapper" style={mainWrapperStyle}>
+      <div
+        ref={mainRef}
+        className="main-wrapper"
+        style={{ ...mainWrapperStyle, minHeight: `${narrativeSteps.length * 120}vh` }}
+      >
         
         {/* Background Marsala Profundo com Vinheta */}
         <div style={vignetteStyle} />
