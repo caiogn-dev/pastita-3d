@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useLayoutEffect } from 'react' // <--- Importado corretamente agora
+import React, { useRef, useMemo, useLayoutEffect } from 'react'
 import { useGLTF, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import gsap from 'gsap'
@@ -19,29 +19,20 @@ export default function SceneContent({ url, textureUrl }) {
   const gridData = useMemo(() => {
     const data = []
     for (let i = 0; i < 12; i++) {
-      const finalX = (i % 3 - 1) * 0.25
-      const finalY = (Math.floor(i / 3) - 1.5) * 0.25
-      const finalZ = 0.15
-      const rotationVariance = () => (Math.random() - 0.5) * 0.4
+      const randomTilt = (Math.random() - 0.5) * 0.8
       data.push({
         id: i,
         // Posição final no grid dentro da caixa
-        finalX,
-        finalY,
-        finalZ,
-        startX: finalX + (Math.random() - 0.5) * 0.05,
-        startY: 3 + Math.random() * 1.5,
-        startZ: finalZ + (Math.random() - 0.5) * 0.05,
-        startRotation: {
-          x: rotationVariance(),
-          y: rotationVariance(),
-          z: rotationVariance()
-        },
-        endRotation: {
-          x: Math.PI / 2,
-          y: rotationVariance() * 0.5,
-          z: rotationVariance() * 0.5
-        },
+        finalX: (i % 3 - 1) * 0.25, 
+        finalY: (Math.floor(i / 3) - 1.5) * 0.25,
+        startX: (Math.random() - 0.5) * 1.6,
+        startY: 3 + Math.random() * 2,
+        startZ: 0.6 + Math.random() * 0.6,
+        startRotation: [
+          Math.PI / 2 + randomTilt,
+          (Math.random() - 0.5) * 0.8,
+          (Math.random() - 0.5) * 0.8
+        ],
         delay: i * 0.08 // Delay para caírem um por um
       })
     }
@@ -78,34 +69,32 @@ export default function SceneContent({ url, textureUrl }) {
       x: 0.3 
     }, 0)
 
-    // 2. Animação dos 12 Rondellis (queda vertical com gravidade e amortecimento)
+    // 2. Animação dos 12 Rondellis (caindo de cima para a travessa)
     gridData.forEach((item, i) => {
       const el = rondellisRef.current[i]
       if (!el) return
 
-      // Queda com sensação de gravidade
       tl.to(el.position, {
         x: item.finalX,
-        y: item.finalY + 0.25,
-        z: item.finalZ,
+        y: item.finalY + 0.15,
+        z: 0.2,
         ease: "power2.in",
-        duration: 1
-      }, item.delay)
+        duration: 0.9
+      }, 0.4 + item.delay)
 
-      // Amortecimento leve no pouso
       tl.to(el.position, {
-        y: item.finalY + 0.2,
-        ease: "bounce.out",
-        duration: 0.35
-      }, item.delay + 0.85)
+        y: item.finalY,
+        ease: "power2.out",
+        duration: 0.25
+      }, 1.3 + item.delay)
 
       tl.to(el.rotation, {
-        x: item.endRotation.x,
-        y: item.endRotation.y,
-        z: item.endRotation.z,
-        ease: "power2.out",
-        duration: 1
-      }, item.delay)
+        x: Math.PI / 2,
+        y: 0,
+        z: 0,
+        duration: 0.9,
+        ease: "power2.out"
+      }, 0.4 + item.delay)
     })
 
   }, [gridData, ROTAÇÃO_INICIAL_Y])
@@ -121,7 +110,7 @@ export default function SceneContent({ url, textureUrl }) {
           key={item.id} 
           ref={el => rondellisRef.current[i] = el}
           position={[item.startX, item.startY, item.startZ]}
-          rotation={[item.startRotation.x, item.startRotation.y, item.startRotation.z]}
+          rotation={item.startRotation}
         >
           <cylinderGeometry args={[0.12, 0.12, 0.08, 32]} />
           <meshStandardMaterial color="#d4af37" roughness={0.3} metalness={0.6} />
