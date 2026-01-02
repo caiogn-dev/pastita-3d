@@ -16,7 +16,10 @@ export default function RondelliFallAnimation() {
         <rectAreaLight width={5} height={5} intensity={5} position={[0, 5, -5]} color="#d4af37" />
 
         <Suspense fallback={null}>
-          <SceneContent url="/embalagem.glb" textureUrl="/design.png" />
+          <SceneContent
+            url={`${import.meta.env.BASE_URL}embalagem.glb`}
+            textureUrl={`${import.meta.env.BASE_URL}design.png`}
+          />
         </Suspense>
 
         <ContactShadows position={[0, -2.5, 0]} opacity={0.5} scale={20} blur={3} far={4.5} />

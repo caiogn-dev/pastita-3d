@@ -11,13 +11,16 @@ import WhyPastita from './components/WhyPastita'
 import UsageMoments from './components/UsageMoments'
 import SauceSection from './components/SauceSection'
 import FinalCTA from './components/FinalCTA'
+import SocialProof from './components/SocialProof'
+import PreparationSteps from './components/PreparationSteps'
+import CombosSection from './components/CombosSection'
+import StickyNarrative from './components/StickyNarrative'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 export default function App() {
   const mainRef = useRef(null)
   const [activeStep, setActiveStep] = useState(0)
-  const activeStepRef = useRef(0)
 
   const narrativeSteps = [
     {
@@ -26,42 +29,68 @@ export default function App() {
       subtitle: 'A massa perfeita pra quem quer facilidade sem abrir mão do sabor.',
       details: ['Rondellis artesanais, recheios generosos e molhos que abraçam a massa.'],
       cta: 'Quero experimentar',
+      ctaLink: '#pedido'
     },
     {
       number: '02',
-      title: 'Produto em cena.',
-      subtitle: 'Rondellis artesanais, prontos pra impressionar.',
+      title: 'Rondellis artesanais, prontos pra impressionar.',
+      subtitle: 'Massa leve e macia. Recheio de verdade.',
       details: [
-        'Massa leve e macia.',
-        'Recheio de verdade.',
-        'Molhos que finalizam o prato. É só montar, aquecer e servir.',
+        'Molhos que finalizam o prato.',
+        'É só montar, aquecer e servir.',
       ],
     },
     {
       number: '03',
-      title: 'Movimento que abre apetite.',
-      subtitle: 'Como se os rondellis estivessem sendo servidos direto na travessa.',
-      details: [
-        'Entrada de cima pra baixo, como se estivessem chegando direto na travessa.',
-        'Leve gravidade, rotação suave, impacto delicado.',
-      ],
-    },
-    {
-      number: '04',
       title: 'Cozinhar bem não precisa ser complicado.',
       subtitle: 'A Pastita resolve isso pra você.',
       details: [
         'Você não precisa passar horas na cozinha.',
-        'Pra hoje. Pra família. Pra impressionar.',
-        'Almoço em família, jantar especial, visita de última hora.',
+        'Nem errar ponto de massa.',
+        'Nem fazer mil preparos.',
+      ],
+    },
+    {
+      number: '04',
+      title: 'Pra hoje. Pra família. Pra impressionar.',
+      subtitle: 'Pastita se adapta ao seu momento.',
+      details: [
+        'Almoço em família.',
+        'Jantar especial.',
+        'Visita de última hora.',
       ],
     },
     {
       number: '05',
-      title: 'Seu prato principal começa aqui.',
-      subtitle: 'Nada industrial. Nada sem graça.',
+      title: 'Combinações que fazem o prato brilhar.',
+      subtitle: 'Escolha o molho ideal pro momento.',
+      details: ['Pomodoro rústico.', 'Creme de queijo.', 'Molho da casa.'],
+    },
+    {
+      number: '06',
+      title: 'Quem prova, pede de novo.',
+      subtitle: 'O sabor Pastita já virou escolha rápida pra muita gente.',
+      details: ['+1.200 pratos servidos.', '98% voltariam a comprar.', '4,9★ avaliação média.'],
+    },
+    {
+      number: '07',
+      title: 'Modo Pastita: rápido e sem erro.',
+      subtitle: 'É só montar, aquecer e servir.',
+      details: ['20 minutos do forno à mesa.', 'Rende 2 a 3 porções.', 'Sem complicação.'],
+    },
+    {
+      number: '08',
+      title: 'Nada industrial. Nada sem graça.',
+      subtitle: 'Receita pensada, produção cuidadosa, sabor consistente.',
       details: ['✔️ Receita pensada', '✔️ Produção cuidadosa', '✔️ Sabor consistente'],
+    },
+    {
+      number: '09',
+      title: 'Seu prato principal começa aqui.',
+      subtitle: 'Seu próximo almoço com cara de ocasião começa com Pastita.',
+      details: ['Prato principal pronto em minutos.'],
       cta: 'Peça agora',
+      ctaLink: '#pedido'
     },
   ]
 
@@ -84,6 +113,18 @@ export default function App() {
           }
         )
       })
+
+      // narrativa sincronizada
+      gsap.utils.toArray('section[data-step]').forEach((section) => {
+        const stepIndex = Number(section.dataset.step)
+        ScrollTrigger.create({
+          trigger: section,
+          start: 'top 55%',
+          end: 'bottom 45%',
+          onEnter: () => setActiveStep(stepIndex),
+          onEnterBack: () => setActiveStep(stepIndex),
+        })
+      })
     },
     { scope: mainRef }
   )
@@ -103,10 +144,14 @@ export default function App() {
 
         {/* Interface Editorial */}
         <div style={{ position: 'relative', zIndex: 2 }}>
+          <StickyNarrative steps={narrativeSteps} activeStep={activeStep} />
           <HeroPastita />
           <ProductDescription />
           <WhyPastita />
           <UsageMoments />
+          <CombosSection />
+          <SocialProof />
+          <PreparationSteps />
           <SauceSection />
           <FinalCTA />
         </div>
@@ -120,7 +165,6 @@ export default function App() {
 const mainWrapperStyle = {
   backgroundColor: '#140204', // Marsala mais fechado (quase preto)
   width: '100%',
-  minHeight: '640vh',
   position: 'relative',
 }
 

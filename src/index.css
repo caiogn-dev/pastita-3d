@@ -16,3 +16,14 @@ body {
 canvas {
   display: block;
 }
+
+.sticky-narrative {
+  transition: opacity 0.3s ease;
+}
+
+@media (max-width: 900px) {
+  .sticky-narrative {
+    opacity: 0;
+    pointer-events: none;
+  }
+}

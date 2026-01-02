@@ -1,0 +1,84 @@
+import React from 'react'
+
+export default function CombosSection() {
+  return (
+    <section style={sectionStyle} data-step="4">
+      <div className="content-block" style={cardStyle}>
+        <span style={numberStyle}>04</span>
+        <h2 style={titleStyle}>Combinações que fazem o prato brilhar.</h2>
+        <div style={comboGridStyle}>
+          <div style={comboStyle}>
+            <span style={comboTitleStyle}>Rondelli + Pomodoro rústico</span>
+            <span style={comboTextStyle}>Clássico, leve e confortável.</span>
+          </div>
+          <div style={comboStyle}>
+            <span style={comboTitleStyle}>Rondelli + Creme de queijo</span>
+            <span style={comboTextStyle}>Mais cremoso, perfeito pra impressionar.</span>
+          </div>
+          <div style={comboStyle}>
+            <span style={comboTitleStyle}>Rondelli + Molho da casa</span>
+            <span style={comboTextStyle}>Assinatura Pastita, sabor marcante.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const sectionStyle = {
+  minHeight: '110vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'flex-end',
+  padding: '0 10%',
+  pointerEvents: 'none'
+}
+
+const cardStyle = {
+  maxWidth: '520px',
+  padding: '2.3rem',
+  borderRight: '2px solid #d4af37',
+  textAlign: 'right',
+  pointerEvents: 'all'
+}
+
+const numberStyle = {
+  display: 'block',
+  fontSize: '0.9rem',
+  color: '#d4af37',
+  fontFamily: 'monospace',
+  letterSpacing: '5px'
+}
+
+const titleStyle = {
+  fontSize: 'clamp(2rem, 4.5vw, 3.4rem)',
+  color: '#f8f1e7',
+  margin: '1rem 0 1.2rem',
+  fontWeight: 600,
+  lineHeight: 1.1
+}
+
+const comboGridStyle = {
+  display: 'grid',
+  gap: '1rem',
+  marginTop: '1.5rem'
+}
+
+const comboStyle = {
+  border: '1px solid rgba(212, 175, 55, 0.35)',
+  padding: '1rem',
+  background: 'rgba(20, 2, 4, 0.35)'
+}
+
+const comboTitleStyle = {
+  display: 'block',
+  color: '#d4af37',
+  fontWeight: 600
+}
+
+const comboTextStyle = {
+  display: 'block',
+  color: '#ffffff',
+  opacity: 0.75,
+  marginTop: '0.4rem'
+}
