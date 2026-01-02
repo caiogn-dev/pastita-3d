@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useLayoutEffect } from 'react' // <--- Importado corretamente agora
+import React, { useRef, useMemo, useLayoutEffect } from 'react'
 import { useGLTF, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import gsap from 'gsap'
@@ -19,11 +19,20 @@ export default function SceneContent({ url, textureUrl }) {
   const gridData = useMemo(() => {
     const data = []
     for (let i = 0; i < 12; i++) {
+      const randomTilt = (Math.random() - 0.5) * 0.8
       data.push({
         id: i,
         // Posição final no grid dentro da caixa
         finalX: (i % 3 - 1) * 0.25, 
         finalY: (Math.floor(i / 3) - 1.5) * 0.25,
+        startX: (Math.random() - 0.5) * 1.6,
+        startY: 3 + Math.random() * 2,
+        startZ: 0.6 + Math.random() * 0.6,
+        startRotation: [
+          Math.PI / 2 + randomTilt,
+          (Math.random() - 0.5) * 0.8,
+          (Math.random() - 0.5) * 0.8
+        ],
         delay: i * 0.08 // Delay para caírem um por um
       })
     }
@@ -60,34 +69,32 @@ export default function SceneContent({ url, textureUrl }) {
       x: 0.3 
     }, 0)
 
-    // 2. Animação dos 12 Rondellis
+    // 2. Animação dos 12 Rondellis (caindo de cima para a travessa)
     gridData.forEach((item, i) => {
       const el = rondellisRef.current[i]
       if (!el) return
 
-      // Fase 1: Orbitando a caixa (Scroll inicial)
-      tl.to(el.position, {
-        x: Math.cos(i) * 3,
-        y: Math.sin(i) * 3,
-        z: 3,
-        duration: 1
-      }, 0)
-
-      // Fase 2: Caindo no Grid 3x4 (Scroll final)
       tl.to(el.position, {
         x: item.finalX,
-        y: item.finalY + 0.2, // Ajuste de altura na caixa
-        z: 0.1,
-        ease: "power2.inOut",
-        duration: 1
-      }, 1 + item.delay)
+        y: item.finalY + 0.15,
+        z: 0.2,
+        ease: "power2.in",
+        duration: 0.9
+      }, 0.4 + item.delay)
+
+      tl.to(el.position, {
+        y: item.finalY,
+        ease: "power2.out",
+        duration: 0.25
+      }, 1.3 + item.delay)
 
       tl.to(el.rotation, {
-        x: Math.PI / 2, // Ficam deitados no grid
+        x: Math.PI / 2,
         y: 0,
         z: 0,
-        duration: 1
-      }, 1 + item.delay)
+        duration: 0.9,
+        ease: "power2.out"
+      }, 0.4 + item.delay)
     })
 
   }, [gridData, ROTAÇÃO_INICIAL_Y])
@@ -102,7 +109,8 @@ export default function SceneContent({ url, textureUrl }) {
         <mesh 
           key={item.id} 
           ref={el => rondellisRef.current[i] = el}
-          position={[(Math.random() - 0.5) * 5, 5, -5]} // Começam espalhados fora da tela
+          position={[item.startX, item.startY, item.startZ]}
+          rotation={item.startRotation}
         >
           <cylinderGeometry args={[0.12, 0.12, 0.08, 32]} />
           <meshStandardMaterial color="#d4af37" roughness={0.3} metalness={0.6} />
