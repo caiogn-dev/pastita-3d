@@ -30,18 +30,20 @@ export default function StickyNarrative({ steps, activeStep }) {
 
 const wrapperStyle = {
   position: 'fixed',
-  top: '12%',
-  left: '7%',
+  top: '16%',
+  left: '6%',
   zIndex: 3,
-  width: 'min(420px, 85vw)',
+  width: 'min(480px, 90vw)',
   pointerEvents: 'none'
 }
 
 const cardStyle = {
-  background: 'rgba(20, 2, 4, 0.65)',
-  border: '1px solid rgba(212, 175, 55, 0.4)',
-  padding: '2rem',
-  backdropFilter: 'blur(8px)',
+  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04))',
+  border: '1px solid rgba(212, 175, 55, 0.35)',
+  padding: '2.4rem',
+  borderRadius: '22px',
+  boxShadow: '0 24px 60px rgba(0, 0, 0, 0.45)',
+  backdropFilter: 'blur(14px)',
   pointerEvents: 'auto'
 }
 
@@ -55,7 +57,7 @@ const numberStyle = {
 
 const titleStyle = {
   color: '#f8f1e7',
-  fontSize: 'clamp(1.6rem, 3vw, 2.3rem)',
+  fontSize: 'clamp(1.8rem, 3.2vw, 2.6rem)',
   margin: '0.8rem 0',
   fontWeight: 700,
   lineHeight: 1.15
@@ -63,7 +65,7 @@ const titleStyle = {
 
 const subtitleStyle = {
   color: '#ffffff',
-  opacity: 0.78,
+  opacity: 0.82,
   lineHeight: 1.6,
   marginBottom: '1rem'
 }
@@ -75,7 +77,7 @@ const listStyle = {
   display: 'grid',
   gap: '0.5rem',
   color: '#ffffff',
-  opacity: 0.8
+  opacity: 0.85
 }
 
 const listItemStyle = {
@@ -91,5 +93,7 @@ const ctaStyle = {
   fontWeight: 700,
   background: '#d4af37',
   color: '#140204',
-  textDecoration: 'none'
+  textDecoration: 'none',
+  borderRadius: '999px',
+  boxShadow: '0 12px 30px rgba(212, 175, 55, 0.35)'
 }

@@ -5,15 +5,6 @@ import { useGSAP } from '@gsap/react'
 
 import SmoothScroll from './components/SmoothScroll'
 import RondelliFallAnimation from './components/RondelliFallAnimation'
-import HeroPastita from './components/HeroPastita'
-import ProductDescription from './components/ProductDescription'
-import WhyPastita from './components/WhyPastita'
-import UsageMoments from './components/UsageMoments'
-import SauceSection from './components/SauceSection'
-import FinalCTA from './components/FinalCTA'
-import SocialProof from './components/SocialProof'
-import PreparationSteps from './components/PreparationSteps'
-import CombosSection from './components/CombosSection'
 import StickyNarrative from './components/StickyNarrative'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -96,24 +87,6 @@ export default function App() {
 
   useGSAP(
     () => {
-      // animação dos blocos de texto
-      gsap.utils.toArray('.content-block').forEach((box, i) => {
-        gsap.fromTo(
-          box,
-          { opacity: 0, x: i % 2 === 0 ? -50 : 50 },
-          {
-            opacity: 1,
-            x: 0,
-            scrollTrigger: {
-              trigger: box,
-              start: 'top 85%',
-              end: 'top 40%',
-              scrub: true,
-            },
-          }
-        )
-      })
-
       // narrativa sincronizada
       gsap.utils.toArray('section[data-step]').forEach((section) => {
         const stepIndex = Number(section.dataset.step)
@@ -145,15 +118,14 @@ export default function App() {
         {/* Interface Editorial */}
         <div style={{ position: 'relative', zIndex: 2 }}>
           <StickyNarrative steps={narrativeSteps} activeStep={activeStep} />
-          <HeroPastita />
-          <ProductDescription />
-          <WhyPastita />
-          <UsageMoments />
-          <CombosSection />
-          <SocialProof />
-          <PreparationSteps />
-          <SauceSection />
-          <FinalCTA />
+          {narrativeSteps.map((step, index) => (
+            <section
+              key={step.number}
+              data-step={index}
+              style={narrativeSectionStyle}
+              aria-hidden="true"
+            />
+          ))}
         </div>
       </div>
     </SmoothScroll>
@@ -175,5 +147,10 @@ const vignetteStyle = {
   height: '100vh',
   background: 'radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(20,2,4,1) 90%)',
   zIndex: 1,
+  pointerEvents: 'none',
+}
+
+const narrativeSectionStyle = {
+  minHeight: '115vh',
   pointerEvents: 'none',
 }
