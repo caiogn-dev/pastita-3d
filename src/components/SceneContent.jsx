@@ -7,6 +7,7 @@ import { useGSAP } from '@gsap/react'
 export default function SceneContent({ url, textureUrl }) {
   const boxRef = useRef()
   const rondellisRef = useRef([])
+  const sceneGroupRef = useRef()
   const { scene } = useGLTF(url)
   const texture = useTexture(textureUrl)
   
@@ -110,14 +111,14 @@ export default function SceneContent({ url, textureUrl }) {
   }, [gridData, ROTAÇÃO_INICIAL_Y])
 
   return (
-    <>
+    <group ref={sceneGroupRef} position={[1.4, -0.2, 0]}>
       <group ref={boxRef} rotation={[0, ROTAÇÃO_INICIAL_Y, 0]}>
         <primitive object={scene} scale={5} />
       </group>
 
       {gridData.map((item, i) => (
-        <mesh 
-          key={item.id} 
+        <mesh
+          key={item.id}
           ref={el => rondellisRef.current[i] = el}
           position={[item.startX, item.startY, item.startZ]}
           rotation={item.startRotation}
@@ -126,6 +127,6 @@ export default function SceneContent({ url, textureUrl }) {
           <meshStandardMaterial color="#d4af37" roughness={0.3} metalness={0.6} />
         </mesh>
       ))}
-    </>
+    </group>
   )
 }

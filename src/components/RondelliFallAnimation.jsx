@@ -6,8 +6,8 @@ import SceneContent from './SceneContent'
 
 export default function RondelliFallAnimation() {
   return (
-    <div style={canvasContainerStyle}>
-      <Canvas camera={{ position: [0, 0, 8], fov: 35 }}>
+    <div className="canvas-frame" style={canvasContainerStyle}>
+      <Canvas camera={{ position: [-0.6, 0, 8], fov: 35 }}>
         <Environment preset="city" />
 
         <ambientLight intensity={0.3} />
@@ -22,7 +22,7 @@ export default function RondelliFallAnimation() {
           />
         </Suspense>
 
-        <ContactShadows position={[0, -2.5, 0]} opacity={0.5} scale={20} blur={3} far={4.5} />
+        <ContactShadows position={[1.4, -2.5, 0]} opacity={0.5} scale={18} blur={3} far={4.5} />
       </Canvas>
     </div>
   )
@@ -31,8 +31,9 @@ export default function RondelliFallAnimation() {
 const canvasContainerStyle = {
   position: 'fixed',
   top: 0,
-  left: 0,
-  width: '100%',
+  right: 0,
+  width: 'min(60vw, 980px)',
   height: '100vh',
-  zIndex: 0
+  zIndex: 0,
+  pointerEvents: 'none',
 }
