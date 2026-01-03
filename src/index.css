@@ -21,9 +21,17 @@ canvas {
   transition: opacity 0.3s ease;
 }
 
+.canvas-frame {
+  transition: width 0.4s ease;
+}
+
 @media (max-width: 900px) {
   .sticky-narrative {
     opacity: 0;
     pointer-events: none;
+  }
+
+  .canvas-frame {
+    width: 100% !important;
   }
 }
