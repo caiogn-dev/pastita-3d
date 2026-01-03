@@ -11,6 +11,7 @@ gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 export default function App() {
   const mainRef = useRef(null)
+  const narrativeCardRef = useRef(null)
   const [activeStep, setActiveStep] = useState(0)
 
   const narrativeSteps = [
@@ -92,10 +93,24 @@ export default function App() {
         const stepIndex = Number(section.dataset.step)
         ScrollTrigger.create({
           trigger: section,
-          start: 'top 55%',
-          end: 'bottom 45%',
-          onEnter: () => setActiveStep(stepIndex),
-          onEnterBack: () => setActiveStep(stepIndex),
+          start: 'top 40%',
+          end: 'bottom 35%',
+          onEnter: () => {
+            setActiveStep(stepIndex)
+            gsap.fromTo(
+              narrativeCardRef.current,
+              { opacity: 0, y: 12 },
+              { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }
+            )
+          },
+          onEnterBack: () => {
+            setActiveStep(stepIndex)
+            gsap.fromTo(
+              narrativeCardRef.current,
+              { opacity: 0, y: 12 },
+              { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }
+            )
+          },
         })
       })
     },
@@ -117,7 +132,11 @@ export default function App() {
 
         {/* Interface Editorial */}
         <div style={{ position: 'relative', zIndex: 2 }}>
-          <StickyNarrative steps={narrativeSteps} activeStep={activeStep} />
+          <StickyNarrative
+            steps={narrativeSteps}
+            activeStep={activeStep}
+            cardRef={narrativeCardRef}
+          />
           {narrativeSteps.map((step, index) => (
             <section
               key={step.number}
