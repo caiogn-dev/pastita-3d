@@ -6,7 +6,7 @@ import SceneContent from './SceneContent'
 
 export default function RondelliFallAnimation() {
   return (
-    <div className="canvas-frame" style={canvasContainerStyle}>
+    <div className="canvas-frame">
       <Canvas camera={{ position: [-0.6, 0, 8], fov: 35 }}>
         <Environment preset="city" />
 
@@ -28,12 +28,3 @@ export default function RondelliFallAnimation() {
   )
 }
 
-const canvasContainerStyle = {
-  position: 'fixed',
-  top: 0,
-  right: 0,
-  width: 'min(60vw, 980px)',
-  height: '100vh',
-  zIndex: 0,
-  pointerEvents: 'none',
-}
