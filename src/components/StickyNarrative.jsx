@@ -1,11 +1,11 @@
 import React from 'react'
 
-export default function StickyNarrative({ steps, activeStep }) {
+export default function StickyNarrative({ steps, activeStep, cardRef }) {
   const step = steps[activeStep] ?? steps[0]
 
   return (
     <aside className="sticky-narrative" style={wrapperStyle} aria-live="polite">
-      <div style={cardStyle}>
+      <div ref={cardRef} className="sticky-narrative-card" style={cardStyle}>
         <span style={numberStyle}>{step.number}</span>
         <h2 style={titleStyle}>{step.title}</h2>
         <p style={subtitleStyle}>{step.subtitle}</p>
@@ -44,7 +44,10 @@ const cardStyle = {
   borderRadius: '22px',
   boxShadow: '0 24px 60px rgba(0, 0, 0, 0.45)',
   backdropFilter: 'blur(14px)',
-  pointerEvents: 'auto'
+  pointerEvents: 'auto',
+  opacity: 0,
+  transform: 'translateY(12px)',
+  transition: 'opacity 0.45s ease, transform 0.45s ease'
 }
 
 const numberStyle = {
