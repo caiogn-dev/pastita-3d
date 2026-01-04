@@ -66,6 +66,7 @@ function App() {
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/cardapio" element={<Cardapio />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/registro" element={<Register />} />
                 
@@ -76,7 +77,6 @@ function App() {
                 
                 {/* Protected Routes - Require Authentication */}
                 <Route element={<PrivateRoute />}>
-                  <Route path="/cardapio" element={<Cardapio />} />
                   <Route path="/checkout" element={<CheckoutPage />} />
                 </Route>
 
