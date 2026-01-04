@@ -4,7 +4,7 @@ import api from '../services/api';
 import { useCart } from '../context/CartContext';
 import CartSidebar from '../components/CartSidebar'; // Importe a Sidebar
 
-const MenuPage = () => {
+const Cardapio = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const { addToCart, cartCount, toggleCart } = useCart();
@@ -87,4 +87,4 @@ const MenuPage = () => {
   );
 };
 
-export default Menu;
+export default Cardapio;

@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import LandingPage from './pages/LandingPage';
-import Menu from './pages/Menu';
+import Cardapio from './pages/Cardapio';
 import CheckoutPage from './pages/CheckoutPage'; // Importe aqui
 
 function App() {
@@ -11,7 +11,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/cardapio" element={<Menu />} />
+          <Route path="/cardapio" element={<Cardapio />} />
           <Route path="/checkout" element={<CheckoutPage />} /> {/* Nova Rota */}
         </Routes>
       </Router>
