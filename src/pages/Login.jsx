@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn } = useAuth();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Get the page user was trying to access, default to cardapio
+  const from = location.state?.from?.pathname || '/cardapio';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,7 +21,8 @@ const Login = () => {
     const result = await signIn(formData.username, formData.password);
     
     if (result.success) {
-      navigate('/checkout'); // Redireciona para o checkout após logar
+      // Redirect to the page they were trying to access, or cardapio
+      navigate(from, { replace: true });
     } else {
       setError(result.error || 'Usuário ou senha inválidos');
     }
