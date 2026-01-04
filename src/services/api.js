@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API base URL - uses environment variable or defaults to localhost for development
-const API_BASE_URL = 'https://web-production-3e83a.up.railway.app';
+const API_BASE_URL = 'https://web-production-3e83a.up.railway.app/api';
 
 // Create axios instance with base configuration
 const api = axios.create({
