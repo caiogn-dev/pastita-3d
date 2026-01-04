@@ -1,29 +1,30 @@
-import React from 'react'
-
-export default function StickyNarrative({ steps, activeStep, cardRef }) {
-  const step = steps[activeStep] ?? steps[0]
+const StickyNarrative = ({ steps, activeStep, cardRef }) => {
+  const step = steps[activeStep];
+  if (!step) return null;
 
   return (
-    <aside className="sticky-narrative" aria-live="polite">
+    <div className="sticky-narrative">
       <div ref={cardRef} className="sticky-narrative-card">
         <span className="sn-number">{step.number}</span>
         <h2 className="sn-title">{step.title}</h2>
         <p className="sn-subtitle">{step.subtitle}</p>
-        {step.details?.length ? (
+        
+        {step.details && (
           <ul className="sn-list">
-            {step.details.map((item) => (
-              <li key={item} className="sn-list-item">
-                {item}
-              </li>
+            {step.details.map((detail, i) => (
+              <li key={i} className="sn-list-item">{detail}</li>
             ))}
           </ul>
-        ) : null}
-        {step.cta ? (
-          <a href={step.ctaLink || '#pedido'} className="sn-cta">
+        )}
+
+        {step.cta && (
+          <a href={step.ctaLink} className="sn-cta">
             {step.cta}
           </a>
-        ) : null}
+        )}
       </div>
-    </aside>
-  )
-}
+    </div>
+  );
+};
+
+export default StickyNarrative;
