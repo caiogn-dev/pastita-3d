@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API base URL - uses environment variable or defaults to localhost for development
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = 'https://web-production-3e83a.up.railway.app';
 
 // Create axios instance with base configuration
 const api = axios.create({
