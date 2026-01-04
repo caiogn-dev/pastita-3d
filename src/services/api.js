@@ -1,17 +1,20 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // Verifique se essa URL está correta e sem / final extra
+  // Verifique se a URL está exata (sem barra extra no final se não precisar)
   baseURL: 'https://web-production-3e83a.up.railway.app/api',
 });
 
-// Injeta o Token em todas as requisições se ele existir
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
+  
+  // DEBUG: Veja no console do navegador se o token está sendo impresso
+  console.log("Token sendo enviado:", token); 
+
   if (token) {
-    // Mudei para Bearer, que é o padrão para JWT/DRF moderno.
-    // Se der erro 401, mude de volta para `Token ${token}`
-    config.headers.Authorization = `Bearer ${token}`;
+    // VOLTE PARA 'Token' AQUI. 
+    // O Django padrão espera "Authorization: Token abc123..."
+    config.headers.Authorization = `Token ${token}`; 
   }
   return config;
 });
