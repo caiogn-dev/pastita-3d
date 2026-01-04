@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import api from '../services/api'; // Sua instância do Axios configurada
+import api from '../services/api';
 
 const CheckoutPage = () => {
-  const { cart, cartTotal } = useCart();
+  const { cart, cartTotal, clearCart } = useCart(); // Pegando clearCart
   const [formData, setFormData] = useState({ name: '', email: '', cpf: '', address: '' });
-  const [loading, setLoading] = useState(false); // Estado de carregamento
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -15,19 +15,29 @@ const CheckoutPage = () => {
     setLoading(true);
 
     try {
-      // Envia os dados para o seu backend Django
-      const response = await api.post('/create-preference/', {
-        items: cart,
-        buyer: formData
+      // 1. Envia APENAS os dados do comprador. O backend pega os itens do banco.
+      // Endpoint alterado para /checkout/create_checkout/
+      const response = await api.post('/checkout/create_checkout/', {
+        buyer: {
+            name: formData.name,
+            email: formData.email,
+            cpf: formData.cpf, // Importante para o MP
+            address: formData.address
+        }
       });
 
-      // Redireciona o usuário para o Mercado Pago
-      const paymentLink = response.data.init_point; // Use sandbox_init_point se estiver testando
+      // 2. Limpa o carrinho local para evitar conflito se o usuário voltar
+      clearCart();
+
+      // 3. Redireciona para o Mercado Pago
+      const paymentLink = response.data.init_point;
       window.location.href = paymentLink;
       
     } catch (error) {
       console.error("Erro ao gerar pagamento:", error);
-      alert("Erro ao conectar com o pagamento. Tente novamente.");
+      // Tratamento de erro melhorado
+      const errorMsg = error.response?.data?.error || "Erro ao conectar com o pagamento.";
+      alert(errorMsg);
       setLoading(false);
     }
   };
@@ -75,7 +85,7 @@ const CheckoutPage = () => {
           ))}
           <div style={{ borderTop: '2px dashed #eee', margin: '20px 0' }}></div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--color-marsala)' }}>
-            <span>Total</span>
+            <span>Total Estimado</span>
             <span>R$ {cartTotal.toFixed(2)}</span>
           </div>
         </div>

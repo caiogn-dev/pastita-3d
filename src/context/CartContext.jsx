@@ -4,7 +4,7 @@ const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false); // Novo estado
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const toggleCart = () => setIsCartOpen(!isCartOpen);
 
@@ -18,7 +18,7 @@ export const CartProvider = ({ children }) => {
       }
       return [...prev, { ...product, quantity: 1 }];
     });
-    setIsCartOpen(true); // Abre o carrinho automaticamente ao adicionar
+    setIsCartOpen(true);
   };
 
   const removeFromCart = (id) => {
@@ -34,6 +34,11 @@ export const CartProvider = ({ children }) => {
     }));
   };
 
+  // NOVA FUNÇÃO: Limpa o carrinho visualmente
+  const clearCart = () => {
+    setCart([]);
+  };
+
   const cartTotal = cart.reduce((acc, item) => acc + (Number(item.price) * item.quantity), 0);
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -43,6 +48,7 @@ export const CartProvider = ({ children }) => {
       addToCart, 
       removeFromCart, 
       updateQuantity,
+      clearCart, // Exportando a nova função
       cartTotal, 
       cartCount,
       isCartOpen,

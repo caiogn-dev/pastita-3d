@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // URL da sua API no Railway
+  // Verifique se essa URL está correta e sem / final extra
   baseURL: 'https://web-production-3e83a.up.railway.app/api',
 });
 
@@ -9,7 +9,9 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
-    config.headers.Authorization = `Token ${token}`;
+    // Mudei para Bearer, que é o padrão para JWT/DRF moderno.
+    // Se der erro 401, mude de volta para `Token ${token}`
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
