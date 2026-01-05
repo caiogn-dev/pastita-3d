@@ -45,6 +45,13 @@ const formatCEP = (value) => {
   return `${numbers.slice(0, 5)}-${numbers.slice(5)}`;
 };
 
+const formatCardNumber = (value) => {
+  const numbers = value.replace(/\D/g, '').slice(0, 19);
+  return numbers.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+};
+
+const onlyDigits = (value) => value.replace(/\D/g, '');
+
 // Brazilian states
 const BRAZILIAN_STATES = [
   { value: 'AC', label: 'Acre' }, { value: 'AL', label: 'Alagoas' },
@@ -63,9 +70,12 @@ const BRAZILIAN_STATES = [
   { value: 'TO', label: 'Tocantins' }
 ];
 
+const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
+
 const CheckoutPage = () => {
   const { cart, cartTotal, clearCart } = useCart();
   const { profile, updateProfile } = useAuth();
+  const mpPublicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY;
   
   const [formData, setFormData] = useState({
     name: '',
@@ -78,12 +88,29 @@ const CheckoutPage = () => {
     zip_code: ''
   });
   
+  const [paymentMethod, setPaymentMethod] = useState('pix');
+  const [cardPaymentType, setCardPaymentType] = useState('credit_card');
+  const [cardData, setCardData] = useState({
+    number: '',
+    holder: '',
+    expMonth: '',
+    expYear: '',
+    cvv: '',
+    installments: '1'
+  });
+  const [cashMethod, setCashMethod] = useState('bolbradesco');
+  const [paymentResult, setPaymentResult] = useState(null);
+  const [paymentError, setPaymentError] = useState('');
+  const [mpReady, setMpReady] = useState(false);
+  const [mpInstance, setMpInstance] = useState(null);
+
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [loadingCEP, setLoadingCEP] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [useNewAddress, setUseNewAddress] = useState(true);
   const [saveAddress, setSaveAddress] = useState(true);
+  const isCardReady = paymentMethod !== 'card' || (mpReady && mpPublicKey);
 
   // Load user profile and previous orders on mount
   useEffect(() => {
@@ -137,6 +164,38 @@ const CheckoutPage = () => {
     loadUserData();
   }, [profile]);
 
+  useEffect(() => {
+    if (!mpPublicKey) {
+      return;
+    }
+
+    if (window.MercadoPago) {
+      const instance = new window.MercadoPago(mpPublicKey, { locale: 'pt-BR' });
+      setMpInstance(instance);
+      setMpReady(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://sdk.mercadopago.com/js/v2';
+    script.async = true;
+    script.onload = () => {
+      if (window.MercadoPago) {
+        const instance = new window.MercadoPago(mpPublicKey, { locale: 'pt-BR' });
+        setMpInstance(instance);
+        setMpReady(true);
+      }
+    };
+    script.onerror = () => {
+      setMpReady(false);
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      script.remove();
+    };
+  }, [mpPublicKey]);
+
   // Handle form field changes with formatting
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -153,6 +212,94 @@ const CheckoutPage = () => {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const handleCardChange = (e) => {
+    const { name, value } = e.target;
+    let formattedValue = value;
+
+    if (name === 'number') {
+      formattedValue = formatCardNumber(value);
+    } else if (name === 'expMonth') {
+      formattedValue = onlyDigits(value).slice(0, 2);
+    } else if (name === 'expYear') {
+      formattedValue = onlyDigits(value).slice(0, 4);
+    } else if (name === 'cvv') {
+      formattedValue = onlyDigits(value).slice(0, 4);
+    } else if (name === 'installments') {
+      formattedValue = onlyDigits(value).slice(0, 2);
+    }
+
+    setCardData(prev => ({ ...prev, [name]: formattedValue }));
+  };
+
+  const buildCardPaymentData = async () => {
+    if (!mpPublicKey) {
+      throw new Error('Public key do Mercado Pago nao configurada');
+    }
+    if (!mpInstance || !mpReady) {
+      throw new Error('SDK do Mercado Pago nao carregado');
+    }
+
+    const cardNumber = onlyDigits(cardData.number);
+    const cardholderName = cardData.holder.trim();
+    const expMonth = onlyDigits(cardData.expMonth);
+    const expYearRaw = onlyDigits(cardData.expYear);
+    const expYear = expYearRaw.length === 4 ? expYearRaw.slice(-2) : expYearRaw;
+    const securityCode = onlyDigits(cardData.cvv);
+
+    if (!cardNumber || cardNumber.length < 13) {
+      throw new Error('Numero do cartao invalido');
+    }
+    if (!cardholderName) {
+      throw new Error('Nome impresso no cartao obrigatorio');
+    }
+    if (!expMonth || !expYear) {
+      throw new Error('Validade do cartao invalida');
+    }
+    if (!securityCode) {
+      throw new Error('Codigo de seguranca invalido');
+    }
+
+    const bin = cardNumber.slice(0, 6);
+    const paymentMethodResponse = await mpInstance.getPaymentMethods({ bin });
+    const paymentMethodId = paymentMethodResponse?.results?.[0]?.id;
+
+    if (!paymentMethodId) {
+      throw new Error('Nao foi possivel identificar a bandeira do cartao');
+    }
+
+    let issuerId;
+    try {
+      const issuerResponse = await mpInstance.getIssuers({ paymentMethodId, bin });
+      issuerId = issuerResponse?.results?.[0]?.id;
+    } catch (error) {
+      issuerId = undefined;
+    }
+
+    const tokenResponse = await mpInstance.createCardToken({
+      cardNumber,
+      cardholderName,
+      cardExpirationMonth: expMonth,
+      cardExpirationYear: expYear,
+      securityCode,
+      identificationType: 'CPF',
+      identificationNumber: onlyDigits(formData.cpf),
+    });
+
+    const tokenId = tokenResponse?.id || tokenResponse?.token;
+    if (!tokenId) {
+      throw new Error('Nao foi possivel gerar o token do cartao');
+    }
+
+    return {
+      method: cardPaymentType,
+      payment_method_id: paymentMethodId,
+      token: tokenId,
+      issuer_id: issuerId,
+      installments: Number(cardData.installments) || 1
+    };
+  };
   };
 
   // Fetch address from CEP (ViaCEP API)
@@ -239,6 +386,8 @@ const CheckoutPage = () => {
     }
 
     setLoading(true);
+    setPaymentError('');
+    setPaymentResult(null);
 
     try {
       // Save address to profile if requested
@@ -253,6 +402,15 @@ const CheckoutPage = () => {
         });
       }
 
+      let paymentPayload = null;
+      if (paymentMethod === 'pix') {
+        paymentPayload = { method: 'pix' };
+      } else if (paymentMethod === 'cash') {
+        paymentPayload = { method: 'cash', payment_method_id: cashMethod };
+      } else if (paymentMethod === 'card') {
+        paymentPayload = await buildCardPaymentData();
+      }
+
       // Create checkout with all required fields
       const response = await api.post('/checkout/create_checkout/', {
         buyer: {
@@ -264,20 +422,52 @@ const CheckoutPage = () => {
           city: formData.city,
           state: formData.state,
           zip_code: formData.zip_code.replace(/\D/g, '')
-        }
+        },
+        payment: paymentPayload
       });
 
       // Clear local cart
       clearCart();
 
-      // Redirect to Mercado Pago
+      const payment = response.data.payment;
+      const orderNumber = response.data.order_number;
+
+      if (payment) {
+        const paymentTypeId = payment.payment_type_id;
+        const paymentStatus = payment.status;
+
+        setPaymentResult({
+          ...payment,
+          order_number: orderNumber
+        });
+
+        if (paymentTypeId === 'pix' || paymentTypeId === 'ticket') {
+          setLoading(false);
+          return;
+        }
+
+        if (paymentStatus === 'approved') {
+          window.location.href = `/sucesso?order=${orderNumber}`;
+          return;
+        }
+
+        if (paymentStatus === 'rejected') {
+          const errorCode = payment.status_detail || '';
+          window.location.href = `/erro?order=${orderNumber}&error=${errorCode}`;
+          return;
+        }
+
+        window.location.href = `/pendente?order=${orderNumber}`;
+        return;
+      }
+
+      // Redirect to Mercado Pago (fallback)
       const paymentLink = response.data.init_point || response.data.sandbox_init_point;
       if (paymentLink) {
         window.location.href = paymentLink;
       } else {
-        throw new Error('Link de pagamento não recebido');
+        throw new Error('Link de pagamento nao recebido');
       }
-      
     } catch (error) {
       console.error("Erro ao gerar pagamento:", error);
       
@@ -290,7 +480,7 @@ const CheckoutPage = () => {
         setErrors(backendErrors);
       } else {
         const errorMsg = error.response?.data?.error || "Erro ao processar pagamento. Tente novamente.";
-        alert(errorMsg);
+        setPaymentError(errorMsg);
       }
       setLoading(false);
     }
@@ -318,6 +508,68 @@ const CheckoutPage = () => {
           <h1 style={{ color: 'var(--color-marsala)', marginTop: '15px', marginBottom: '5px' }}>Finalizar Pedido</h1>
           <p style={{ color: '#666', margin: 0 }}>Confirme seus dados para prosseguir com o pagamento</p>
         </div>
+
+        {paymentError && (
+          <div style={alertStyle}>
+            {paymentError}
+          </div>
+        )}
+
+        {paymentResult && (
+          <div style={paymentInfoStyle}>
+            <div style={paymentHeaderStyle}>
+              <h3 style={{ margin: 0 }}>Pagamento criado</h3>
+              <span style={paymentStatusBadgeStyle}>{paymentResult.status}</span>
+            </div>
+            <p style={{ margin: '10px 0 0 0', color: '#555' }}>
+              Pedido: <strong>{paymentResult.order_number}</strong>
+            </p>
+
+            {paymentResult.payment_type_id === 'pix' && (
+              <div style={paymentDetailBlockStyle}>
+                <p style={{ margin: '0 0 10px 0' }}>
+                  Escaneie o QR Code ou copie o codigo PIX.
+                </p>
+                {paymentResult.qr_code_base64 && (
+                  <img
+                    src={`data:image/png;base64,${paymentResult.qr_code_base64}`}
+                    alt="QR Code PIX"
+                    style={qrImageStyle}
+                  />
+                )}
+                {paymentResult.qr_code && (
+                  <textarea
+                    readOnly
+                    value={paymentResult.qr_code}
+                    style={qrTextStyle}
+                  />
+                )}
+              </div>
+            )}
+
+            {paymentResult.payment_type_id === 'ticket' && paymentResult.ticket_url && (
+              <div style={paymentDetailBlockStyle}>
+                <p style={{ margin: '0 0 10px 0' }}>
+                  Seu boleto foi gerado. Abra para pagar.
+                </p>
+                <a
+                  href={paymentResult.ticket_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={ticketLinkStyle}
+                >
+                  Abrir boleto
+                </a>
+              </div>
+            )}
+
+            <div style={{ marginTop: '12px' }}>
+              <Link to={`/pendente?order=${paymentResult.order_number}`} style={pendingLinkStyle}>
+                Acompanhar status do pagamento
+              </Link>
+            </div>
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '40px' }}>
           
@@ -486,6 +738,174 @@ const CheckoutPage = () => {
                   </div>
                 </div>
 
+                {/* Payment Section */}
+                <h4 style={{ color: '#333', marginBottom: '15px', paddingTop: '15px', borderTop: '1px solid #eee' }}>
+                  Pagamento
+                </h4>
+
+                <div style={paymentMethodGridStyle}>
+                  <label style={paymentOptionStyle}>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethod === 'pix'}
+                      onChange={() => setPaymentMethod('pix')}
+                      style={{ marginTop: '3px' }}
+                    />
+                    <div>
+                      <div style={paymentOptionLabelStyle}>PIX</div>
+                      <div style={paymentOptionHintStyle}>Aprovacao rapida, QR Code apos confirmar.</div>
+                    </div>
+                  </label>
+                  <label style={paymentOptionStyle}>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethod === 'cash'}
+                      onChange={() => setPaymentMethod('cash')}
+                      style={{ marginTop: '3px' }}
+                    />
+                    <div>
+                      <div style={paymentOptionLabelStyle}>Boleto</div>
+                      <div style={paymentOptionHintStyle}>Pagamento em ate 3 dias uteis.</div>
+                    </div>
+                  </label>
+                  <label style={paymentOptionStyle}>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethod === 'card'}
+                      onChange={() => setPaymentMethod('card')}
+                      style={{ marginTop: '3px' }}
+                    />
+                    <div>
+                      <div style={paymentOptionLabelStyle}>Cartao</div>
+                      <div style={paymentOptionHintStyle}>Credito ou debito com tokenizacao.</div>
+                    </div>
+                  </label>
+                </div>
+
+                {paymentMethod === 'pix' && (
+                  <div style={paymentNoteStyle}>
+                    O QR Code sera exibido apos confirmar o pedido.
+                  </div>
+                )}
+
+                {paymentMethod === 'cash' && (
+                  <div style={paymentNoteStyle}>
+                    <label style={labelStyle}>Metodo de boleto</label>
+                    <select
+                      name="cashMethod"
+                      value={cashMethod}
+                      onChange={(event) => setCashMethod(event.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="bolbradesco">Boleto (Bradesco)</option>
+                    </select>
+                  </div>
+                )}
+
+                {paymentMethod === 'card' && (
+                  <div style={paymentCardBlockStyle}>
+                    {!mpPublicKey && (
+                      <div style={mpWarningStyle}>
+                        Public key do Mercado Pago nao configurada.
+                      </div>
+                    )}
+                    {mpPublicKey && !mpReady && (
+                      <div style={mpWarningStyle}>
+                        Carregando SDK do Mercado Pago...
+                      </div>
+                    )}
+                    <div style={{ marginBottom: '12px' }}>
+                      <label style={labelStyle}>Tipo do cartao</label>
+                      <select
+                        name="cardPaymentType"
+                        value={cardPaymentType}
+                        onChange={(event) => setCardPaymentType(event.target.value)}
+                        style={inputStyle}
+                      >
+                        <option value="credit_card">Credito</option>
+                        <option value="debit_card">Debito</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={labelStyle}>Numero do cartao</label>
+                      <input
+                        type="text"
+                        name="number"
+                        value={cardData.number}
+                        onChange={handleCardChange}
+                        placeholder="0000 0000 0000 0000"
+                        style={inputStyle}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={labelStyle}>Nome no cartao</label>
+                      <input
+                        type="text"
+                        name="holder"
+                        value={cardData.holder}
+                        onChange={handleCardChange}
+                        placeholder="Nome impresso"
+                        style={inputStyle}
+                      />
+                    </div>
+
+                    <div style={paymentFieldGridStyle}>
+                      <div>
+                        <label style={labelStyle}>Mes</label>
+                        <input
+                          type="text"
+                          name="expMonth"
+                          value={cardData.expMonth}
+                          onChange={handleCardChange}
+                          placeholder="MM"
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Ano</label>
+                        <input
+                          type="text"
+                          name="expYear"
+                          value={cardData.expYear}
+                          onChange={handleCardChange}
+                          placeholder="AA"
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>CVV</label>
+                        <input
+                          type="text"
+                          name="cvv"
+                          value={cardData.cvv}
+                          onChange={handleCardChange}
+                          placeholder="123"
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '12px' }}>
+                      <label style={labelStyle}>Parcelas</label>
+                      <select
+                        name="installments"
+                        value={cardData.installments}
+                        onChange={handleCardChange}
+                        style={inputStyle}
+                      >
+                        {INSTALLMENT_OPTIONS.map((option) => (
+                          <option key={option} value={option}>{option}x</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
                 {/* Save Address Checkbox */}
                 <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '20px', cursor: 'pointer' }}>
                   <input 
@@ -501,7 +921,7 @@ const CheckoutPage = () => {
                 <button 
                   type="submit" 
                   className="btn-primary" 
-                  disabled={loading}
+                  disabled={loading || !isCardReady}
                   style={{ 
                     marginTop: '25px', 
                     width: '100%', 
@@ -511,7 +931,13 @@ const CheckoutPage = () => {
                     cursor: loading ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  {loading ? 'PROCESSANDO...' : 'PAGAR COM MERCADO PAGO'}
+                  {loading
+                    ? 'PROCESSANDO...'
+                    : paymentMethod === 'pix'
+                      ? 'GERAR PIX'
+                      : paymentMethod === 'cash'
+                        ? 'GERAR BOLETO'
+                        : 'PAGAR COM CARTAO'}
                 </button>
               </form>
             </div>
@@ -595,6 +1021,144 @@ const errorStyle = {
   marginTop: '4px',
   fontSize: '0.8rem',
   color: '#dc2626'
+};
+
+const alertStyle = {
+  backgroundColor: '#fee2e2',
+  color: '#b91c1c',
+  padding: '12px 16px',
+  borderRadius: '10px',
+  marginBottom: '20px',
+  border: '1px solid #fecaca'
+};
+
+const paymentInfoStyle = {
+  backgroundColor: '#fff',
+  border: '1px solid #eee',
+  padding: '20px',
+  borderRadius: '14px',
+  marginBottom: '20px'
+};
+
+const paymentHeaderStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center'
+};
+
+const paymentStatusBadgeStyle = {
+  backgroundColor: '#fef3c7',
+  color: '#92400e',
+  padding: '4px 10px',
+  borderRadius: '999px',
+  fontSize: '0.8rem',
+  fontWeight: '600',
+  textTransform: 'capitalize'
+};
+
+const paymentDetailBlockStyle = {
+  marginTop: '12px',
+  backgroundColor: '#f9fafb',
+  padding: '12px',
+  borderRadius: '10px',
+  border: '1px solid #eee'
+};
+
+const qrImageStyle = {
+  width: '200px',
+  height: '200px',
+  display: 'block',
+  margin: '10px 0'
+};
+
+const qrTextStyle = {
+  width: '100%',
+  minHeight: '90px',
+  resize: 'vertical',
+  padding: '10px',
+  borderRadius: '8px',
+  border: '1px solid #ddd',
+  fontFamily: 'monospace',
+  fontSize: '0.85rem'
+};
+
+const ticketLinkStyle = {
+  display: 'inline-block',
+  padding: '10px 16px',
+  borderRadius: '8px',
+  backgroundColor: 'var(--color-marsala)',
+  color: '#fff',
+  textDecoration: 'none',
+  fontWeight: '600'
+};
+
+const pendingLinkStyle = {
+  color: 'var(--color-marsala)',
+  textDecoration: 'none',
+  fontWeight: '600'
+};
+
+const paymentMethodGridStyle = {
+  display: 'grid',
+  gap: '12px',
+  marginBottom: '12px'
+};
+
+const paymentOptionStyle = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: '10px',
+  padding: '12px',
+  border: '1px solid #eee',
+  borderRadius: '10px',
+  cursor: 'pointer',
+  backgroundColor: '#fafafa'
+};
+
+const paymentOptionLabelStyle = {
+  fontSize: '0.95rem',
+  fontWeight: '600',
+  color: '#333'
+};
+
+const paymentOptionHintStyle = {
+  fontSize: '0.85rem',
+  color: '#666',
+  marginTop: '4px'
+};
+
+const paymentNoteStyle = {
+  backgroundColor: '#f8fafc',
+  border: '1px dashed #ddd',
+  borderRadius: '10px',
+  padding: '12px',
+  marginBottom: '16px',
+  color: '#555',
+  fontSize: '0.9rem'
+};
+
+const paymentCardBlockStyle = {
+  display: 'grid',
+  gap: '12px',
+  backgroundColor: '#f9fafb',
+  border: '1px solid #eee',
+  borderRadius: '12px',
+  padding: '16px'
+};
+
+const paymentFieldGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, 1fr)',
+  gap: '12px'
+};
+
+const mpWarningStyle = {
+  backgroundColor: '#fff7ed',
+  border: '1px solid #fed7aa',
+  color: '#9a3412',
+  padding: '10px 12px',
+  borderRadius: '8px',
+  fontSize: '0.85rem'
 };
 
 export default CheckoutPage;
