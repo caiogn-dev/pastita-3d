@@ -6,6 +6,7 @@ const PaymentPending = () => {
   const [searchParams] = useSearchParams();
   const orderNumber = searchParams.get('order');
   const [orderDetails, setOrderDetails] = useState(null);
+  const [paymentInfo, setPaymentInfo] = useState(null);
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
@@ -14,6 +15,7 @@ const PaymentPending = () => {
         try {
           const response = await api.get(`/checkout/status/?order_number=${orderNumber}`);
           setOrderDetails(response.data);
+          setPaymentInfo(response.data.payment || null);
         } catch (error) {
           console.error('Error fetching order details:', error);
         }
@@ -28,6 +30,7 @@ const PaymentPending = () => {
     try {
       const response = await api.get(`/checkout/status/?order_number=${orderNumber}`);
       setOrderDetails(response.data);
+      setPaymentInfo(response.data.payment || null);
       
       if (response.data.payment_status === 'completed') {
         window.location.href = `/sucesso?order=${orderNumber}`;
@@ -72,6 +75,57 @@ const PaymentPending = () => {
               <span>Total:</span>
               <span style={priceStyle}>R$ {orderDetails.total_amount?.toFixed(2)}</span>
             </div>
+          </div>
+        )}
+
+        {paymentInfo?.payment_type_id === 'pix' && (
+          <div style={pixBoxStyle}>
+            <h3 style={pixTitleStyle}>PIX pronto para pagamento</h3>
+            <p style={pixSubtitleStyle}>Escaneie o QR Code ou copie o codigo abaixo.</p>
+            {paymentInfo.qr_code_base64 && (
+              <img
+                src={`data:image/png;base64,${paymentInfo.qr_code_base64}`}
+                alt="QR Code PIX"
+                style={pixImageStyle}
+              />
+            )}
+            {paymentInfo.qr_code && (
+              <textarea
+                readOnly
+                value={paymentInfo.qr_code}
+                style={pixCodeStyle}
+              />
+            )}
+          </div>
+        )}
+
+        {paymentInfo?.payment_type_id === 'ticket' && paymentInfo.ticket_url && (
+          <div style={pixBoxStyle}>
+            <h3 style={pixTitleStyle}>Boleto gerado</h3>
+            <p style={pixSubtitleStyle}>Abra o boleto para concluir o pagamento.</p>
+            <a
+              href={paymentInfo.ticket_url}
+              target="_blank"
+              rel="noreferrer"
+              style={ticketButtonStyle}
+            >
+              Abrir boleto
+            </a>
+          </div>
+        )}
+
+        {!paymentInfo?.payment_type_id && orderDetails?.payment_link && (
+          <div style={pixBoxStyle}>
+            <h3 style={pixTitleStyle}>Link de pagamento</h3>
+            <p style={pixSubtitleStyle}>Abra o link para concluir o pagamento.</p>
+            <a
+              href={orderDetails.payment_link}
+              target="_blank"
+              rel="noreferrer"
+              style={ticketButtonStyle}
+            >
+              Abrir pagamento
+            </a>
           </div>
         )}
 
@@ -231,6 +285,56 @@ const infoListStyle = {
   color: '#0369a1',
   fontSize: '0.9rem',
   lineHeight: '1.8',
+};
+
+const pixBoxStyle = {
+  backgroundColor: '#fff7ed',
+  borderRadius: '12px',
+  padding: '20px',
+  marginBottom: '24px',
+  border: '1px solid #fed7aa',
+  textAlign: 'left',
+};
+
+const pixTitleStyle = {
+  fontSize: '1rem',
+  color: '#9a3412',
+  marginTop: 0,
+  marginBottom: '10px',
+};
+
+const pixSubtitleStyle = {
+  fontSize: '0.9rem',
+  color: '#9a3412',
+  marginBottom: '12px',
+};
+
+const pixImageStyle = {
+  width: '200px',
+  height: '200px',
+  display: 'block',
+  marginBottom: '12px',
+};
+
+const pixCodeStyle = {
+  width: '100%',
+  minHeight: '80px',
+  padding: '10px',
+  borderRadius: '8px',
+  border: '1px solid #fdba74',
+  fontFamily: 'monospace',
+  fontSize: '0.85rem',
+  resize: 'vertical',
+};
+
+const ticketButtonStyle = {
+  display: 'inline-block',
+  padding: '10px 16px',
+  borderRadius: '8px',
+  backgroundColor: '#c2410c',
+  color: '#fff',
+  textDecoration: 'none',
+  fontWeight: '600',
 };
 
 const checkButtonStyle = {

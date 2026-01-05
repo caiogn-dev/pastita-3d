@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import './CheckoutPage.css';
 
 // Brazilian CPF validation
 const validateCPF = (cpf) => {
@@ -499,16 +500,16 @@ const CheckoutPage = () => {
   );
 
   return (
-    <div style={{ backgroundColor: 'var(--color-cream)', minHeight: '100vh', padding: '40px 20px' }}>
-      <div className="container" style={{ maxWidth: '1000px' }}>
+    <div className="checkout-page">
+      <div className="checkout-container">
         
         {/* Header */}
-        <div style={{ marginBottom: '30px' }}>
-          <Link to="/cardapio" style={{ color: '#666', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-             &larr; Voltar ao Cardápio
+        <div className="checkout-header">
+          <Link to="/cardapio" className="checkout-back-link">
+            &larr; Voltar ao Cardapio
           </Link>
-          <h1 style={{ color: 'var(--color-marsala)', marginTop: '15px', marginBottom: '5px' }}>Finalizar Pedido</h1>
-          <p style={{ color: '#666', margin: 0 }}>Confirme seus dados para prosseguir com o pagamento</p>
+          <h1>Finalizar Pedido</h1>
+          <p>Confirme seus dados para prosseguir com o pagamento</p>
         </div>
 
         {paymentError && (
@@ -573,7 +574,7 @@ const CheckoutPage = () => {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '40px' }}>
+        <div className="checkout-grid">
           
           {/* Form Section */}
           <div>
@@ -608,8 +609,8 @@ const CheckoutPage = () => {
             )}
 
             {/* Main Form */}
-            <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '16px', border: '1px solid #eee' }}>
-              <h3 style={{ color: 'var(--color-marsala)', marginTop: 0, marginBottom: '25px' }}>Dados de Entrega</h3>
+            <div className="checkout-card checkout-form-card">
+              <h3 className="checkout-section-title">Dados de Entrega</h3>
               
               <form onSubmit={handleSubmit}>
                 {/* Personal Info */}
@@ -947,10 +948,8 @@ const CheckoutPage = () => {
 
           {/* Order Summary */}
           <div>
-            <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '16px', border: '1px solid #eee', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', position: 'sticky', top: '20px' }}>
-              <h3 style={{ marginTop: 0, marginBottom: '20px', color: 'var(--color-marsala)' }}>
-                Resumo do Pedido
-              </h3>
+            <div className="checkout-card checkout-summary-card">
+              <h3 className="checkout-section-title">Resumo do Pedido</h3>
               
               {cart.map(item => (
                 <div key={item.id} style={{ display: 'flex', gap: '15px', marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #f5f5f5' }}>
