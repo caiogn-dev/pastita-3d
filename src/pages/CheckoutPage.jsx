@@ -235,10 +235,10 @@ const CheckoutPage = () => {
 
   const buildCardPaymentData = async () => {
     if (!mpPublicKey) {
-      throw new Error('Public key do Mercado Pago nao configurada');
+      throw new Error('Public key do Mercado Pago nÆo configurada');
     }
     if (!mpInstance || !mpReady) {
-      throw new Error('SDK do Mercado Pago nao carregado');
+      throw new Error('SDK do Mercado Pago nÆo carregado');
     }
 
     const cardNumber = onlyDigits(cardData.number);
@@ -249,16 +249,16 @@ const CheckoutPage = () => {
     const securityCode = onlyDigits(cardData.cvv);
 
     if (!cardNumber || cardNumber.length < 13) {
-      throw new Error('Numero do cartao invalido');
+      throw new Error('N£mero do cartÆo inv lido');
     }
     if (!cardholderName) {
-      throw new Error('Nome impresso no cartao obrigatorio');
+      throw new Error('Nome impresso no cartÆo ‚ obrigat¢rio');
     }
     if (!expMonth || !expYear) {
-      throw new Error('Validade do cartao invalida');
+      throw new Error('Validade do cartÆo inv lida');
     }
     if (!securityCode) {
-      throw new Error('Codigo de seguranca invalido');
+      throw new Error('C¢digo de seguran‡a inv lido');
     }
 
     const bin = cardNumber.slice(0, 6);
@@ -266,11 +266,14 @@ const CheckoutPage = () => {
     const paymentMethodId = paymentMethodResponse?.results?.[0]?.id;
 
     if (!paymentMethodId) {
-      throw new Error('Nao foi possivel identificar a bandeira do cartao');
+      throw new Error('NÆo foi poss¡vel identificar a bandeira do cartÆo');
     }
 
     let issuerId;
     try {
+      if (paymentMethod === 'card' && !mpPublicKey) {
+        throw new Error('Public key do Mercado Pago nao configurada');
+      }
       const issuerResponse = await mpInstance.getIssuers({ paymentMethodId, bin });
       issuerId = issuerResponse?.results?.[0]?.id;
     } catch (error) {
@@ -289,7 +292,7 @@ const CheckoutPage = () => {
 
     const tokenId = tokenResponse?.id || tokenResponse?.token;
     if (!tokenId) {
-      throw new Error('Nao foi possivel gerar o token do cartao');
+      throw new Error('NÆo foi poss¡vel gerar o token do cartÆo');
     }
 
     return {
@@ -299,7 +302,6 @@ const CheckoutPage = () => {
       issuer_id: issuerId,
       installments: Number(cardData.installments) || 1
     };
-  };
   };
 
   // Fetch address from CEP (ViaCEP API)
