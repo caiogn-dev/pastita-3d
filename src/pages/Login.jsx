@@ -39,8 +39,8 @@ const Login = () => {
 
           {error && <div className="auth-error">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '20px' }}>
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#444' }}>E-mail ou celular</label>
             <input 
               type="text" 
@@ -80,10 +80,19 @@ const Login = () => {
           </div>
         </div>
 
-        <Link to="/" className="auth-back">← Voltar ao início</Link>
+        <Link to="/" className="auth-back">&lt; Voltar ao inicio</Link>
       </div>
     </div>
   );
 };
 
 export default Login;
+
+const inputStyle = {
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: "8px",
+  border: "1px solid #ddd",
+  fontSize: "1rem",
+  outline: "none"
+};

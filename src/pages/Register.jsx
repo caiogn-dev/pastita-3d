@@ -273,3 +273,27 @@ const Register = () => {
 };
 
 export default Register;
+
+const inputStyle = {
+  width: '100%',
+  padding: '12px 14px',
+  borderRadius: '8px',
+  border: '1px solid #ddd',
+  fontSize: '1rem',
+  outline: 'none'
+};
+
+const labelStyle = {
+  display: 'block',
+  marginBottom: '6px',
+  fontSize: '0.9rem',
+  fontWeight: '600',
+  color: '#444'
+};
+
+const errorStyle = {
+  display: 'block',
+  marginTop: '6px',
+  fontSize: '0.8rem',
+  color: '#dc2626'
+};
