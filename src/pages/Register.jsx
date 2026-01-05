@@ -147,8 +147,8 @@ const Register = () => {
 
           {errors.general && <div className="auth-error">{errors.general}</div>}
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
             <div>
               <label style={labelStyle}>Nome</label>
               <input 
@@ -261,11 +261,12 @@ const Register = () => {
             </button>
           </form>
 
-        <div style={{ marginTop: '25px', textAlign: 'center', fontSize: '0.9rem' }}>
-          Já tem conta? <Link to="/login" style={{ color: 'var(--color-marsala)', fontWeight: 'bold', textDecoration: 'none' }}>Faça login</Link>
-        </div>
+          <div style={{ marginTop: '25px', textAlign: 'center', fontSize: '0.9rem' }}>
+            Ja tem conta? <Link to="/login" style={{ color: 'var(--color-marsala)', fontWeight: 'bold', textDecoration: 'none' }}>Faca login</Link>
+          </div>
 
-        <Link to="/" className="auth-back">← Voltar ao início</Link>
+          <Link to="/" className="auth-back">&lt; Voltar ao inicio</Link>
+        </div>
       </div>
     </div>
   );
