@@ -137,21 +137,15 @@ const Register = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-cream)', padding: '20px' }}>
-      <div style={{ width: '100%', maxWidth: '450px', padding: '40px', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-        
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <h1 style={{ color: 'var(--color-marsala)', margin: 0 }}>PASTITA</h1>
-          </Link>
-          <p style={{ color: '#666', marginTop: '10px' }}>Crie sua conta para fazer pedidos</p>
-        </div>
-
-        {errors.general && (
-          <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem', textAlign: 'center' }}>
-            {errors.general}
+    <div className="auth-page">
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-header">
+            <Link to="/" className="auth-logo">PASTITA</Link>
+            <p>Crie sua conta para fazer pedidos</p>
           </div>
-        )}
+
+          {errors.general && <div className="auth-error">{errors.general}</div>}
 
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
@@ -258,47 +252,23 @@ const Register = () => {
             {errors.confirmPassword && <span style={errorStyle}>{errors.confirmPassword}</span>}
           </div>
 
-          <button 
-            type="submit" 
-            className="btn-primary" 
-            style={{ width: '100%', borderRadius: '8px', padding: '14px' }}
-            disabled={loading}
-          >
-            {loading ? 'Criando conta...' : 'CRIAR CONTA'}
-          </button>
-        </form>
+            <button 
+              type="submit" 
+              className="btn-primary auth-submit"
+              disabled={loading}
+            >
+              {loading ? 'Criando conta...' : 'CRIAR CONTA'}
+            </button>
+          </form>
 
         <div style={{ marginTop: '25px', textAlign: 'center', fontSize: '0.9rem' }}>
           Já tem conta? <Link to="/login" style={{ color: 'var(--color-marsala)', fontWeight: 'bold', textDecoration: 'none' }}>Faça login</Link>
         </div>
+
+        <Link to="/" className="auth-back">← Voltar ao início</Link>
       </div>
     </div>
   );
-};
-
-const inputStyle = {
-  width: '100%', 
-  padding: '12px', 
-  borderRadius: '8px', 
-  border: '1px solid #ddd', 
-  fontSize: '1rem', 
-  outline: 'none',
-  transition: 'border-color 0.2s'
-};
-
-const labelStyle = {
-  display: 'block', 
-  marginBottom: '6px', 
-  fontSize: '0.9rem', 
-  color: '#444',
-  fontWeight: '500'
-};
-
-const errorStyle = {
-  display: 'block',
-  marginTop: '4px',
-  fontSize: '0.8rem',
-  color: '#dc2626'
 };
 
 export default Register;
