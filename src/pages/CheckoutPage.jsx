@@ -436,6 +436,15 @@ const CheckoutPage = () => {
       const orderNumber = response.data.order_number;
 
       if (payment) {
+        try {
+          sessionStorage.setItem(
+            `mp_payment_${orderNumber}`,
+            JSON.stringify({ ...payment, order_number: orderNumber })
+          );
+        } catch (storageError) {
+          console.warn('Could not cache payment data', storageError);
+        }
+
         const paymentTypeId = payment.payment_type_id;
         const paymentStatus = payment.status;
 
@@ -1002,11 +1011,11 @@ const inputStyle = {
   width: '100%', 
   padding: '12px 15px', 
   borderRadius: '8px', 
-  border: '1px solid #ccc', 
+  border: '1px solid #e7ded5', 
   fontSize: '1rem', 
   outline: 'none', 
-  backgroundColor: '#fff',
-  transition: 'border-color 0.2s'
+  backgroundColor: '#fffaf6',
+  transition: 'border-color 0.2s, box-shadow 0.2s'
 };
 
 const labelStyle = {
@@ -1110,10 +1119,11 @@ const paymentOptionStyle = {
   alignItems: 'flex-start',
   gap: '10px',
   padding: '12px',
-  border: '1px solid #eee',
+  border: '1px solid #e7ded5',
   borderRadius: '10px',
   cursor: 'pointer',
-  backgroundColor: '#fafafa'
+  backgroundColor: '#fffaf6',
+  boxShadow: '0 6px 14px rgba(30, 20, 15, 0.06)'
 };
 
 const paymentOptionLabelStyle = {
@@ -1129,27 +1139,27 @@ const paymentOptionHintStyle = {
 };
 
 const paymentNoteStyle = {
-  backgroundColor: '#f8fafc',
-  border: '1px dashed #ddd',
+  backgroundColor: '#fff7ed',
+  border: '1px dashed #f1c89b',
   borderRadius: '10px',
   padding: '12px',
   marginBottom: '16px',
-  color: '#555',
+  color: '#7a3e12',
   fontSize: '0.9rem'
 };
 
 const paymentCardBlockStyle = {
   display: 'grid',
   gap: '12px',
-  backgroundColor: '#f9fafb',
-  border: '1px solid #eee',
+  backgroundColor: '#fffaf6',
+  border: '1px solid #ecdccc',
   borderRadius: '12px',
   padding: '16px'
 };
 
 const paymentFieldGridStyle = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(3, 1fr)',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))',
   gap: '12px'
 };
 

@@ -7,11 +7,22 @@ const PaymentPending = () => {
   const orderNumber = searchParams.get('order');
   const [orderDetails, setOrderDetails] = useState(null);
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const [cachedPayment, setCachedPayment] = useState(null);
   const [checking, setChecking] = useState(false);
+  const activePayment = paymentInfo || cachedPayment;
+  const isPendingStatus = orderDetails?.payment_status === 'pending';
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
       if (orderNumber) {
+        try {
+          const cached = sessionStorage.getItem(`mp_payment_${orderNumber}`);
+          if (cached) {
+            setCachedPayment(JSON.parse(cached));
+          }
+        } catch (storageError) {
+          setCachedPayment(null);
+        }
         try {
           const response = await api.get(`/checkout/status/?order_number=${orderNumber}`);
           setOrderDetails(response.data);
@@ -78,33 +89,33 @@ const PaymentPending = () => {
           </div>
         )}
 
-        {paymentInfo?.payment_type_id === 'pix' && (
+        {isPendingStatus && activePayment?.payment_type_id === 'pix' && (
           <div style={pixBoxStyle}>
             <h3 style={pixTitleStyle}>PIX pronto para pagamento</h3>
             <p style={pixSubtitleStyle}>Escaneie o QR Code ou copie o codigo abaixo.</p>
-            {paymentInfo.qr_code_base64 && (
+            {activePayment?.qr_code_base64 && (
               <img
-                src={`data:image/png;base64,${paymentInfo.qr_code_base64}`}
+                src={`data:image/png;base64,${activePayment.qr_code_base64}`}
                 alt="QR Code PIX"
                 style={pixImageStyle}
               />
             )}
-            {paymentInfo.qr_code && (
+            {activePayment?.qr_code && (
               <textarea
                 readOnly
-                value={paymentInfo.qr_code}
+                value={activePayment.qr_code}
                 style={pixCodeStyle}
               />
             )}
           </div>
         )}
 
-        {paymentInfo?.payment_type_id === 'ticket' && paymentInfo.ticket_url && (
+        {isPendingStatus && activePayment?.payment_type_id === 'ticket' && activePayment?.ticket_url && (
           <div style={pixBoxStyle}>
             <h3 style={pixTitleStyle}>Boleto gerado</h3>
             <p style={pixSubtitleStyle}>Abra o boleto para concluir o pagamento.</p>
             <a
-              href={paymentInfo.ticket_url}
+              href={activePayment.ticket_url}
               target="_blank"
               rel="noreferrer"
               style={ticketButtonStyle}
