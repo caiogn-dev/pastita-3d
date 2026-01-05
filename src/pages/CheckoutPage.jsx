@@ -447,14 +447,19 @@ const CheckoutPage = () => {
 
         const paymentTypeId = payment.payment_type_id;
         const paymentStatus = payment.status;
+        const isPixPayment = paymentTypeId === 'pix' ||
+          payment.payment_method_id === 'pix' ||
+          payment.qr_code_base64 ||
+          payment.qr_code;
+        const isTicketPayment = paymentTypeId === 'ticket' || payment.ticket_url;
 
         setPaymentResult({
           ...payment,
           order_number: orderNumber
         });
 
-        if (paymentTypeId === 'pix' || paymentTypeId === 'ticket') {
-          setLoading(false);
+        if (isPixPayment || isTicketPayment) {
+          window.location.href = `/pendente?order=${orderNumber}`;
           return;
         }
 
@@ -637,7 +642,7 @@ const CheckoutPage = () => {
                     {errors.name && <span style={errorStyle}>{errors.name}</span>}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  <div className="checkout-grid-two">
                     <div>
                       <label style={labelStyle}>E-mail *</label>
                       <input 
@@ -684,7 +689,7 @@ const CheckoutPage = () => {
                 </h4>
                 
                 <div style={{ display: 'grid', gap: '15px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '15px' }}>
+                  <div className="checkout-grid-cep">
                     <div>
                       <label style={labelStyle}>CEP *</label>
                       <div style={{ position: 'relative' }}>
@@ -719,7 +724,7 @@ const CheckoutPage = () => {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px' }}>
+                  <div className="checkout-grid-city">
                     <div>
                       <label style={labelStyle}>Cidade *</label>
                       <input 

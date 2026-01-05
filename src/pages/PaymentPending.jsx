@@ -10,7 +10,13 @@ const PaymentPending = () => {
   const [cachedPayment, setCachedPayment] = useState(null);
   const [checking, setChecking] = useState(false);
   const activePayment = paymentInfo || cachedPayment;
-  const isPendingStatus = orderDetails?.payment_status === 'pending';
+  const isPendingStatus = ['pending', 'processing'].includes(orderDetails?.payment_status);
+  const showPaymentDetails = isPendingStatus || !orderDetails?.payment_status;
+  const isPixPayment = activePayment?.payment_type_id === 'pix' ||
+    activePayment?.payment_method_id === 'pix' ||
+    activePayment?.qr_code_base64 ||
+    activePayment?.qr_code;
+  const isTicketPayment = activePayment?.payment_type_id === 'ticket' || activePayment?.ticket_url;
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
@@ -89,7 +95,7 @@ const PaymentPending = () => {
           </div>
         )}
 
-        {isPendingStatus && activePayment?.payment_type_id === 'pix' && (
+        {showPaymentDetails && isPixPayment && (
           <div style={pixBoxStyle}>
             <h3 style={pixTitleStyle}>PIX pronto para pagamento</h3>
             <p style={pixSubtitleStyle}>Escaneie o QR Code ou copie o codigo abaixo.</p>
@@ -110,7 +116,7 @@ const PaymentPending = () => {
           </div>
         )}
 
-        {isPendingStatus && activePayment?.payment_type_id === 'ticket' && activePayment?.ticket_url && (
+        {showPaymentDetails && isTicketPayment && (
           <div style={pixBoxStyle}>
             <h3 style={pixTitleStyle}>Boleto gerado</h3>
             <p style={pixSubtitleStyle}>Abra o boleto para concluir o pagamento.</p>

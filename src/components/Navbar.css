@@ -253,12 +253,24 @@
 }
 
 @media (max-width: 768px) {
+  .navbar-container {
+    position: relative;
+  }
+
+  .navbar-logo {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.35rem;
+  }
+
   .navbar-links {
     display: none;
   }
 
   .navbar-mobile-toggle {
     display: flex;
+    order: 1;
   }
 
   .navbar-mobile-menu {
@@ -271,6 +283,7 @@
 
   .navbar-cart-btn {
     padding: 10px 14px;
+    order: 3;
   }
 }
 
