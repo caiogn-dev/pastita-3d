@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 
@@ -9,6 +10,7 @@ const PaymentPending = () => {
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [cachedPayment, setCachedPayment] = useState(null);
   const [checking, setChecking] = useState(false);
+  const [pixCopied, setPixCopied] = useState(false);
   const activePayment = paymentInfo || cachedPayment;
   const isPendingStatus = ['pending', 'processing'].includes(orderDetails?.payment_status);
   const showPaymentDetails = isPendingStatus || !orderDetails?.payment_status;
@@ -60,6 +62,24 @@ const PaymentPending = () => {
     setChecking(false);
   };
 
+  const handleCopyPix = async () => {
+    if (!activePayment?.qr_code) {
+      return;
+    }
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(activePayment.qr_code);
+      } else {
+        window.prompt('Copie o codigo PIX:', activePayment.qr_code);
+      }
+      setPixCopied(true);
+      setTimeout(() => setPixCopied(false), 1500);
+    } catch (error) {
+      window.prompt('Copie o codigo PIX:', activePayment.qr_code);
+    }
+  };
+
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
@@ -107,42 +127,21 @@ const PaymentPending = () => {
               />
             )}
             {activePayment?.qr_code && (
-              <textarea
-                readOnly
-                value={activePayment.qr_code}
-                style={pixCodeStyle}
-              />
+              <div style={pixCodeRowStyle}>
+                <textarea
+                  readOnly
+                  value={activePayment.qr_code}
+                  style={pixCodeStyle}
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyPix}
+                  style={pixCopyButtonStyle}
+                >
+                  {pixCopied ? 'Copiado' : 'Copiar'}
+                </button>
+              </div>
             )}
-          </div>
-        )}
-
-        {showPaymentDetails && isTicketPayment && (
-          <div style={pixBoxStyle}>
-            <h3 style={pixTitleStyle}>Boleto gerado</h3>
-            <p style={pixSubtitleStyle}>Abra o boleto para concluir o pagamento.</p>
-            <a
-              href={activePayment.ticket_url}
-              target="_blank"
-              rel="noreferrer"
-              style={ticketButtonStyle}
-            >
-              Abrir boleto
-            </a>
-          </div>
-        )}
-
-        {!paymentInfo?.payment_type_id && orderDetails?.payment_link && (
-          <div style={pixBoxStyle}>
-            <h3 style={pixTitleStyle}>Link de pagamento</h3>
-            <p style={pixSubtitleStyle}>Abra o link para concluir o pagamento.</p>
-            <a
-              href={orderDetails.payment_link}
-              target="_blank"
-              rel="noreferrer"
-              style={ticketButtonStyle}
-            >
-              Abrir pagamento
-            </a>
           </div>
         )}
 
@@ -342,6 +341,26 @@ const pixCodeStyle = {
   fontFamily: 'monospace',
   fontSize: '0.85rem',
   resize: 'vertical',
+  flex: 1,
+};
+
+const pixCodeRowStyle = {
+  display: 'flex',
+  gap: '10px',
+  alignItems: 'stretch',
+  flexWrap: 'wrap',
+};
+
+const pixCopyButtonStyle = {
+  minWidth: '110px',
+  borderRadius: '8px',
+  border: 'none',
+  backgroundColor: '#9a3412',
+  color: '#fff',
+  fontWeight: '600',
+  padding: '10px 14px',
+  cursor: 'pointer',
+  alignSelf: 'flex-start',
 };
 
 const ticketButtonStyle = {
@@ -399,4 +418,3 @@ const secondaryButtonStyle = {
 };
 
 export default PaymentPending;
-
