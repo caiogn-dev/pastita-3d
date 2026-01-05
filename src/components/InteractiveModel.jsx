@@ -17,7 +17,7 @@ function Model() {
 export default function InteractiveModel() {
   return (
     <div className="model-container">
-      <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
+      <Canvas camera={{ position: [0, 0, 2], fov: 45 }}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[5, 5, 5]} intensity={1.2} />
         <Suspense fallback={null}>

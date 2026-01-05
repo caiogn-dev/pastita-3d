@@ -124,16 +124,28 @@ const Cardapio = () => {
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
-            <div className="cardapio-category">
-              <select
-                value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
+            <div className="cardapio-category-buttons" role="tablist" aria-label="Categorias">
+              <button
+                type="button"
+                className={`category-chip ${categoryFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setCategoryFilter('all')}
+                role="tab"
+                aria-selected={categoryFilter === 'all'}
               >
-                <option value="all">Todas as categorias</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
+                Todas
+              </button>
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  className={`category-chip ${categoryFilter === category ? 'active' : ''}`}
+                  onClick={() => setCategoryFilter(category)}
+                  role="tab"
+                  aria-selected={categoryFilter === category}
+                >
+                  {category}
+                </button>
+              ))}
             </div>
           </div>
           <div className="products-grid">

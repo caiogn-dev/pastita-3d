@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
@@ -7,10 +7,27 @@ import './Navbar.css';
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { cartCount, toggleCart } = useCart();
-  const { isAuthenticated, signOut, profile } = useAuth();
+  const { isAuthenticated, signOut, profile, user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path) => location.pathname === path;
+
+  const displayName = useMemo(() => {
+    const firstName = profile?.first_name?.trim();
+    const lastName = profile?.last_name?.trim();
+    const fullName = [firstName, lastName].filter(Boolean).join(' ');
+    const loginFirstName = user?.user?.first_name?.trim();
+    const loginLastName = user?.user?.last_name?.trim();
+    const loginFullName = [loginFirstName, loginLastName].filter(Boolean).join(' ');
+    return fullName
+      || loginFullName
+      || profile?.email
+      || profile?.phone
+      || user?.user?.email
+      || user?.user?.phone
+      || 'Usuario';
+  }, [profile, user]);
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -18,6 +35,11 @@ const Navbar = () => {
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
+  };
+
+  const handleMobileNavigate = (path) => {
+    closeMobileMenu();
+    navigate(path);
   };
 
   return (
@@ -46,7 +68,7 @@ const Navbar = () => {
           {isAuthenticated ? (
             <>
               <span className="navbar-user">
-                Ola, {profile?.first_name || 'Usuario'}
+                Olá, {displayName}
               </span>
               <button onClick={signOut} className="navbar-link navbar-logout">
                 Sair
@@ -92,24 +114,24 @@ const Navbar = () => {
       {/* Mobile Menu */}
       <div className={`navbar-mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
         <Link 
-          to="/" 
+          to="/"
           className={`navbar-mobile-link ${isActive('/') ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
           Inicio
         </Link>
-        <Link 
-          to="/cardapio" 
+        <button
+          type="button"
           className={`navbar-mobile-link ${isActive('/cardapio') ? 'active' : ''}`}
-          onClick={closeMobileMenu}
+          onClick={() => handleMobileNavigate('/cardapio')}
         >
           Cardapio
-        </Link>
+        </button>
         
         {isAuthenticated ? (
           <>
             <span className="navbar-mobile-user">
-              Ola, {profile?.first_name || 'Usuario'}
+              Ola, {displayName}
             </span>
             <button 
               onClick={() => { signOut(); closeMobileMenu(); }} 
@@ -120,20 +142,20 @@ const Navbar = () => {
           </>
         ) : (
           <>
-            <Link 
-              to="/login" 
+            <button
+              type="button"
               className={`navbar-mobile-link ${isActive('/login') ? 'active' : ''}`}
-              onClick={closeMobileMenu}
+              onClick={() => handleMobileNavigate('/login')}
             >
               Login
-            </Link>
-            <Link 
-              to="/registro" 
+            </button>
+            <button
+              type="button"
               className="navbar-mobile-link navbar-mobile-register"
-              onClick={closeMobileMenu}
+              onClick={() => handleMobileNavigate('/registro')}
             >
               Criar Conta
-            </Link>
+            </button>
           </>
         )}
       </div>

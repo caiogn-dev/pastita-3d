@@ -56,6 +56,37 @@
   box-shadow: 0 0 0 3px rgba(114, 47, 55, 0.12);
 }
 
+.cardapio-category-buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.category-chip {
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--color-marsala);
+  background-color: #fffaf6;
+  color: var(--color-marsala);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-chip:hover {
+  background-color: rgba(114, 47, 55, 0.08);
+  transform: translateY(-1px);
+}
+
+.category-chip.active {
+  background-color: var(--color-marsala);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(114, 47, 55, 0.2);
+}
+
 /* Loading State */
 .cardapio-loading {
   display: flex;
@@ -253,6 +284,10 @@
 
   .product-name {
     font-size: 1.1rem;
+  }
+
+  .cardapio-category-buttons {
+    justify-content: center;
   }
 }
 
