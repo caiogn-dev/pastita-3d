@@ -34,19 +34,19 @@ const Navbar = () => {
             to="/" 
             className={`navbar-link ${isActive('/') ? 'active' : ''}`}
           >
-            Início
+            Inicio
           </Link>
           <Link 
             to="/cardapio" 
             className={`navbar-link ${isActive('/cardapio') ? 'active' : ''}`}
           >
-            Cardápio
+            Cardapio
           </Link>
           
           {isAuthenticated ? (
             <>
               <span className="navbar-user">
-                Olá, {profile?.first_name || 'Usuário'}
+                Ola, {profile?.first_name || 'Usuario'}
               </span>
               <button onClick={signOut} className="navbar-link navbar-logout">
                 Sair
@@ -64,7 +64,13 @@ const Navbar = () => {
 
         {/* Cart Button */}
         <button onClick={toggleCart} className="navbar-cart-btn">
-          <span className="cart-icon">🛒</span>
+          <span className="cart-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M6 6h15l-1.5 9h-12zM6 6l-1.5-3h-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="9" cy="20" r="1.5" fill="currentColor" />
+              <circle cx="18" cy="20" r="1.5" fill="currentColor" />
+            </svg>
+          </span>
           <span className="cart-text">Carrinho</span>
           {cartCount > 0 && (
             <span className="cart-badge">{cartCount}</span>
@@ -90,20 +96,20 @@ const Navbar = () => {
           className={`navbar-mobile-link ${isActive('/') ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
-          Início
+          Inicio
         </Link>
         <Link 
           to="/cardapio" 
           className={`navbar-mobile-link ${isActive('/cardapio') ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
-          Cardápio
+          Cardapio
         </Link>
         
         {isAuthenticated ? (
           <>
             <span className="navbar-mobile-user">
-              Olá, {profile?.first_name || 'Usuário'}
+              Ola, {profile?.first_name || 'Usuario'}
             </span>
             <button 
               onClick={() => { signOut(); closeMobileMenu(); }} 

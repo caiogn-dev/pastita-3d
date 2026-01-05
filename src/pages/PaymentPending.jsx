@@ -1,6 +1,7 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
+import '../styles/status-pages.css';
 
 const PaymentPending = () => {
   const [searchParams] = useSearchParams();
@@ -10,33 +11,36 @@ const PaymentPending = () => {
   const [cachedPayment, setCachedPayment] = useState(null);
   const [checking, setChecking] = useState(false);
   const [pixCopied, setPixCopied] = useState(false);
+
   const activePayment = paymentInfo || cachedPayment;
-  const isPendingStatus = ['pending', 'processing'].includes(orderDetails?.payment_status);
-  const showPaymentDetails = isPendingStatus || !orderDetails?.payment_status;
-  const isPixPayment = activePayment?.payment_type_id === 'pix' ||
-    activePayment?.payment_method_id === 'pix' ||
-    activePayment?.qr_code_base64 ||
-    activePayment?.qr_code;
+  const paymentStatus = orderDetails?.payment_status;
+  const isPendingStatus = ['pending', 'processing'].includes(paymentStatus);
+  const showPaymentDetails = isPendingStatus || !paymentStatus;
+  const isPixPayment = activePayment?.payment_type_id === 'pix'
+    || activePayment?.payment_method_id === 'pix'
+    || activePayment?.qr_code_base64
+    || activePayment?.qr_code;
   const isTicketPayment = activePayment?.payment_type_id === 'ticket' || activePayment?.ticket_url;
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
-      if (orderNumber) {
-        try {
-          const cached = sessionStorage.getItem(`mp_payment_${orderNumber}`);
-          if (cached) {
-            setCachedPayment(JSON.parse(cached));
-          }
-        } catch (storageError) {
-          setCachedPayment(null);
+      if (!orderNumber) return;
+
+      try {
+        const cached = sessionStorage.getItem(`mp_payment_${orderNumber}`);
+        if (cached) {
+          setCachedPayment(JSON.parse(cached));
         }
-        try {
-          const response = await api.get(`/checkout/status/?order_number=${orderNumber}`);
-          setOrderDetails(response.data);
-          setPaymentInfo(response.data.payment || null);
-        } catch (error) {
-          console.error('Error fetching order details:', error);
-        }
+      } catch (storageError) {
+        setCachedPayment(null);
+      }
+
+      try {
+        const response = await api.get(`/checkout/status/?order_number=${orderNumber}`);
+        setOrderDetails(response.data);
+        setPaymentInfo(response.data.payment || null);
+      } catch (error) {
+        console.error('Error fetching order details:', error);
       }
     };
 
@@ -44,12 +48,14 @@ const PaymentPending = () => {
   }, [orderNumber]);
 
   const checkStatus = async () => {
+    if (!orderNumber) return;
+
     setChecking(true);
     try {
       const response = await api.get(`/checkout/status/?order_number=${orderNumber}`);
       setOrderDetails(response.data);
       setPaymentInfo(response.data.payment || null);
-      
+
       if (response.data.payment_status === 'completed') {
         window.location.href = `/sucesso?order=${orderNumber}`;
       } else if (response.data.payment_status === 'failed') {
@@ -80,62 +86,64 @@ const PaymentPending = () => {
   };
 
   return (
-    <div style={containerStyle}>
-      <div style={cardStyle}>
-        <div style={iconContainerStyle}>
-          <svg style={iconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12,6 12,12 16,14"/>
+    <div className="status-page">
+      <div className="status-card status-pending">
+        <div className="status-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12,6 12,12 16,14" />
           </svg>
         </div>
-        
-        <h1 style={titleStyle}>Pagamento em Análise</h1>
-        <p style={subtitleStyle}>
-          Seu pagamento está sendo processado e será confirmado em breve.
+
+        <h1 className="status-title">Pagamento em analise</h1>
+        <p className="status-subtitle">
+          Seu pagamento esta sendo processado e sera confirmado em breve.
         </p>
-        
+
         {orderNumber && (
-          <div style={orderInfoStyle}>
-            <span style={labelStyle}>Número do Pedido:</span>
-            <span style={valueStyle}>{orderNumber}</span>
+          <div className="status-order">
+            <span className="status-label">Numero do Pedido:</span>
+            <span className="status-value">{orderNumber}</span>
           </div>
         )}
 
         {orderDetails && (
-          <div style={detailsStyle}>
-            <div style={detailRowStyle}>
+          <div className="status-details">
+            <div className="status-row">
               <span>Status:</span>
-              <span style={statusBadgeStyle}>{orderDetails.payment_status}</span>
+              <span className="status-badge">{orderDetails.payment_status}</span>
             </div>
-            <div style={detailRowStyle}>
+            <div className="status-row">
               <span>Total:</span>
-              <span style={priceStyle}>R$ {orderDetails.total_amount?.toFixed(2)}</span>
+              <span className="status-price">
+                R$ {orderDetails.total_amount ? Number(orderDetails.total_amount).toFixed(2) : '0.00'}
+              </span>
             </div>
           </div>
         )}
 
         {showPaymentDetails && isPixPayment && (
-          <div style={pixBoxStyle}>
-            <h3 style={pixTitleStyle}>PIX pronto para pagamento</h3>
-            <p style={pixSubtitleStyle}>Escaneie o QR Code ou copie o codigo abaixo.</p>
+          <div className="status-pix">
+            <h3 className="status-pix-title">PIX pronto para pagamento</h3>
+            <p className="status-pix-subtitle">Escaneie o QR Code ou copie o codigo abaixo.</p>
             {activePayment?.qr_code_base64 && (
               <img
                 src={`data:image/png;base64,${activePayment.qr_code_base64}`}
                 alt="QR Code PIX"
-                style={pixImageStyle}
+                className="status-pix-image"
               />
             )}
             {activePayment?.qr_code && (
-              <div style={pixCodeRowStyle}>
+              <div className="status-pix-row">
                 <textarea
                   readOnly
                   value={activePayment.qr_code}
-                  style={pixCodeStyle}
+                  className="status-pix-code"
                 />
                 <button
                   type="button"
                   onClick={handleCopyPix}
-                  style={pixCopyButtonStyle}
+                  className="status-pix-copy"
                 >
                   {pixCopied ? 'Copiado' : 'Copiar'}
                 </button>
@@ -144,276 +152,35 @@ const PaymentPending = () => {
           </div>
         )}
 
-        <div style={infoBoxStyle}>
-          <h3 style={infoTitleStyle}>O que acontece agora?</h3>
-          <ul style={infoListStyle}>
-            <li>Pagamentos via boleto podem levar até 3 dias úteis</li>
-            <li>Pagamentos via PIX são confirmados em minutos</li>
-            <li>Você receberá um e-mail quando o pagamento for confirmado</li>
+
+        <div className="status-info status-info-info">
+          <h3 className="status-info-title">O que acontece agora?</h3>
+          <ul className="status-info-list">
+            <li>Pagamentos via boleto podem levar ate 3 dias uteis</li>
+            <li>Pagamentos via PIX sao confirmados em minutos</li>
+            <li>Voce recebe um e-mail quando o pagamento for confirmado</li>
           </ul>
         </div>
 
-        <button 
-          onClick={checkStatus} 
+        <button
+          onClick={checkStatus}
           disabled={checking}
-          style={{
-            ...checkButtonStyle,
-            opacity: checking ? 0.7 : 1,
-            cursor: checking ? 'not-allowed' : 'pointer',
-          }}
+          className="status-button status-button-primary"
         >
-          {checking ? 'Verificando...' : 'Verificar Status'}
+          {checking ? 'Verificando...' : 'Verificar status'}
         </button>
 
-        <div style={buttonContainerStyle}>
-          <Link to="/cardapio" style={primaryButtonStyle}>
-            Continuar Comprando
+        <div className="status-actions">
+          <Link to="/cardapio" className="status-button status-button-primary">
+            Continuar comprando
           </Link>
-          <Link to="/" style={secondaryButtonStyle}>
-            Voltar ao Início
+          <Link to="/" className="status-button status-button-secondary">
+            Voltar ao inicio
           </Link>
         </div>
       </div>
     </div>
   );
-};
-
-const containerStyle = {
-  minHeight: '100vh',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: 'var(--color-cream)',
-  padding: '20px',
-};
-
-const cardStyle = {
-  backgroundColor: '#fff',
-  borderRadius: '16px',
-  padding: '50px 40px',
-  maxWidth: '500px',
-  width: '100%',
-  textAlign: 'center',
-  boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-};
-
-const iconContainerStyle = {
-  width: '80px',
-  height: '80px',
-  borderRadius: '50%',
-  backgroundColor: '#fef3c7',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  margin: '0 auto 24px',
-};
-
-const iconStyle = {
-  width: '40px',
-  height: '40px',
-  color: '#d97706',
-};
-
-const titleStyle = {
-  fontSize: '2rem',
-  color: '#d97706',
-  marginBottom: '12px',
-  fontWeight: '700',
-};
-
-const subtitleStyle = {
-  fontSize: '1.1rem',
-  color: '#666',
-  marginBottom: '24px',
-};
-
-const orderInfoStyle = {
-  backgroundColor: '#f8f8f8',
-  padding: '16px 24px',
-  borderRadius: '8px',
-  marginBottom: '24px',
-};
-
-const labelStyle = {
-  display: 'block',
-  fontSize: '0.9rem',
-  color: '#888',
-  marginBottom: '4px',
-};
-
-const valueStyle = {
-  display: 'block',
-  fontSize: '1.2rem',
-  fontWeight: '600',
-  color: 'var(--color-marsala)',
-  fontFamily: 'monospace',
-};
-
-const detailsStyle = {
-  borderTop: '1px solid #eee',
-  borderBottom: '1px solid #eee',
-  padding: '16px 0',
-  marginBottom: '24px',
-};
-
-const detailRowStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  padding: '8px 0',
-  color: '#555',
-};
-
-const statusBadgeStyle = {
-  backgroundColor: '#fef3c7',
-  color: '#d97706',
-  padding: '4px 12px',
-  borderRadius: '20px',
-  fontSize: '0.85rem',
-  fontWeight: '600',
-  textTransform: 'capitalize',
-};
-
-const priceStyle = {
-  fontWeight: '700',
-  color: 'var(--color-marsala)',
-  fontSize: '1.1rem',
-};
-
-const infoBoxStyle = {
-  backgroundColor: '#f0f9ff',
-  padding: '20px',
-  borderRadius: '8px',
-  marginBottom: '24px',
-  textAlign: 'left',
-};
-
-const infoTitleStyle = {
-  fontSize: '1rem',
-  color: '#0369a1',
-  marginBottom: '12px',
-  marginTop: 0,
-};
-
-const infoListStyle = {
-  margin: 0,
-  paddingLeft: '20px',
-  color: '#0369a1',
-  fontSize: '0.9rem',
-  lineHeight: '1.8',
-};
-
-const pixBoxStyle = {
-  backgroundColor: '#fff7ed',
-  borderRadius: '12px',
-  padding: '20px',
-  marginBottom: '24px',
-  border: '1px solid #fed7aa',
-  textAlign: 'left',
-};
-
-const pixTitleStyle = {
-  fontSize: '1rem',
-  color: '#9a3412',
-  marginTop: 0,
-  marginBottom: '10px',
-};
-
-const pixSubtitleStyle = {
-  fontSize: '0.9rem',
-  color: '#9a3412',
-  marginBottom: '12px',
-};
-
-const pixImageStyle = {
-  width: '200px',
-  height: '200px',
-  display: 'block',
-  marginBottom: '12px',
-};
-
-const pixCodeStyle = {
-  width: '100%',
-  minHeight: '80px',
-  padding: '10px',
-  borderRadius: '8px',
-  border: '1px solid #fdba74',
-  fontFamily: 'monospace',
-  fontSize: '0.85rem',
-  resize: 'vertical',
-  flex: 1,
-};
-
-const pixCodeRowStyle = {
-  display: 'flex',
-  gap: '10px',
-  alignItems: 'stretch',
-  flexWrap: 'wrap',
-};
-
-const pixCopyButtonStyle = {
-  minWidth: '110px',
-  borderRadius: '8px',
-  border: 'none',
-  backgroundColor: '#9a3412',
-  color: '#fff',
-  fontWeight: '600',
-  padding: '10px 14px',
-  cursor: 'pointer',
-  alignSelf: 'flex-start',
-};
-
-const ticketButtonStyle = {
-  display: 'inline-block',
-  padding: '10px 16px',
-  borderRadius: '8px',
-  backgroundColor: '#c2410c',
-  color: '#fff',
-  textDecoration: 'none',
-  fontWeight: '600',
-};
-
-const checkButtonStyle = {
-  width: '100%',
-  backgroundColor: '#d97706',
-  color: '#fff',
-  padding: '14px 24px',
-  borderRadius: '8px',
-  border: 'none',
-  fontWeight: '600',
-  fontSize: '1rem',
-  marginBottom: '16px',
-  transition: 'all 0.3s ease',
-};
-
-const buttonContainerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '12px',
-};
-
-const primaryButtonStyle = {
-  display: 'block',
-  backgroundColor: 'var(--color-marsala)',
-  color: '#fff',
-  padding: '14px 24px',
-  borderRadius: '8px',
-  textDecoration: 'none',
-  fontWeight: '600',
-  fontSize: '1rem',
-  transition: 'all 0.3s ease',
-};
-
-const secondaryButtonStyle = {
-  display: 'block',
-  backgroundColor: 'transparent',
-  color: 'var(--color-marsala)',
-  padding: '14px 24px',
-  borderRadius: '8px',
-  textDecoration: 'none',
-  fontWeight: '600',
-  fontSize: '1rem',
-  border: '2px solid var(--color-marsala)',
-  transition: 'all 0.3s ease',
 };
 
 export default PaymentPending;

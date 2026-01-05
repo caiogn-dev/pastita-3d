@@ -1,82 +1,144 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api'; 
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import api from '../services/api';
+import { buildMediaUrl } from '../utils/media';
 
 const CartContext = createContext();
+const CART_CACHE_KEY = 'pastita_cart_cache_v1';
+const CART_CACHE_TTL_MS = 2 * 60 * 1000;
+let cartFetchPromise = null;
+let cartFetchToken = null;
+
+const readCartCache = () => {
+  try {
+    const raw = localStorage.getItem(CART_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeCartCache = (token, items) => {
+  try {
+    localStorage.setItem(CART_CACHE_KEY, JSON.stringify({
+      token,
+      ts: Date.now(),
+      data: items
+    }));
+  } catch {
+    // ignore cache write errors
+  }
+};
+
+const clearCartCache = () => {
+  try {
+    localStorage.removeItem(CART_CACHE_KEY);
+  } catch {
+    // ignore cache clear errors
+  }
+};
+
+const isCartCacheValid = (cache, token) => {
+  if (!cache || cache.token !== token || !cache.ts) {
+    return false;
+  }
+  return Date.now() - cache.ts < CART_CACHE_TTL_MS;
+};
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const initRef = useRef(false);
 
-  // 1. Carregar carrinho do Banco de Dados ao iniciar (se estiver logado)
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async ({ force = false } = {}) => {
     const token = localStorage.getItem('token');
-    if (!token) return; 
-
-    try {
-      const response = await api.get('/cart/');
-      // O backend retorna algo como { id: 1, items: [...] }
-      // Precisamos garantir que estamos pegando o array de items
-      const items = response.data.items || [];
-      
-      // Mapeia para o formato que seu front usa (se necessário ajustar campos)
-      const formattedCart = items.map(item => ({
-        id: item.product.id, // ID do produto
-        cart_item_id: item.id, // ID do item no carrinho (importante para updates)
-        name: item.product.name,
-        price: item.product.price,
-        image: item.product.image,
-        quantity: item.quantity
-      }));
-      
-      setCart(formattedCart);
-    } catch (error) {
-      console.error("Erro ao carregar carrinho:", error);
+    if (!token) {
+      clearCartCache();
+      setCart([]);
+      return null;
     }
-  };
 
-  // Carrega o carrinho quando o componente monta
-  useEffect(() => {
-    fetchCart();
+    const cached = readCartCache();
+    if (!force && isCartCacheValid(cached, token)) {
+      setCart(cached.data);
+      return cached.data;
+    }
+
+    if (cartFetchPromise && cartFetchToken === token) {
+      return cartFetchPromise;
+    }
+
+    cartFetchToken = token;
+    cartFetchPromise = (async () => {
+      try {
+        const response = await api.get('/cart/');
+        if (localStorage.getItem('token') !== token) {
+          return null;
+        }
+        const items = response.data.items || [];
+
+        const formattedCart = items.map((item) => ({
+          id: item.product.id,
+          cart_item_id: item.id,
+          name: item.product.name,
+          price: item.product.price,
+          image: buildMediaUrl(item.product.image),
+          quantity: item.quantity
+        }));
+
+        setCart(formattedCart);
+        writeCartCache(token, formattedCart);
+        return formattedCart;
+      } catch (error) {
+        console.error('Erro ao carregar carrinho:', error);
+        return null;
+      } finally {
+        cartFetchPromise = null;
+      }
+    })();
+
+    return cartFetchPromise;
   }, []);
+
+  useEffect(() => {
+    if (initRef.current) {
+      return;
+    }
+    initRef.current = true;
+    fetchCart();
+  }, [fetchCart]);
 
   const toggleCart = () => setIsCartOpen(!isCartOpen);
 
-  // 2. Adicionar Item (Sincronizado com API)
   const addToCart = async (product) => {
     setIsLoading(true);
     try {
-      // Chama a API para salvar no banco
       await api.post('/cart/add_item/', {
         product_id: product.id,
         quantity: 1
       });
-      
-      // Recarrega o carrinho atualizado do servidor
-      await fetchCart(); 
+
+      await fetchCart({ force: true });
       setIsCartOpen(true);
     } catch (error) {
-      console.error("Erro ao adicionar item:", error);
-      alert("Erro ao adicionar ao carrinho. Verifique se está logado.");
+      console.error('Erro ao adicionar item:', error);
+      alert('Erro ao adicionar ao carrinho. Verifique se esta logado.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 3. Remover Item (Sincronizado com API)
   const removeFromCart = async (productId) => {
     try {
       await api.post('/cart/remove_item/', { product_id: productId });
-      await fetchCart(); // Atualiza a lista
+      await fetchCart({ force: true });
     } catch (error) {
-      console.error("Erro ao remover item:", error);
+      console.error('Erro ao remover item:', error);
     }
   };
 
-  // 4. Atualizar Quantidade (Sincronizado com API)
   const updateQuantity = async (productId, amount) => {
-    // Acha o item localmente só para saber a qtd atual
-    const currentItem = cart.find(item => item.id === productId);
+    const currentItem = cart.find((item) => item.id === productId);
     if (!currentItem) return;
 
     const newQuantity = currentItem.quantity + amount;
@@ -87,34 +149,37 @@ export const CartProvider = ({ children }) => {
         product_id: productId,
         quantity: newQuantity
       });
-      await fetchCart();
+      await fetchCart({ force: true });
     } catch (error) {
-      console.error("Erro ao atualizar quantidade:", error);
+      console.error('Erro ao atualizar quantidade:', error);
     }
   };
 
-  // Limpa apenas visualmente (usado após checkout sucesso)
-  const clearCart = () => {
-    setCart([]);
+  const clearCart = async () => {
+    try {
+      await api.post('/cart/clear/');
+      setCart([]);
+      clearCartCache();
+    } catch (error) {
+      console.error('Erro ao limpar carrinho:', error);
+    }
   };
 
-  // Cálculos visuais
-  const cartTotal = cart.reduce((acc, item) => acc + (Number(item.price) * item.quantity), 0);
-  const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+  const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ 
-      cart, 
-      addToCart, 
-      removeFromCart, 
-      updateQuantity,
-      clearCart,
-      fetchCart, // Exportando caso precise forçar atualização de fora
-      cartTotal, 
+    <CartContext.Provider value={{
+      cart,
       cartCount,
+      cartTotal,
       isCartOpen,
+      isLoading,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
       toggleCart,
-      isLoading 
+      clearCart
     }}>
       {children}
     </CartContext.Provider>

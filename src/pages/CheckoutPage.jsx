@@ -1,28 +1,27 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import '../styles/forms.css';
 import './CheckoutPage.css';
 
-// Brazilian CPF validation
 const validateCPF = (cpf) => {
-  cpf = cpf.replace(/[^\d]/g, '');
-  if (cpf.length !== 11) return false;
-  if (/^(\d)\1+$/.test(cpf)) return false;
-  
+  const cleanCpf = cpf.replace(/[^\d]/g, '');
+  if (cleanCpf.length !== 11) return false;
+  if (/^(\d)\1+$/.test(cleanCpf)) return false;
+
   let sum = 0;
-  for (let i = 0; i < 9; i++) sum += parseInt(cpf[i]) * (10 - i);
+  for (let i = 0; i < 9; i += 1) sum += parseInt(cleanCpf[i], 10) * (10 - i);
   let digit = (sum * 10 % 11) % 10;
-  if (digit !== parseInt(cpf[9])) return false;
-  
+  if (digit !== parseInt(cleanCpf[9], 10)) return false;
+
   sum = 0;
-  for (let i = 0; i < 10; i++) sum += parseInt(cpf[i]) * (11 - i);
+  for (let i = 0; i < 10; i += 1) sum += parseInt(cleanCpf[i], 10) * (11 - i);
   digit = (sum * 10 % 11) % 10;
-  return digit === parseInt(cpf[10]);
+  return digit === parseInt(cleanCpf[10], 10);
 };
 
-// Format CPF as user types
 const formatCPF = (value) => {
   const numbers = value.replace(/\D/g, '').slice(0, 11);
   if (numbers.length <= 3) return numbers;
@@ -31,7 +30,6 @@ const formatCPF = (value) => {
   return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9)}`;
 };
 
-// Format phone as user types
 const formatPhone = (value) => {
   const numbers = value.replace(/\D/g, '').slice(0, 11);
   if (numbers.length <= 2) return numbers;
@@ -39,7 +37,6 @@ const formatPhone = (value) => {
   return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
 };
 
-// Format CEP as user types
 const formatCEP = (value) => {
   const numbers = value.replace(/\D/g, '').slice(0, 8);
   if (numbers.length <= 5) return numbers;
@@ -53,21 +50,20 @@ const formatCardNumber = (value) => {
 
 const onlyDigits = (value) => value.replace(/\D/g, '');
 
-// Brazilian states
 const BRAZILIAN_STATES = [
   { value: 'AC', label: 'Acre' }, { value: 'AL', label: 'Alagoas' },
-  { value: 'AP', label: 'Amapá' }, { value: 'AM', label: 'Amazonas' },
-  { value: 'BA', label: 'Bahia' }, { value: 'CE', label: 'Ceará' },
-  { value: 'DF', label: 'Distrito Federal' }, { value: 'ES', label: 'Espírito Santo' },
-  { value: 'GO', label: 'Goiás' }, { value: 'MA', label: 'Maranhão' },
+  { value: 'AP', label: 'Amapa' }, { value: 'AM', label: 'Amazonas' },
+  { value: 'BA', label: 'Bahia' }, { value: 'CE', label: 'Ceara' },
+  { value: 'DF', label: 'Distrito Federal' }, { value: 'ES', label: 'Espirito Santo' },
+  { value: 'GO', label: 'Goias' }, { value: 'MA', label: 'Maranhao' },
   { value: 'MT', label: 'Mato Grosso' }, { value: 'MS', label: 'Mato Grosso do Sul' },
-  { value: 'MG', label: 'Minas Gerais' }, { value: 'PA', label: 'Pará' },
-  { value: 'PB', label: 'Paraíba' }, { value: 'PR', label: 'Paraná' },
-  { value: 'PE', label: 'Pernambuco' }, { value: 'PI', label: 'Piauí' },
+  { value: 'MG', label: 'Minas Gerais' }, { value: 'PA', label: 'Para' },
+  { value: 'PB', label: 'Paraiba' }, { value: 'PR', label: 'Parana' },
+  { value: 'PE', label: 'Pernambuco' }, { value: 'PI', label: 'Piaui' },
   { value: 'RJ', label: 'Rio de Janeiro' }, { value: 'RN', label: 'Rio Grande do Norte' },
-  { value: 'RS', label: 'Rio Grande do Sul' }, { value: 'RO', label: 'Rondônia' },
+  { value: 'RS', label: 'Rio Grande do Sul' }, { value: 'RO', label: 'Rondonia' },
   { value: 'RR', label: 'Roraima' }, { value: 'SC', label: 'Santa Catarina' },
-  { value: 'SP', label: 'São Paulo' }, { value: 'SE', label: 'Sergipe' },
+  { value: 'SP', label: 'Sao Paulo' }, { value: 'SE', label: 'Sergipe' },
   { value: 'TO', label: 'Tocantins' }
 ];
 
@@ -77,7 +73,7 @@ const CheckoutPage = () => {
   const { cart, cartTotal, clearCart } = useCart();
   const { profile, updateProfile } = useAuth();
   const mpPublicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY;
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -88,7 +84,7 @@ const CheckoutPage = () => {
     state: '',
     zip_code: ''
   });
-  
+
   const [paymentMethod, setPaymentMethod] = useState('pix');
   const [cardPaymentType, setCardPaymentType] = useState('credit_card');
   const [cardData, setCardData] = useState({
@@ -113,15 +109,13 @@ const CheckoutPage = () => {
   const [saveAddress, setSaveAddress] = useState(true);
   const isCardReady = paymentMethod !== 'card' || (mpReady && mpPublicKey);
 
-  // Load user profile and previous orders on mount
   useEffect(() => {
     const loadUserData = async () => {
-      // Pre-fill from profile
       if (profile) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          name: profile.first_name && profile.last_name 
-            ? `${profile.first_name} ${profile.last_name}`.trim() 
+          name: profile.first_name && profile.last_name
+            ? `${profile.first_name} ${profile.last_name}`.trim()
             : prev.name,
           email: profile.email || prev.email,
           phone: profile.phone ? formatPhone(profile.phone) : prev.phone,
@@ -133,13 +127,12 @@ const CheckoutPage = () => {
         }));
       }
 
-      // Fetch previous order addresses
       try {
         const response = await api.get('/orders/history/');
         if (response.data.recent_orders && response.data.recent_orders.length > 0) {
           const addresses = response.data.recent_orders
-            .filter(order => order.shipping_address)
-            .map(order => ({
+            .filter((order) => order.shipping_address)
+            .map((order) => ({
               id: order.id,
               address: order.shipping_address,
               city: order.shipping_city,
@@ -147,11 +140,11 @@ const CheckoutPage = () => {
               zip_code: order.shipping_zip_code,
               label: `${order.shipping_address}, ${order.shipping_city} - ${order.shipping_state}`
             }))
-            .filter((addr, index, self) => 
-              index === self.findIndex(a => a.label === addr.label)
+            .filter((addr, index, self) =>
+              index === self.findIndex((item) => item.label === addr.label)
             )
             .slice(0, 3);
-          
+
           setSavedAddresses(addresses);
           if (addresses.length > 0) {
             setUseNewAddress(false);
@@ -197,26 +190,23 @@ const CheckoutPage = () => {
     };
   }, [mpPublicKey]);
 
-  // Handle form field changes with formatting
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleChange = (event) => {
+    const { name, value } = event.target;
     let formattedValue = value;
 
-    // Apply formatting based on field
     if (name === 'cpf') formattedValue = formatCPF(value);
     else if (name === 'phone') formattedValue = formatPhone(value);
     else if (name === 'zip_code') formattedValue = formatCEP(value);
 
-    setFormData(prev => ({ ...prev, [name]: formattedValue }));
-    
-    // Clear error when user starts typing
+    setFormData((prev) => ({ ...prev, [name]: formattedValue }));
+
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
-  const handleCardChange = (e) => {
-    const { name, value } = e.target;
+  const handleCardChange = (event) => {
+    const { name, value } = event.target;
     let formattedValue = value;
 
     if (name === 'number') {
@@ -231,15 +221,15 @@ const CheckoutPage = () => {
       formattedValue = onlyDigits(value).slice(0, 2);
     }
 
-    setCardData(prev => ({ ...prev, [name]: formattedValue }));
+    setCardData((prev) => ({ ...prev, [name]: formattedValue }));
   };
 
   const buildCardPaymentData = async () => {
     if (!mpPublicKey) {
-      throw new Error('Public key do Mercado Pago nÆo configurada');
+      throw new Error('Public key do Mercado Pago nao configurada');
     }
     if (!mpInstance || !mpReady) {
-      throw new Error('SDK do Mercado Pago nÆo carregado');
+      throw new Error('SDK do Mercado Pago nao carregado');
     }
 
     const cardNumber = onlyDigits(cardData.number);
@@ -250,33 +240,30 @@ const CheckoutPage = () => {
     const securityCode = onlyDigits(cardData.cvv);
 
     if (!cardNumber || cardNumber.length < 13) {
-      throw new Error('N£mero do cartÆo inv lido');
+      throw new Error('Numero do cartao invalido');
     }
     if (!cardholderName) {
-      throw new Error('Nome impresso no cartÆo ‚ obrigat¢rio');
+      throw new Error('Nome impresso no cartao e obrigatorio');
     }
     if (!expMonth || !expYear) {
-      throw new Error('Validade do cartÆo inv lida');
+      throw new Error('Validade do cartao invalida');
     }
     if (!securityCode) {
-      throw new Error('C¢digo de seguran‡a inv lido');
+      throw new Error('Codigo de seguranca invalido');
     }
 
     const bin = cardNumber.slice(0, 6);
     const paymentMethodResponse = await mpInstance.getPaymentMethods({ bin });
-    const paymentMethodId = paymentMethodResponse?.results?.[0]?.id;
+    const paymentMethodId = paymentMethodResponse?.results?.[0]?.id || paymentMethodResponse?.[0]?.id;
 
     if (!paymentMethodId) {
-      throw new Error('NÆo foi poss¡vel identificar a bandeira do cartÆo');
+      throw new Error('Nao foi possivel identificar a bandeira do cartao');
     }
 
     let issuerId;
     try {
-      if (paymentMethod === 'card' && !mpPublicKey) {
-        throw new Error('Public key do Mercado Pago nao configurada');
-      }
       const issuerResponse = await mpInstance.getIssuers({ paymentMethodId, bin });
-      issuerId = issuerResponse?.results?.[0]?.id;
+      issuerId = issuerResponse?.results?.[0]?.id || issuerResponse?.[0]?.id;
     } catch (error) {
       issuerId = undefined;
     }
@@ -293,7 +280,7 @@ const CheckoutPage = () => {
 
     const tokenId = tokenResponse?.id || tokenResponse?.token;
     if (!tokenId) {
-      throw new Error('NÆo foi poss¡vel gerar o token do cartÆo');
+      throw new Error('Nao foi possivel gerar o token do cartao');
     }
 
     return {
@@ -305,7 +292,6 @@ const CheckoutPage = () => {
     };
   };
 
-  // Fetch address from CEP (ViaCEP API)
   const fetchAddressFromCEP = async (cep) => {
     const cleanCEP = cep.replace(/\D/g, '');
     if (cleanCEP.length !== 8) return;
@@ -314,9 +300,9 @@ const CheckoutPage = () => {
     try {
       const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
       const data = await response.json();
-      
+
       if (!data.erro) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           address: data.logradouro ? `${data.logradouro}, ${data.bairro}` : prev.address,
           city: data.localidade || prev.city,
@@ -329,16 +315,14 @@ const CheckoutPage = () => {
     setLoadingCEP(false);
   };
 
-  // Handle CEP blur to auto-fill address
   const handleCEPBlur = () => {
     if (formData.zip_code.replace(/\D/g, '').length === 8) {
       fetchAddressFromCEP(formData.zip_code);
     }
   };
 
-  // Select saved address
   const selectSavedAddress = (address) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       address: address.address,
       city: address.city,
@@ -348,42 +332,41 @@ const CheckoutPage = () => {
     setUseNewAddress(false);
   };
 
-  // Validate form
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) newErrors.name = 'Nome é obrigatório';
-    if (!formData.email.trim()) newErrors.email = 'E-mail é obrigatório';
+    if (!formData.name.trim()) newErrors.name = 'Nome e obrigatorio';
+    if (!formData.email.trim()) newErrors.email = 'E-mail e obrigatorio';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'E-mail inválido';
+      newErrors.email = 'E-mail invalido';
     }
-    
-    if (!formData.phone.trim()) newErrors.phone = 'Telefone é obrigatório';
+
+    if (!formData.phone.trim()) newErrors.phone = 'Telefone e obrigatorio';
     else if (formData.phone.replace(/\D/g, '').length < 10) {
-      newErrors.phone = 'Telefone inválido (mínimo 10 dígitos)';
+      newErrors.phone = 'Telefone invalido (minimo 10 digitos)';
     }
-    
-    if (!formData.cpf.trim()) newErrors.cpf = 'CPF é obrigatório';
+
+    if (!formData.cpf.trim()) newErrors.cpf = 'CPF e obrigatorio';
     else if (!validateCPF(formData.cpf)) {
-      newErrors.cpf = 'CPF inválido';
+      newErrors.cpf = 'CPF invalido';
     }
-    
-    if (!formData.address.trim()) newErrors.address = 'Endereço é obrigatório';
-    if (!formData.city.trim()) newErrors.city = 'Cidade é obrigatória';
-    if (!formData.state) newErrors.state = 'Estado é obrigatório';
-    
-    if (!formData.zip_code.trim()) newErrors.zip_code = 'CEP é obrigatório';
+
+    if (!formData.address.trim()) newErrors.address = 'Endereco e obrigatorio';
+    if (!formData.city.trim()) newErrors.city = 'Cidade e obrigatoria';
+    if (!formData.state) newErrors.state = 'Estado e obrigatorio';
+
+    if (!formData.zip_code.trim()) newErrors.zip_code = 'CEP e obrigatorio';
     else if (formData.zip_code.replace(/\D/g, '').length !== 8) {
-      newErrors.zip_code = 'CEP inválido (8 dígitos)';
+      newErrors.zip_code = 'CEP invalido (8 digitos)';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     if (!validateForm()) {
       return;
     }
@@ -393,7 +376,6 @@ const CheckoutPage = () => {
     setPaymentResult(null);
 
     try {
-      // Save address to profile if requested
       if (saveAddress) {
         await updateProfile({
           phone: formData.phone.replace(/\D/g, ''),
@@ -414,7 +396,6 @@ const CheckoutPage = () => {
         paymentPayload = await buildCardPaymentData();
       }
 
-      // Create checkout with all required fields
       const response = await api.post('/checkout/create_checkout/', {
         buyer: {
           name: formData.name,
@@ -429,7 +410,6 @@ const CheckoutPage = () => {
         payment: paymentPayload
       });
 
-      // Clear local cart
       clearCart();
 
       const payment = response.data.payment;
@@ -447,10 +427,10 @@ const CheckoutPage = () => {
 
         const paymentTypeId = payment.payment_type_id;
         const paymentStatus = payment.status;
-        const isPixPayment = paymentTypeId === 'pix' ||
-          payment.payment_method_id === 'pix' ||
-          payment.qr_code_base64 ||
-          payment.qr_code;
+        const isPixPayment = paymentTypeId === 'pix'
+          || payment.payment_method_id === 'pix'
+          || payment.qr_code_base64
+          || payment.qr_code;
         const isTicketPayment = paymentTypeId === 'ticket' || payment.ticket_url;
 
         setPaymentResult({
@@ -478,7 +458,6 @@ const CheckoutPage = () => {
         return;
       }
 
-      // Redirect to Mercado Pago (fallback)
       const paymentLink = response.data.init_point || response.data.sandbox_init_point;
       if (paymentLink) {
         window.location.href = paymentLink;
@@ -486,9 +465,8 @@ const CheckoutPage = () => {
         throw new Error('Link de pagamento nao recebido');
       }
     } catch (error) {
-      console.error("Erro ao gerar pagamento:", error);
-      
-      // Handle validation errors from backend
+      console.error('Erro ao gerar pagamento:', error);
+
       if (error.response?.data?.details) {
         const backendErrors = {};
         Object.entries(error.response.data.details).forEach(([key, value]) => {
@@ -496,28 +474,36 @@ const CheckoutPage = () => {
         });
         setErrors(backendErrors);
       } else {
-        const errorMsg = error.response?.data?.error || "Erro ao processar pagamento. Tente novamente.";
+        const errorMsg = error.response?.data?.error || 'Erro ao processar pagamento. Tente novamente.';
         setPaymentError(errorMsg);
       }
       setLoading(false);
     }
   };
 
-  if (cart.length === 0) return (
-    <div style={{ padding: '100px 20px', textAlign: 'center', backgroundColor: 'var(--color-cream)', minHeight: '100vh' }}>
-      <h2 style={{ color: 'var(--color-marsala)' }}>Seu carrinho está vazio</h2>
-      <p style={{ color: '#666', marginTop: '10px' }}>Adicione produtos ao carrinho para continuar.</p>
-      <Link to="/cardapio" className="btn-secondary" style={{ marginTop: '20px', display: 'inline-block' }}>
-        Voltar ao Cardápio
-      </Link>
-    </div>
-  );
+  const submitLabel = loading
+    ? 'PROCESSANDO...'
+    : paymentMethod === 'pix'
+      ? 'GERAR PIX'
+      : paymentMethod === 'cash'
+        ? 'GERAR BOLETO'
+        : 'PAGAR COM CARTAO';
+
+  if (cart.length === 0) {
+    return (
+      <div className="checkout-empty">
+        <div>
+          <h2>Seu carrinho esta vazio</h2>
+          <p>Adicione produtos ao carrinho para continuar.</p>
+          <Link to="/cardapio" className="btn-secondary">Voltar ao Cardapio</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="checkout-page">
       <div className="checkout-container">
-        
-        {/* Header */}
         <div className="checkout-header">
           <Link to="/cardapio" className="checkout-back-link">
             &larr; Voltar ao Cardapio
@@ -527,61 +513,58 @@ const CheckoutPage = () => {
         </div>
 
         {paymentError && (
-          <div style={alertStyle}>
-            {paymentError}
-          </div>
+          <div className="checkout-alert">{paymentError}</div>
         )}
 
         {paymentResult && (
-          <div style={paymentInfoStyle}>
-            <div style={paymentHeaderStyle}>
-              <h3 style={{ margin: 0 }}>Pagamento criado</h3>
-              <span style={paymentStatusBadgeStyle}>{paymentResult.status}</span>
+          <div className="checkout-payment-info">
+            <div className="checkout-payment-header">
+              <h3>Pagamento criado</h3>
+              <span className="checkout-status-badge">{paymentResult.status}</span>
             </div>
-            <p style={{ margin: '10px 0 0 0', color: '#555' }}>
+            <p>
               Pedido: <strong>{paymentResult.order_number}</strong>
             </p>
 
             {paymentResult.payment_type_id === 'pix' && (
-              <div style={paymentDetailBlockStyle}>
-                <p style={{ margin: '0 0 10px 0' }}>
-                  Escaneie o QR Code ou copie o codigo PIX.
-                </p>
+              <div className="checkout-payment-block">
+                <p>Escaneie o QR Code ou copie o codigo PIX.</p>
                 {paymentResult.qr_code_base64 && (
                   <img
                     src={`data:image/png;base64,${paymentResult.qr_code_base64}`}
                     alt="QR Code PIX"
-                    style={qrImageStyle}
+                    className="checkout-qr-image"
                   />
                 )}
                 {paymentResult.qr_code && (
                   <textarea
                     readOnly
                     value={paymentResult.qr_code}
-                    style={qrTextStyle}
+                    className="checkout-qr-text"
                   />
                 )}
               </div>
             )}
 
             {paymentResult.payment_type_id === 'ticket' && paymentResult.ticket_url && (
-              <div style={paymentDetailBlockStyle}>
-                <p style={{ margin: '0 0 10px 0' }}>
-                  Seu boleto foi gerado. Abra para pagar.
-                </p>
+              <div className="checkout-payment-block">
+                <p>Seu boleto foi gerado. Abra para pagar.</p>
                 <a
                   href={paymentResult.ticket_url}
                   target="_blank"
                   rel="noreferrer"
-                  style={ticketLinkStyle}
+                  className="checkout-ticket-link"
                 >
                   Abrir boleto
                 </a>
               </div>
             )}
 
-            <div style={{ marginTop: '12px' }}>
-              <Link to={`/pendente?order=${paymentResult.order_number}`} style={pendingLinkStyle}>
+            <div>
+              <Link
+                to={`/pendente?order=${paymentResult.order_number}`}
+                className="checkout-pending-link"
+              >
                 Acompanhar status do pagamento
               </Link>
             </div>
@@ -589,233 +572,222 @@ const CheckoutPage = () => {
         )}
 
         <div className="checkout-grid">
-          
-          {/* Form Section */}
           <div>
-            {/* Saved Addresses */}
             {savedAddresses.length > 0 && (
-              <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #eee' }}>
-                <h3 style={{ color: 'var(--color-marsala)', marginTop: 0, marginBottom: '15px', fontSize: '1.1rem' }}>
-                  Endereços Salvos
-                </h3>
-                {savedAddresses.map((addr, index) => (
-                  <label key={index} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', backgroundColor: !useNewAddress && formData.address === addr.address ? '#f0e6e6' : '#f9f9f9', borderRadius: '8px', marginBottom: '10px', cursor: 'pointer', border: !useNewAddress && formData.address === addr.address ? '2px solid var(--color-marsala)' : '2px solid transparent' }}>
-                    <input 
-                      type="radio" 
-                      name="savedAddress" 
-                      checked={!useNewAddress && formData.address === addr.address}
-                      onChange={() => selectSavedAddress(addr)}
-                      style={{ marginTop: '3px' }}
-                    />
-                    <span style={{ fontSize: '0.9rem', color: '#333' }}>{addr.label}</span>
-                  </label>
-                ))}
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', backgroundColor: useNewAddress ? '#f0e6e6' : '#f9f9f9', borderRadius: '8px', cursor: 'pointer', border: useNewAddress ? '2px solid var(--color-marsala)' : '2px solid transparent' }}>
-                  <input 
-                    type="radio" 
-                    name="savedAddress" 
+              <div className="checkout-address-card">
+                <h3 className="checkout-address-title">Enderecos salvos</h3>
+                {savedAddresses.map((addr) => {
+                  const isSelected = !useNewAddress && formData.address === addr.address;
+                  return (
+                    <label
+                      key={addr.id}
+                      className={`checkout-address-option ${isSelected ? 'is-selected' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="savedAddress"
+                        checked={isSelected}
+                        onChange={() => selectSavedAddress(addr)}
+                      />
+                      <span className="checkout-address-label">{addr.label}</span>
+                    </label>
+                  );
+                })}
+                <label
+                  className={`checkout-address-option ${useNewAddress ? 'is-selected' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="savedAddress"
                     checked={useNewAddress}
                     onChange={() => setUseNewAddress(true)}
                   />
-                  <span style={{ fontSize: '0.9rem', color: '#333' }}>Usar novo endereço</span>
+                  <span className="checkout-address-label">Usar novo endereco</span>
                 </label>
               </div>
             )}
 
-            {/* Main Form */}
             <div className="checkout-card checkout-form-card">
-              <h3 className="checkout-section-title">Dados de Entrega</h3>
-              
+              <h3 className="checkout-section-title">Dados de entrega</h3>
+
               <form onSubmit={handleSubmit}>
-                {/* Personal Info */}
-                <div style={{ display: 'grid', gap: '15px', marginBottom: '25px' }}>
-                  <div>
-                    <label style={labelStyle}>Nome Completo *</label>
-                    <input 
-                      type="text" 
-                      name="name" 
+                <div className="checkout-field-group">
+                  <div className="form-field">
+                    <label className="form-label">Nome completo *</label>
+                    <input
+                      type="text"
+                      name="name"
                       value={formData.name}
-                      onChange={handleChange} 
+                      onChange={handleChange}
                       placeholder="Seu nome completo"
-                      style={{ ...inputStyle, borderColor: errors.name ? '#dc2626' : '#ccc' }} 
+                      className={`form-input ${errors.name ? 'is-error' : ''}`}
                     />
-                    {errors.name && <span style={errorStyle}>{errors.name}</span>}
+                    {errors.name && <span className="form-error">{errors.name}</span>}
                   </div>
 
-                  <div className="checkout-grid-two">
-                    <div>
-                      <label style={labelStyle}>E-mail *</label>
-                      <input 
-                        type="email" 
-                        name="email" 
+                  <div className="form-grid-2">
+                    <div className="form-field">
+                      <label className="form-label">E-mail *</label>
+                      <input
+                        type="email"
+                        name="email"
                         value={formData.email}
-                        onChange={handleChange} 
+                        onChange={handleChange}
                         placeholder="seu@email.com"
-                        style={{ ...inputStyle, borderColor: errors.email ? '#dc2626' : '#ccc' }} 
+                        className={`form-input ${errors.email ? 'is-error' : ''}`}
                       />
-                      {errors.email && <span style={errorStyle}>{errors.email}</span>}
+                      {errors.email && <span className="form-error">{errors.email}</span>}
                     </div>
-                    <div>
-                      <label style={labelStyle}>Telefone *</label>
-                      <input 
-                        type="tel" 
-                        name="phone" 
+                    <div className="form-field">
+                      <label className="form-label">Telefone *</label>
+                      <input
+                        type="tel"
+                        name="phone"
                         value={formData.phone}
-                        onChange={handleChange} 
+                        onChange={handleChange}
                         placeholder="(11) 99999-9999"
-                        style={{ ...inputStyle, borderColor: errors.phone ? '#dc2626' : '#ccc' }} 
+                        className={`form-input ${errors.phone ? 'is-error' : ''}`}
                       />
-                      {errors.phone && <span style={errorStyle}>{errors.phone}</span>}
+                      {errors.phone && <span className="form-error">{errors.phone}</span>}
                     </div>
                   </div>
 
-                  <div>
-                    <label style={labelStyle}>CPF *</label>
-                    <input 
-                      type="text" 
-                      name="cpf" 
+                  <div className="form-field">
+                    <label className="form-label">CPF *</label>
+                    <input
+                      type="text"
+                      name="cpf"
                       value={formData.cpf}
-                      onChange={handleChange} 
+                      onChange={handleChange}
                       placeholder="000.000.000-00"
-                      style={{ ...inputStyle, borderColor: errors.cpf ? '#dc2626' : '#ccc' }} 
+                      className={`form-input ${errors.cpf ? 'is-error' : ''}`}
                     />
-                    {errors.cpf && <span style={errorStyle}>{errors.cpf}</span>}
+                    {errors.cpf && <span className="form-error">{errors.cpf}</span>}
                   </div>
                 </div>
 
-                {/* Address Section */}
-                <h4 style={{ color: '#333', marginBottom: '15px', paddingTop: '15px', borderTop: '1px solid #eee' }}>
-                  Endereço de Entrega
-                </h4>
-                
-                <div style={{ display: 'grid', gap: '15px' }}>
+                <h4 className="checkout-subsection-title">Endereco de entrega</h4>
+
+                <div className="checkout-field-group">
                   <div className="checkout-grid-cep">
-                    <div>
-                      <label style={labelStyle}>CEP *</label>
-                      <div style={{ position: 'relative' }}>
-                        <input 
-                          type="text" 
-                          name="zip_code" 
+                    <div className="form-field">
+                      <label className="form-label">CEP *</label>
+                      <div className="checkout-field-with-icon">
+                        <input
+                          type="text"
+                          name="zip_code"
                           value={formData.zip_code}
                           onChange={handleChange}
                           onBlur={handleCEPBlur}
                           placeholder="00000-000"
-                          style={{ ...inputStyle, borderColor: errors.zip_code ? '#dc2626' : '#ccc' }} 
+                          className={`form-input ${errors.zip_code ? 'is-error' : ''}`}
                         />
                         {loadingCEP && (
-                          <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: '#666' }}>
-                            Buscando...
-                          </span>
+                          <span className="checkout-field-note">Buscando...</span>
                         )}
                       </div>
-                      {errors.zip_code && <span style={errorStyle}>{errors.zip_code}</span>}
+                      {errors.zip_code && <span className="form-error">{errors.zip_code}</span>}
                     </div>
-                    <div>
-                      <label style={labelStyle}>Endereço (Rua, Número, Bairro) *</label>
-                      <input 
-                        type="text" 
-                        name="address" 
+                    <div className="form-field">
+                      <label className="form-label">Endereco (Rua, numero, bairro) *</label>
+                      <input
+                        type="text"
+                        name="address"
                         value={formData.address}
-                        onChange={handleChange} 
+                        onChange={handleChange}
                         placeholder="Rua Exemplo, 123, Centro"
-                        style={{ ...inputStyle, borderColor: errors.address ? '#dc2626' : '#ccc' }} 
+                        className={`form-input ${errors.address ? 'is-error' : ''}`}
                       />
-                      {errors.address && <span style={errorStyle}>{errors.address}</span>}
+                      {errors.address && <span className="form-error">{errors.address}</span>}
                     </div>
                   </div>
 
                   <div className="checkout-grid-city">
-                    <div>
-                      <label style={labelStyle}>Cidade *</label>
-                      <input 
-                        type="text" 
-                        name="city" 
+                    <div className="form-field">
+                      <label className="form-label">Cidade *</label>
+                      <input
+                        type="text"
+                        name="city"
                         value={formData.city}
-                        onChange={handleChange} 
-                        placeholder="São Paulo"
-                        style={{ ...inputStyle, borderColor: errors.city ? '#dc2626' : '#ccc' }} 
+                        onChange={handleChange}
+                        placeholder="Sao Paulo"
+                        className={`form-input ${errors.city ? 'is-error' : ''}`}
                       />
-                      {errors.city && <span style={errorStyle}>{errors.city}</span>}
+                      {errors.city && <span className="form-error">{errors.city}</span>}
                     </div>
-                    <div>
-                      <label style={labelStyle}>Estado *</label>
-                      <select 
-                        name="state" 
+                    <div className="form-field">
+                      <label className="form-label">Estado *</label>
+                      <select
+                        name="state"
                         value={formData.state}
                         onChange={handleChange}
-                        style={{ ...inputStyle, borderColor: errors.state ? '#dc2626' : '#ccc' }}
+                        className={`form-input ${errors.state ? 'is-error' : ''}`}
                       >
                         <option value="">Selecione</option>
-                        {BRAZILIAN_STATES.map(state => (
+                        {BRAZILIAN_STATES.map((state) => (
                           <option key={state.value} value={state.value}>{state.label}</option>
                         ))}
                       </select>
-                      {errors.state && <span style={errorStyle}>{errors.state}</span>}
+                      {errors.state && <span className="form-error">{errors.state}</span>}
                     </div>
                   </div>
                 </div>
 
-                {/* Payment Section */}
-                <h4 style={{ color: '#333', marginBottom: '15px', paddingTop: '15px', borderTop: '1px solid #eee' }}>
-                  Pagamento
-                </h4>
+                <h4 className="checkout-subsection-title">Pagamento</h4>
 
-                <div style={paymentMethodGridStyle}>
-                  <label style={paymentOptionStyle}>
+                <div className="checkout-payment-methods">
+                  <label className="checkout-payment-option">
                     <input
                       type="radio"
                       name="paymentMethod"
                       checked={paymentMethod === 'pix'}
                       onChange={() => setPaymentMethod('pix')}
-                      style={{ marginTop: '3px' }}
                     />
                     <div>
-                      <div style={paymentOptionLabelStyle}>PIX</div>
-                      <div style={paymentOptionHintStyle}>Aprovacao rapida, QR Code apos confirmar.</div>
+                      <div className="checkout-payment-option-label">PIX</div>
+                      <div className="checkout-payment-option-hint">Aprovacao rapida, QR Code apos confirmar.</div>
                     </div>
                   </label>
-                  <label style={paymentOptionStyle}>
+                  <label className="checkout-payment-option">
                     <input
                       type="radio"
                       name="paymentMethod"
                       checked={paymentMethod === 'cash'}
                       onChange={() => setPaymentMethod('cash')}
-                      style={{ marginTop: '3px' }}
                     />
                     <div>
-                      <div style={paymentOptionLabelStyle}>Boleto</div>
-                      <div style={paymentOptionHintStyle}>Pagamento em ate 3 dias uteis.</div>
+                      <div className="checkout-payment-option-label">Boleto</div>
+                      <div className="checkout-payment-option-hint">Pagamento em ate 3 dias uteis.</div>
                     </div>
                   </label>
-                  <label style={paymentOptionStyle}>
+                  <label className="checkout-payment-option">
                     <input
                       type="radio"
                       name="paymentMethod"
                       checked={paymentMethod === 'card'}
                       onChange={() => setPaymentMethod('card')}
-                      style={{ marginTop: '3px' }}
                     />
                     <div>
-                      <div style={paymentOptionLabelStyle}>Cartao</div>
-                      <div style={paymentOptionHintStyle}>Credito ou debito com tokenizacao.</div>
+                      <div className="checkout-payment-option-label">Cartao</div>
+                      <div className="checkout-payment-option-hint">Credito ou debito com tokenizacao.</div>
                     </div>
                   </label>
                 </div>
 
                 {paymentMethod === 'pix' && (
-                  <div style={paymentNoteStyle}>
+                  <div className="checkout-payment-note">
                     O QR Code sera exibido apos confirmar o pedido.
                   </div>
                 )}
 
                 {paymentMethod === 'cash' && (
-                  <div style={paymentNoteStyle}>
-                    <label style={labelStyle}>Metodo de boleto</label>
+                  <div className="checkout-payment-note">
+                    <label className="form-label">Metodo de boleto</label>
                     <select
                       name="cashMethod"
                       value={cashMethod}
                       onChange={(event) => setCashMethod(event.target.value)}
-                      style={inputStyle}
+                      className="form-input"
                     >
                       <option value="bolbradesco">Boleto (Bradesco)</option>
                     </select>
@@ -823,97 +795,98 @@ const CheckoutPage = () => {
                 )}
 
                 {paymentMethod === 'card' && (
-                  <div style={paymentCardBlockStyle}>
+                  <div className="checkout-payment-card">
                     {!mpPublicKey && (
-                      <div style={mpWarningStyle}>
+                      <div className="checkout-payment-warning">
                         Public key do Mercado Pago nao configurada.
                       </div>
                     )}
                     {mpPublicKey && !mpReady && (
-                      <div style={mpWarningStyle}>
+                      <div className="checkout-payment-warning">
                         Carregando SDK do Mercado Pago...
                       </div>
                     )}
-                    <div style={{ marginBottom: '12px' }}>
-                      <label style={labelStyle}>Tipo do cartao</label>
+
+                    <div className="form-field">
+                      <label className="form-label">Tipo do cartao</label>
                       <select
                         name="cardPaymentType"
                         value={cardPaymentType}
                         onChange={(event) => setCardPaymentType(event.target.value)}
-                        style={inputStyle}
+                        className="form-input"
                       >
                         <option value="credit_card">Credito</option>
                         <option value="debit_card">Debito</option>
                       </select>
                     </div>
 
-                    <div>
-                      <label style={labelStyle}>Numero do cartao</label>
+                    <div className="form-field">
+                      <label className="form-label">Numero do cartao</label>
                       <input
                         type="text"
                         name="number"
                         value={cardData.number}
                         onChange={handleCardChange}
                         placeholder="0000 0000 0000 0000"
-                        style={inputStyle}
+                        className="form-input"
                       />
                     </div>
 
-                    <div>
-                      <label style={labelStyle}>Nome no cartao</label>
+                    <div className="form-field">
+                      <label className="form-label">Nome no cartao</label>
                       <input
                         type="text"
                         name="holder"
                         value={cardData.holder}
                         onChange={handleCardChange}
                         placeholder="Nome impresso"
-                        style={inputStyle}
+                        className="form-input"
                       />
                     </div>
 
-                    <div style={paymentFieldGridStyle}>
-                      <div>
-                        <label style={labelStyle}>Mes</label>
+                    <div className="checkout-payment-grid">
+                      <div className="form-field">
+                        <label className="form-label">Mes</label>
                         <input
                           type="text"
                           name="expMonth"
                           value={cardData.expMonth}
                           onChange={handleCardChange}
                           placeholder="MM"
-                          style={inputStyle}
+                          className="form-input"
                         />
                       </div>
-                      <div>
-                        <label style={labelStyle}>Ano</label>
+                      <div className="form-field">
+                        <label className="form-label">Ano</label>
                         <input
                           type="text"
                           name="expYear"
                           value={cardData.expYear}
                           onChange={handleCardChange}
                           placeholder="AA"
-                          style={inputStyle}
+                          className="form-input"
                         />
                       </div>
-                      <div>
-                        <label style={labelStyle}>CVV</label>
+                      <div className="form-field">
+                        <label className="form-label">CVV</label>
                         <input
                           type="text"
                           name="cvv"
                           value={cardData.cvv}
                           onChange={handleCardChange}
                           placeholder="123"
-                          style={inputStyle}
+                          className="form-input"
                         />
                       </div>
                     </div>
 
-                    <div style={{ marginTop: '12px' }}>
-                      <label style={labelStyle}>Parcelas</label>
+                    <div className="form-field">
+                      <label className="form-label">Parcelas</label>
                       <select
                         name="installments"
                         value={cardData.installments}
                         onChange={handleCardChange}
-                        style={inputStyle}
+                        className="form-input"
                       >
                         {INSTALLMENT_OPTIONS.map((option) => (
                           <option key={option} value={option}>{option}x</option>
@@ -923,86 +896,65 @@ const CheckoutPage = () => {
                   </div>
                 )}
 
-                {/* Save Address Checkbox */}
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '20px', cursor: 'pointer' }}>
-                  <input 
-                    type="checkbox" 
+                <label className="checkout-save-address">
+                  <input
+                    type="checkbox"
                     checked={saveAddress}
-                    onChange={(e) => setSaveAddress(e.target.checked)}
-                    style={{ width: '18px', height: '18px' }}
+                    onChange={(event) => setSaveAddress(event.target.checked)}
                   />
-                  <span style={{ fontSize: '0.9rem', color: '#555' }}>Salvar endereço para próximas compras</span>
+                  <span>Salvar endereco para proximas compras</span>
                 </label>
 
-                {/* Submit Button */}
-                <button 
-                  type="submit" 
-                  className="btn-primary" 
+                <button
+                  type="submit"
+                  className="btn-primary checkout-submit"
                   disabled={loading || !isCardReady}
-                  style={{ 
-                    marginTop: '25px', 
-                    width: '100%', 
-                    fontSize: '1.1rem', 
-                    padding: '16px',
-                    opacity: loading ? 0.7 : 1,
-                    cursor: loading ? 'not-allowed' : 'pointer'
-                  }}
                 >
-                  {loading
-                    ? 'PROCESSANDO...'
-                    : paymentMethod === 'pix'
-                      ? 'GERAR PIX'
-                      : paymentMethod === 'cash'
-                        ? 'GERAR BOLETO'
-                        : 'PAGAR COM CARTAO'}
+                  {submitLabel}
                 </button>
               </form>
             </div>
           </div>
 
-          {/* Order Summary */}
           <div>
             <div className="checkout-card checkout-summary-card">
               <h3 className="checkout-section-title">Resumo do Pedido</h3>
-              
-              {cart.map(item => (
-                <div key={item.id} style={{ display: 'flex', gap: '15px', marginBottom: '15px', paddingBottom: '15px', borderBottom: '1px solid #f5f5f5' }}>
-                  <img 
-                    src={item.image} 
-                    alt={item.name} 
-                    style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} 
+
+              {cart.map((item) => (
+                <div key={item.id} className="checkout-summary-item">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="checkout-summary-image"
                   />
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: '0 0 5px 0', fontSize: '0.95rem', color: '#333' }}>{item.name}</h4>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>Qtd: {item.quantity}</p>
+                  <div className="checkout-summary-info">
+                    <h4 className="checkout-summary-name">{item.name}</h4>
+                    <p className="checkout-summary-qty">Qtd: {item.quantity}</p>
                   </div>
-                  <span style={{ fontWeight: 'bold', color: 'var(--color-marsala)' }}>
+                  <span className="checkout-summary-price">
                     R$ {(Number(item.price) * item.quantity).toFixed(2)}
                   </span>
                 </div>
               ))}
-              
-              <div style={{ borderTop: '2px dashed #eee', margin: '20px 0', paddingTop: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: '#666' }}>
+
+              <div className="checkout-summary-divider">
+                <div className="checkout-summary-row">
                   <span>Subtotal</span>
                   <span>R$ {cartTotal.toFixed(2)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: '#666' }}>
+                <div className="checkout-summary-row">
                   <span>Frete</span>
-                  <span style={{ color: '#16a34a' }}>Grátis</span>
+                  <span>Gratis</span>
                 </div>
               </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--color-marsala)', paddingTop: '15px', borderTop: '2px solid var(--color-marsala)' }}>
+
+              <div className="checkout-summary-total">
                 <span>Total</span>
                 <span>R$ {cartTotal.toFixed(2)}</span>
               </div>
 
-              {/* Security Badge */}
-              <div style={{ marginTop: '25px', padding: '15px', backgroundColor: '#f0fdf4', borderRadius: '8px', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.85rem', color: '#16a34a' }}>
-                  Pagamento seguro via Mercado Pago
-                </span>
+              <div className="checkout-security">
+                Pagamento seguro via Mercado Pago
               </div>
             </div>
           </div>
@@ -1012,173 +964,4 @@ const CheckoutPage = () => {
   );
 };
 
-const inputStyle = {
-  width: '100%', 
-  padding: '12px 15px', 
-  borderRadius: '8px', 
-  border: '1px solid #e7ded5', 
-  fontSize: '1rem', 
-  outline: 'none', 
-  backgroundColor: '#fffaf6',
-  transition: 'border-color 0.2s, box-shadow 0.2s'
-};
-
-const labelStyle = {
-  display: 'block',
-  marginBottom: '6px',
-  fontSize: '0.9rem',
-  fontWeight: '500',
-  color: '#444'
-};
-
-const errorStyle = {
-  display: 'block',
-  marginTop: '4px',
-  fontSize: '0.8rem',
-  color: '#dc2626'
-};
-
-const alertStyle = {
-  backgroundColor: '#fee2e2',
-  color: '#b91c1c',
-  padding: '12px 16px',
-  borderRadius: '10px',
-  marginBottom: '20px',
-  border: '1px solid #fecaca'
-};
-
-const paymentInfoStyle = {
-  backgroundColor: '#fff',
-  border: '1px solid #eee',
-  padding: '20px',
-  borderRadius: '14px',
-  marginBottom: '20px'
-};
-
-const paymentHeaderStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center'
-};
-
-const paymentStatusBadgeStyle = {
-  backgroundColor: '#fef3c7',
-  color: '#92400e',
-  padding: '4px 10px',
-  borderRadius: '999px',
-  fontSize: '0.8rem',
-  fontWeight: '600',
-  textTransform: 'capitalize'
-};
-
-const paymentDetailBlockStyle = {
-  marginTop: '12px',
-  backgroundColor: '#f9fafb',
-  padding: '12px',
-  borderRadius: '10px',
-  border: '1px solid #eee'
-};
-
-const qrImageStyle = {
-  width: '200px',
-  height: '200px',
-  display: 'block',
-  margin: '10px 0'
-};
-
-const qrTextStyle = {
-  width: '100%',
-  minHeight: '90px',
-  resize: 'vertical',
-  padding: '10px',
-  borderRadius: '8px',
-  border: '1px solid #ddd',
-  fontFamily: 'monospace',
-  fontSize: '0.85rem'
-};
-
-const ticketLinkStyle = {
-  display: 'inline-block',
-  padding: '10px 16px',
-  borderRadius: '8px',
-  backgroundColor: 'var(--color-marsala)',
-  color: '#fff',
-  textDecoration: 'none',
-  fontWeight: '600'
-};
-
-const pendingLinkStyle = {
-  color: 'var(--color-marsala)',
-  textDecoration: 'none',
-  fontWeight: '600'
-};
-
-const paymentMethodGridStyle = {
-  display: 'grid',
-  gap: '12px',
-  marginBottom: '12px'
-};
-
-const paymentOptionStyle = {
-  display: 'flex',
-  alignItems: 'flex-start',
-  gap: '10px',
-  padding: '12px',
-  border: '1px solid #e7ded5',
-  borderRadius: '10px',
-  cursor: 'pointer',
-  backgroundColor: '#fffaf6',
-  boxShadow: '0 6px 14px rgba(30, 20, 15, 0.06)'
-};
-
-const paymentOptionLabelStyle = {
-  fontSize: '0.95rem',
-  fontWeight: '600',
-  color: '#333'
-};
-
-const paymentOptionHintStyle = {
-  fontSize: '0.85rem',
-  color: '#666',
-  marginTop: '4px'
-};
-
-const paymentNoteStyle = {
-  backgroundColor: '#fff7ed',
-  border: '1px dashed #f1c89b',
-  borderRadius: '10px',
-  padding: '12px',
-  marginBottom: '16px',
-  color: '#7a3e12',
-  fontSize: '0.9rem'
-};
-
-const paymentCardBlockStyle = {
-  display: 'grid',
-  gap: '12px',
-  backgroundColor: '#fffaf6',
-  border: '1px solid #ecdccc',
-  borderRadius: '12px',
-  padding: '16px'
-};
-
-const paymentFieldGridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))',
-  gap: '12px'
-};
-
-const mpWarningStyle = {
-  backgroundColor: '#fff7ed',
-  border: '1px solid #fed7aa',
-  color: '#9a3412',
-  padding: '10px 12px',
-  borderRadius: '8px',
-  fontSize: '0.85rem'
-};
-
 export default CheckoutPage;
-
-
-
-

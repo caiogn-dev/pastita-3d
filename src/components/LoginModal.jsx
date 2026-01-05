@@ -17,12 +17,12 @@ const LoginModal = ({ isOpen, onClose, onSuccess }) => {
     setError('');
 
     const result = await signIn(formData.username, formData.password);
-    
+
     if (result.success) {
       onSuccess?.();
       onClose();
     } else {
-      setError(result.error || 'Usuário ou senha inválidos');
+      setError(result.error || 'Usuario ou senha invalidos');
     }
     setLoading(false);
   };
@@ -36,10 +36,10 @@ const LoginModal = ({ isOpen, onClose, onSuccess }) => {
   return (
     <div className="login-modal-overlay" onClick={handleOverlayClick}>
       <div className="login-modal">
-        <button className="login-modal-close" onClick={onClose}>×</button>
-        
+        <button className="login-modal-close" onClick={onClose}>x</button>
+
         <div className="login-modal-header">
-          <h2>Faça Login</h2>
+          <h2>Faca login</h2>
           <p>Entre para adicionar produtos ao carrinho</p>
         </div>
 
@@ -47,30 +47,30 @@ const LoginModal = ({ isOpen, onClose, onSuccess }) => {
 
         <form onSubmit={handleSubmit} className="login-modal-form">
           <div className="login-modal-field">
-            <label>Usuário</label>
-            <input 
-              type="text" 
+            <label>Usuario</label>
+            <input
+              type="text"
               value={formData.username}
-              onChange={(e) => setFormData({...formData, username: e.target.value})}
-              placeholder="Seu usuário"
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              placeholder="Seu usuario"
               required
               autoFocus
             />
           </div>
-          
+
           <div className="login-modal-field">
             <label>Senha</label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               placeholder="Sua senha"
               required
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn-primary login-modal-submit"
             disabled={loading}
           >
@@ -80,7 +80,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }) => {
 
         <div className="login-modal-footer">
           <p>
-            Não tem conta?{' '}
+            Nao tem conta?{' '}
             <Link to="/registro" onClick={onClose}>Cadastre-se</Link>
           </p>
         </div>

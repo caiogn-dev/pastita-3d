@@ -18,45 +18,45 @@ const CartSidebar = () => {
         <div className="cart-header">
           <h2>Seu Pedido</h2>
           <button onClick={toggleCart} className="cart-close-btn" aria-label="Fechar">
-            ×
+            x
           </button>
         </div>
 
         <div className="cart-items">
           {cart.length === 0 ? (
             <div className="cart-empty">
-              <span className="cart-empty-icon">🛒</span>
-              <p>Seu carrinho está vazio.</p>
+              <span className="cart-empty-icon">[]</span>
+              <p>Seu carrinho esta vazio.</p>
               <button onClick={toggleCart} className="btn-secondary">
-                Ver Cardápio
+                Ver Cardapio
               </button>
             </div>
           ) : (
-            cart.map(item => (
+            cart.map((item) => (
               <div key={item.id} className="cart-item">
                 <img src={item.image} alt={item.name} className="cart-item-image" />
                 <div className="cart-item-details">
                   <h4 className="cart-item-name">{item.name}</h4>
                   <p className="cart-item-price">R$ {Number(item.price).toFixed(2)}</p>
-                  
+
                   <div className="cart-item-actions">
                     <div className="quantity-control">
-                      <button 
+                      <button
                         onClick={() => updateQuantity(item.id, -1)}
                         aria-label="Diminuir quantidade"
                       >
-                        −
+                        -
                       </button>
                       <span>{item.quantity}</span>
-                      <button 
+                      <button
                         onClick={() => updateQuantity(item.id, 1)}
                         aria-label="Aumentar quantidade"
                       >
                         +
                       </button>
                     </div>
-                    <button 
-                      onClick={() => removeFromCart(item.id)} 
+                    <button
+                      onClick={() => removeFromCart(item.id)}
                       className="cart-item-remove"
                     >
                       Remover
@@ -75,16 +75,16 @@ const CartSidebar = () => {
               <span>R$ {cartTotal.toFixed(2)}</span>
             </div>
             {isAuthenticated ? (
-              <Link 
-                to="/checkout" 
+              <Link
+                to="/checkout"
                 onClick={toggleCart}
                 className="btn-primary cart-checkout-btn"
               >
                 FINALIZAR COMPRA
               </Link>
             ) : (
-              <Link 
-                to="/login" 
+              <Link
+                to="/login"
                 onClick={toggleCart}
                 className="btn-primary cart-checkout-btn"
               >

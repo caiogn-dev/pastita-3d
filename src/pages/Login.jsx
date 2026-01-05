@@ -1,7 +1,8 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
+import '../styles/forms.css';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const Login = () => {
     if (result.success) {
       navigate(from, { replace: true });
     } else {
-      setError(result.error || 'E-mail ou celular inválidos');
+      setError(result.error || 'E-mail ou celular invalidos');
     }
     setLoading(false);
   };
@@ -40,31 +41,31 @@ const Login = () => {
           {error && <div className="auth-error">{error}</div>}
 
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#444' }}>E-mail ou celular</label>
-            <input 
-              type="text" 
-              value={formData.login}
-              onChange={(e) => setFormData({ ...formData, login: e.target.value })}
-              placeholder="seu@email.com ou 11999999999"
-              style={inputStyle}
-              required
-            />
-          </div>
-          
-          <div style={{ marginBottom: '30px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#444' }}>Senha</label>
-            <input 
-              type="password" 
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              style={inputStyle}
-              required
-            />
-          </div>
+            <div className="form-field">
+              <label className="form-label">E-mail ou celular</label>
+              <input
+                type="text"
+                value={formData.login}
+                onChange={(e) => setFormData({ ...formData, login: e.target.value })}
+                placeholder="seu@email.com ou 11999999999"
+                className="form-input"
+                required
+              />
+            </div>
 
-            <button 
-              type="submit" 
+            <div className="form-field">
+              <label className="form-label">Senha</label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="form-input"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
               className="btn-primary auth-submit"
               disabled={loading}
             >
@@ -74,7 +75,7 @@ const Login = () => {
 
           <div className="auth-footer">
             <p>
-              Não tem uma conta?{' '}
+              Nao tem uma conta?{' '}
               <Link to="/registro">Cadastre-se</Link>
             </p>
           </div>
@@ -87,12 +88,3 @@ const Login = () => {
 };
 
 export default Login;
-
-const inputStyle = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: "8px",
-  border: "1px solid #ddd",
-  fontSize: "1rem",
-  outline: "none"
-};

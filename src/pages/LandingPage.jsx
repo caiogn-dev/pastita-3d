@@ -12,22 +12,22 @@ const LandingPage = () => {
       {/* Hero Section */}
       <header className="hero-section">
         <div className="container hero-container">
-          
+
           {/* Lado Esquerdo: Texto */}
           <div className="hero-text">
             <span className="hero-eyebrow">
-              Artesanal & Prático
+              Artesanal & Pratico
             </span>
             <h1 className="hero-title">
-              O Verdadeiro Sabor Italiano em Minutos.
+              O verdadeiro sabor italiano em minutos.
             </h1>
             <p className="hero-description">
-              Massas frescas, recheios generosos e a praticidade que você precisa. 
-              Tire do freezer, aqueça e impressione.
+              Massas frescas, recheios generosos e a praticidade que voce precisa.
+              Tire do freezer, aquece e impressione.
             </p>
             <div className="hero-buttons">
-              <Link to="/cardapio" className="btn-primary">Ver Cardápio</Link>
-              <a href="#como-funciona" className="btn-secondary">Como Funciona</a>
+              <Link to="/cardapio" className="btn-primary">Ver Cardapio</Link>
+              <a href="#como-funciona" className="btn-secondary">Como funciona</a>
             </div>
           </div>
 
@@ -37,7 +37,7 @@ const LandingPage = () => {
           </div>
 
         </div>
-        
+
         {/* Background Decorativo */}
         <div className="hero-bg-decoration"></div>
       </header>
@@ -47,14 +47,14 @@ const LandingPage = () => {
         <div className="container">
           <div className="section-header">
             <span className="section-eyebrow">Simples assim</span>
-            <h2 className="section-title">Como Funciona</h2>
+            <h2 className="section-title">Como funciona</h2>
           </div>
-          
+
           <div className="steps-grid">
             <div className="step-card">
               <div className="step-number">01</div>
               <h3>Escolha</h3>
-              <p>Navegue pelo nosso cardápio e escolha suas massas favoritas.</p>
+              <p>Navegue pelo nosso cardapio e escolha suas massas favoritas.</p>
             </div>
             <div className="step-card">
               <div className="step-number">02</div>
@@ -64,7 +64,7 @@ const LandingPage = () => {
             <div className="step-card">
               <div className="step-number">03</div>
               <h3>Prepare</h3>
-              <p>Tire do freezer, aqueça em minutos e sirva uma refeição incrível.</p>
+              <p>Tire do freezer, aquece em minutos e sirva uma refeicao incrivel.</p>
             </div>
           </div>
         </div>
@@ -77,27 +77,27 @@ const LandingPage = () => {
             <span className="section-eyebrow">Diferenciais</span>
             <h2 className="section-title">Por que escolher Pastita?</h2>
           </div>
-          
+
           <div className="features-grid">
             <div className="feature-card">
-              <span className="feature-icon">🍝</span>
-              <h3>Massa Artesanal</h3>
+              <span className="feature-icon">*</span>
+              <h3>Massa artesanal</h3>
               <p>Feita com ingredientes selecionados e muito carinho.</p>
             </div>
             <div className="feature-card">
-              <span className="feature-icon">⏱️</span>
-              <h3>Pronto em Minutos</h3>
+              <span className="feature-icon">+</span>
+              <h3>Pronto em minutos</h3>
               <p>Do freezer para a mesa em menos de 15 minutos.</p>
             </div>
             <div className="feature-card">
-              <span className="feature-icon">🧀</span>
-              <h3>Recheios Generosos</h3>
-              <p>Cada mordida é uma explosão de sabor.</p>
+              <span className="feature-icon">%</span>
+              <h3>Recheios generosos</h3>
+              <p>Cada mordida e uma explosao de sabor.</p>
             </div>
             <div className="feature-card">
-              <span className="feature-icon">🚚</span>
-              <h3>Entrega Congelada</h3>
-              <p>Mantém a qualidade e frescor até você.</p>
+              <span className="feature-icon">#</span>
+              <h3>Entrega congelada</h3>
+              <p>Mantem a qualidade e frescor ate voce.</p>
             </div>
           </div>
         </div>
@@ -108,9 +108,9 @@ const LandingPage = () => {
         <div className="container">
           <div className="cta-content">
             <h2>Pronto para experimentar?</h2>
-            <p>Descubra o sabor autêntico das massas artesanais Pastita.</p>
+            <p>Descubra o sabor autentico das massas artesanais Pastita.</p>
             <Link to="/cardapio" className="btn-primary btn-large">
-              Ver Cardápio Completo
+              Ver cardapio completo
             </Link>
           </div>
         </div>
@@ -126,8 +126,8 @@ const LandingPage = () => {
             </div>
             <div className="footer-links">
               <h4>Links</h4>
-              <Link to="/">Início</Link>
-              <Link to="/cardapio">Cardápio</Link>
+              <Link to="/">Inicio</Link>
+              <Link to="/cardapio">Cardapio</Link>
               <Link to="/login">Login</Link>
             </div>
             <div className="footer-contact">
@@ -137,7 +137,7 @@ const LandingPage = () => {
             </div>
           </div>
           <div className="footer-bottom">
-            <p>© 2026 Pastita. Todos os direitos reservados.</p>
+            <p>(C) 2026 Pastita. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>
