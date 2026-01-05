@@ -31,11 +31,6 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* Lado Direito: 3D Interativo */}
-          <div className="hero-3d">
-            <InteractiveModel />
-          </div>
-
         </div>
 
         {/* Background Decorativo */}
