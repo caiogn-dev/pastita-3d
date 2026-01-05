@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -313,7 +313,7 @@ const CheckoutPage = () => {
         {/* Header */}
         <div style={{ marginBottom: '30px' }}>
           <Link to="/cardapio" style={{ color: '#666', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-            ← Voltar ao Cardápio
+             &larr; Voltar ao Cardápio
           </Link>
           <h1 style={{ color: 'var(--color-marsala)', marginTop: '15px', marginBottom: '5px' }}>Finalizar Pedido</h1>
           <p style={{ color: '#666', margin: 0 }}>Confirme seus dados para prosseguir com o pagamento</p>
@@ -327,7 +327,7 @@ const CheckoutPage = () => {
             {savedAddresses.length > 0 && (
               <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #eee' }}>
                 <h3 style={{ color: 'var(--color-marsala)', marginTop: 0, marginBottom: '15px', fontSize: '1.1rem' }}>
-                  📍 Endereços Salvos
+                  Endereços Salvos
                 </h3>
                 {savedAddresses.map((addr, index) => (
                   <label key={index} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', backgroundColor: !useNewAddress && formData.address === addr.address ? '#f0e6e6' : '#f9f9f9', borderRadius: '8px', marginBottom: '10px', cursor: 'pointer', border: !useNewAddress && formData.address === addr.address ? '2px solid var(--color-marsala)' : '2px solid transparent' }}>
@@ -511,7 +511,7 @@ const CheckoutPage = () => {
                     cursor: loading ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  {loading ? 'PROCESSANDO...' : '💳 PAGAR COM MERCADO PAGO'}
+                  {loading ? 'PROCESSANDO...' : 'PAGAR COM MERCADO PAGO'}
                 </button>
               </form>
             </div>
@@ -560,7 +560,7 @@ const CheckoutPage = () => {
               {/* Security Badge */}
               <div style={{ marginTop: '25px', padding: '15px', backgroundColor: '#f0fdf4', borderRadius: '8px', textAlign: 'center' }}>
                 <span style={{ fontSize: '0.85rem', color: '#16a34a' }}>
-                  🔒 Pagamento seguro via Mercado Pago
+                  Pagamento seguro via Mercado Pago
                 </span>
               </div>
             </div>
@@ -598,3 +598,7 @@ const errorStyle = {
 };
 
 export default CheckoutPage;
+
+
+
+

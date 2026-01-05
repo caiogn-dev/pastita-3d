@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { login as authLogin, logout as authLogout } from '../services/auth';
 import api from '../services/api';
 
@@ -36,9 +36,9 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, [fetchProfile]);
 
-  const signIn = async (username, password) => {
+  const signIn = async (login, password) => {
     try {
-      const data = await authLogin(username, password);
+      const data = await authLogin(login, password);
       setUser(data);
       // Fetch profile after successful login
       const profileData = await fetchProfile();
@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
         success: false, 
         error: error.response?.data?.non_field_errors?.[0] || 
                error.response?.data?.detail ||
-               'Usuário ou senha inválidos' 
+               'E-mail, celular ou senha inválidos'
       };
     }
   };

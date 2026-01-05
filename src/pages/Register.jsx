@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../services/auth';
+
+const formatPhone = (value) => {
+  const numbers = value.replace(/\D/g, '').slice(0, 11);
+  if (numbers.length <= 2) return numbers;
+  if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+  return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+};
 
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ 
-    username: '', 
     email: '', 
+    phone: '',
     password: '',
     confirmPassword: '',
     first_name: '',
@@ -18,29 +25,29 @@ const Register = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
-    if (!formData.username.trim()) {
-      newErrors.username = 'Usuário é obrigatório';
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'Usuário deve ter pelo menos 3 caracteres';
-    }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'E-mail é obrigatório';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'E-mail inválido';
     }
-    
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Celular é obrigatório';
+    } else if (formData.phone.replace(/\D/g, '').length < 10) {
+      newErrors.phone = 'Celular inválido (10-11 dígitos)';
+    }
+
     if (!formData.password) {
       newErrors.password = 'Senha é obrigatória';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Senha deve ter pelo menos 8 caracteres';
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'As senhas não coincidem';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -48,14 +55,14 @@ const Register = () => {
   const getPasswordStrength = () => {
     const password = formData.password;
     if (!password) return { level: 0, text: '', color: '#ccc' };
-    
+
     let strength = 0;
     if (password.length >= 8) strength++;
     if (password.length >= 12) strength++;
     if (/[A-Z]/.test(password)) strength++;
     if (/[0-9]/.test(password)) strength++;
     if (/[^A-Za-z0-9]/.test(password)) strength++;
-    
+
     if (strength <= 2) return { level: strength, text: 'Fraca', color: '#dc2626' };
     if (strength <= 3) return { level: strength, text: 'Média', color: '#d97706' };
     return { level: strength, text: 'Forte', color: '#16a34a' };
@@ -63,46 +70,44 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setLoading(true);
     setErrors({});
 
     try {
       await register({
-        username: formData.username,
         email: formData.email,
+        phone: formData.phone.replace(/\D/g, ''),
         password: formData.password,
         first_name: formData.first_name,
         last_name: formData.last_name
       });
-      
+
       setSuccess(true);
       setTimeout(() => {
         navigate('/login');
       }, 2000);
-      
     } catch (err) {
       console.error(err);
-      
-      // Handle specific backend errors
+
       if (err.response?.data) {
         const backendErrors = {};
         Object.entries(err.response.data).forEach(([key, value]) => {
-          if (key === 'username' && Array.isArray(value)) {
-            backendErrors.username = value[0].includes('exists') 
-              ? 'Este usuário já existe' 
+          if (key === 'email' && Array.isArray(value)) {
+            backendErrors.email = value[0].includes('exists')
+              ? 'Este e-mail já está cadastrado'
               : value[0];
-          } else if (key === 'email' && Array.isArray(value)) {
-            backendErrors.email = value[0].includes('exists') 
-              ? 'Este e-mail já está cadastrado' 
+          } else if (key === 'phone' && Array.isArray(value)) {
+            backendErrors.phone = value[0].includes('exists')
+              ? 'Este celular já está cadastrado'
               : value[0];
           } else if (Array.isArray(value)) {
             backendErrors[key] = value[0];
           }
         });
-        
+
         if (Object.keys(backendErrors).length > 0) {
           setErrors(backendErrors);
         } else {
@@ -122,9 +127,9 @@ const Register = () => {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-cream)' }}>
         <div style={{ width: '100%', maxWidth: '400px', padding: '40px', backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', textAlign: 'center' }}>
           <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-            <span style={{ fontSize: '2rem' }}>✓</span>
+            <span style={{ fontSize: '1.5rem' }}>OK</span>
           </div>
-          <h2 style={{ color: 'var(--color-marsala)', marginBottom: '10px' }}>Conta Criada!</h2>
+          <h2 style={{ color: 'var(--color-marsala)', marginBottom: '10px' }}>Conta criada!</h2>
           <p style={{ color: '#666' }}>Redirecionando para o login...</p>
         </div>
       </div>
@@ -149,14 +154,13 @@ const Register = () => {
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* Name fields */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
             <div>
               <label style={labelStyle}>Nome</label>
               <input 
                 type="text" 
                 value={formData.first_name}
-                onChange={(e) => setFormData({...formData, first_name: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                 placeholder="João"
                 style={inputStyle}
               />
@@ -166,26 +170,11 @@ const Register = () => {
               <input 
                 type="text" 
                 value={formData.last_name}
-                onChange={(e) => setFormData({...formData, last_name: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                 placeholder="Silva"
                 style={inputStyle}
               />
             </div>
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <label style={labelStyle}>Usuário *</label>
-            <input 
-              type="text" 
-              value={formData.username}
-              onChange={(e) => {
-                setFormData({...formData, username: e.target.value});
-                if (errors.username) setErrors({...errors, username: ''});
-              }}
-              placeholder="seu_usuario"
-              style={{ ...inputStyle, borderColor: errors.username ? '#dc2626' : '#ddd' }}
-            />
-            {errors.username && <span style={errorStyle}>{errors.username}</span>}
           </div>
 
           <div style={{ marginBottom: '20px' }}>
@@ -194,13 +183,29 @@ const Register = () => {
               type="email" 
               value={formData.email}
               onChange={(e) => {
-                setFormData({...formData, email: e.target.value});
-                if (errors.email) setErrors({...errors, email: ''});
+                setFormData({ ...formData, email: e.target.value });
+                if (errors.email) setErrors({ ...errors, email: '' });
               }}
               placeholder="seu@email.com"
               style={{ ...inputStyle, borderColor: errors.email ? '#dc2626' : '#ddd' }}
             />
             {errors.email && <span style={errorStyle}>{errors.email}</span>}
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={labelStyle}>Celular *</label>
+            <input 
+              type="tel" 
+              value={formData.phone}
+              onChange={(e) => {
+                const formatted = formatPhone(e.target.value);
+                setFormData({ ...formData, phone: formatted });
+                if (errors.phone) setErrors({ ...errors, phone: '' });
+              }}
+              placeholder="(11) 99999-9999"
+              style={{ ...inputStyle, borderColor: errors.phone ? '#dc2626' : '#ddd' }}
+            />
+            {errors.phone && <span style={errorStyle}>{errors.phone}</span>}
           </div>
           
           <div style={{ marginBottom: '20px' }}>
@@ -209,8 +214,8 @@ const Register = () => {
               type="password" 
               value={formData.password}
               onChange={(e) => {
-                setFormData({...formData, password: e.target.value});
-                if (errors.password) setErrors({...errors, password: ''});
+                setFormData({ ...formData, password: e.target.value });
+                if (errors.password) setErrors({ ...errors, password: '' });
               }}
               placeholder="Mínimo 8 caracteres"
               style={{ ...inputStyle, borderColor: errors.password ? '#dc2626' : '#ddd' }}
@@ -239,13 +244,13 @@ const Register = () => {
           </div>
 
           <div style={{ marginBottom: '30px' }}>
-            <label style={labelStyle}>Confirmar Senha *</label>
+            <label style={labelStyle}>Confirmar senha *</label>
             <input 
               type="password" 
               value={formData.confirmPassword}
               onChange={(e) => {
-                setFormData({...formData, confirmPassword: e.target.value});
-                if (errors.confirmPassword) setErrors({...errors, confirmPassword: ''});
+                setFormData({ ...formData, confirmPassword: e.target.value });
+                if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
               }}
               placeholder="Digite a senha novamente"
               style={{ ...inputStyle, borderColor: errors.confirmPassword ? '#dc2626' : '#ddd' }}
@@ -264,7 +269,7 @@ const Register = () => {
         </form>
 
         <div style={{ marginTop: '25px', textAlign: 'center', fontSize: '0.9rem' }}>
-          Já tem conta? <Link to="/login" style={{ color: 'var(--color-marsala)', fontWeight: 'bold', textDecoration: 'none' }}>Faça Login</Link>
+          Já tem conta? <Link to="/login" style={{ color: 'var(--color-marsala)', fontWeight: 'bold', textDecoration: 'none' }}>Faça login</Link>
         </div>
       </div>
     </div>

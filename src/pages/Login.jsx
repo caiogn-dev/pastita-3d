@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -6,7 +6,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn } = useAuth();
-  const [formData, setFormData] = useState({ username: '', password: '' });
+  const [formData, setFormData] = useState({ login: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -18,13 +18,13 @@ const Login = () => {
     setLoading(true);
     setError('');
 
-    const result = await signIn(formData.username, formData.password);
-    
+    const result = await signIn(formData.login, formData.password);
+
     if (result.success) {
       // Redirect to the page they were trying to access, or cardapio
       navigate(from, { replace: true });
     } else {
-      setError(result.error || 'Usuário ou senha inválidos');
+      setError(result.error || 'E-mail ou celular inválidos');
     }
     setLoading(false);
   };
@@ -44,11 +44,12 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#444' }}>Usuário</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#444' }}>E-mail ou celular</label>
             <input 
               type="text" 
-              value={formData.username}
-              onChange={(e) => setFormData({...formData, username: e.target.value})}
+              value={formData.login}
+              onChange={(e) => setFormData({ ...formData, login: e.target.value })}
+              placeholder="seu@email.com ou 11999999999"
               style={inputStyle}
               required
             />
@@ -59,7 +60,7 @@ const Login = () => {
             <input 
               type="password" 
               value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               style={inputStyle}
               required
             />

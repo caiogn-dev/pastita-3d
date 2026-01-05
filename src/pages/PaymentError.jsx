@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 const PaymentError = () => {
@@ -207,3 +207,4 @@ const supportTextStyle = {
 };
 
 export default PaymentError;
+
