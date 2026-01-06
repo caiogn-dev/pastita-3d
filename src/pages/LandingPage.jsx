@@ -60,10 +60,22 @@ const LandingPage = () => {
               <h3>Escolha</h3>
               <p>Navegue pelo nosso cardapio e escolha suas massas favoritas.</p>
             </div>
+            <div className="step-arrow" aria-hidden="true">
+              <svg viewBox="0 0 40 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 8h30" />
+                <path d="M26 3l6 5-6 5" />
+              </svg>
+            </div>
             <div className="step-card">
               <div className="step-number">02</div>
               <h3>Receba</h3>
               <p>Entregamos congelado na sua casa, pronto para armazenar.</p>
+            </div>
+            <div className="step-arrow" aria-hidden="true">
+              <svg viewBox="0 0 40 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 8h30" />
+                <path d="M26 3l6 5-6 5" />
+              </svg>
             </div>
             <div className="step-card">
               <div className="step-number">03</div>
@@ -84,22 +96,46 @@ const LandingPage = () => {
 
           <div className="features-grid">
             <div className="feature-card">
-              <span className="feature-icon">*</span>
+              <span className="feature-icon">
+                <img
+                  src="/hat-chef.svg"
+                  alt="Chef artesanal"
+                  className="feature-icon-image"
+                />
+              </span>
               <h3>Massa artesanal</h3>
               <p>Feita com ingredientes selecionados e muito carinho.</p>
             </div>
             <div className="feature-card">
-              <span className="feature-icon">+</span>
+              <span className="feature-icon">
+                <img
+                  src="/alarm-clock.svg"
+                  alt="Pronto em minutos"
+                  className="feature-icon-image"
+                />
+              </span>
               <h3>Pronto em minutos</h3>
               <p>Do freezer para a mesa em menos de 15 minutos.</p>
             </div>
             <div className="feature-card">
-              <span className="feature-icon">%</span>
+              <span className="feature-icon">
+                <img
+                  src="/heart-partner-handshake.svg"
+                  alt="Feito com carinho"
+                  className="feature-icon-image"
+                />
+              </span>
               <h3>Recheios generosos</h3>
               <p>Cada mordida e uma explosao de sabor.</p>
             </div>
             <div className="feature-card">
-              <span className="feature-icon">#</span>
+              <span className="feature-icon">
+                <img
+                  src="/snowflake.svg"
+                  alt="Entrega congelada"
+                  className="feature-icon-image"
+                />
+              </span>
               <h3>Entrega congelada</h3>
               <p>Mantem a qualidade e frescor ate voce.</p>
             </div>
