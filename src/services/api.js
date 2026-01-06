@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API base URL - uses Next env or defaults to localhost for development
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:12000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 let authTokenCache = null;
 
@@ -16,6 +16,7 @@ const api = axios.create({
 });
 
 let csrfTokenCache = null;
+let csrfRefreshPromise = null;
 
 // Helper to get CSRF token from cookie
 const getCsrfTokenFromCookie = () => {
@@ -43,6 +44,15 @@ export const fetchCsrfToken = async () => {
     console.error('Failed to fetch CSRF token:', error);
     return null;
   }
+};
+
+const refreshCsrfToken = () => {
+  if (!csrfRefreshPromise) {
+    csrfRefreshPromise = fetchCsrfToken().finally(() => {
+      csrfRefreshPromise = null;
+    });
+  }
+  return csrfRefreshPromise;
 };
 
 export const setAuthToken = (token) => {
@@ -103,8 +113,18 @@ api.interceptors.response.use(
       const errorDetail = error.response?.data?.detail || '';
       if (errorDetail.toLowerCase().includes('csrf')) {
         console.warn('CSRF token expired, refreshing...');
-        // Refresh CSRF token for next request
-        fetchCsrfToken();
+        if (!error.config?._retry) {
+          const retryConfig = { ...error.config, _retry: true };
+          return refreshCsrfToken()
+            .then((token) => {
+              if (token) {
+                retryConfig.headers = retryConfig.headers || {};
+                retryConfig.headers['X-CSRFToken'] = token;
+              }
+              return api.request(retryConfig);
+            })
+            .catch((refreshError) => Promise.reject(refreshError));
+        }
       }
     }
     

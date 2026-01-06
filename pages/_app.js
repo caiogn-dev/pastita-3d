@@ -12,6 +12,7 @@ import '../src/pages/LandingPage.css';
 import '../src/pages/Cardapio.css';
 import '../src/pages/Auth.css';
 import '../src/pages/CheckoutPage.css';
+import '../src/pages/Profile.css';
 
 import { AuthProvider } from '../src/context/AuthContext';
 import { CartProvider } from '../src/context/CartContext';

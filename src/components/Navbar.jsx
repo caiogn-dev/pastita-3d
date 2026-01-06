@@ -66,6 +66,12 @@ const Navbar = () => {
           
           {isAuthenticated ? (
             <>
+              <Link
+                href="/perfil"
+                className={`navbar-link ${isActive('/perfil') ? 'active' : ''}`}
+              >
+                Perfil
+              </Link>
               <span className="navbar-user">
                 Olá, {displayName}
               </span>
@@ -129,6 +135,13 @@ const Navbar = () => {
         
         {isAuthenticated ? (
           <>
+            <button
+              type="button"
+              className={`navbar-mobile-link ${isActive('/perfil') ? 'active' : ''}`}
+              onClick={() => handleMobileNavigate('/perfil')}
+            >
+              Perfil
+            </button>
             <span className="navbar-mobile-user">
               Ola, {displayName}
             </span>

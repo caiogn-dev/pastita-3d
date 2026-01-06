@@ -5,6 +5,11 @@ export const login = async (login, password) => {
   const response = await api.post('/login/', { login, password });
   if (response.data?.token) {
     setAuthToken(response.data.token);
+    try {
+      await fetchCsrfToken();
+    } catch {
+      // CSRF refresh failure should not block login
+    }
   }
   return response.data;
 };

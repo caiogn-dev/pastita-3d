@@ -46,12 +46,12 @@ const LoginModal = ({ isOpen, onClose, onSuccess }) => {
 
         <form onSubmit={handleSubmit} className="login-modal-form">
           <div className="login-modal-field">
-            <label>Usuario</label>
+            <label>E-mail ou Celular</label>
             <input
               type="text"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              placeholder="Seu usuario"
+              placeholder="Seu E-mail ou Celular"
               required
               autoFocus
             />
