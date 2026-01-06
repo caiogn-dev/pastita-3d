@@ -40,12 +40,6 @@ export const fetchCsrfToken = async () => {
 // Request interceptor - adds auth token and CSRF token to all requests
 api.interceptors.request.use(
   (config) => {
-    // Add auth token
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Token ${token}`;
-    }
-    
     // Add CSRF token for non-GET requests (POST, PUT, PATCH, DELETE)
     if (config.method !== 'get') {
       const csrfToken = getCsrfTokenFromCookie();
@@ -66,9 +60,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     // Handle 401 Unauthorized - clear token and redirect to login
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+    if (error.response?.status === 401 && !error.config?.skipAuthRedirect) {
       // Only redirect if not already on login page
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';

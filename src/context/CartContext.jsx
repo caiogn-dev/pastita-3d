@@ -1,80 +1,62 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import api from '../services/api';
 import { buildMediaUrl } from '../utils/media';
+import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
-const CART_CACHE_KEY = 'pastita_cart_cache_v1';
 const CART_CACHE_TTL_MS = 2 * 60 * 1000;
 let cartFetchPromise = null;
-let cartFetchToken = null;
+let cartCache = null;
+let cartCacheTs = 0;
 
 const readCartCache = () => {
-  try {
-    const raw = localStorage.getItem(CART_CACHE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
+  if (!cartCache || !cartCacheTs) {
     return null;
   }
+  if (Date.now() - cartCacheTs > CART_CACHE_TTL_MS) {
+    cartCache = null;
+    cartCacheTs = 0;
+    return null;
+  }
+  return cartCache;
 };
 
-const writeCartCache = (token, items) => {
-  try {
-    localStorage.setItem(CART_CACHE_KEY, JSON.stringify({
-      token,
-      ts: Date.now(),
-      data: items
-    }));
-  } catch {
-    // ignore cache write errors
-  }
+const writeCartCache = (items) => {
+  cartCache = items;
+  cartCacheTs = Date.now();
 };
 
 const clearCartCache = () => {
-  try {
-    localStorage.removeItem(CART_CACHE_KEY);
-  } catch {
-    // ignore cache clear errors
-  }
-};
-
-const isCartCacheValid = (cache, token) => {
-  if (!cache || cache.token !== token || !cache.ts) {
-    return false;
-  }
-  return Date.now() - cache.ts < CART_CACHE_TTL_MS;
+  cartCache = null;
+  cartCacheTs = 0;
 };
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const initRef = useRef(false);
+  const { isAuthenticated } = useAuth();
 
   const fetchCart = useCallback(async ({ force = false } = {}) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!isAuthenticated) {
       clearCartCache();
       setCart([]);
       return null;
     }
 
     const cached = readCartCache();
-    if (!force && isCartCacheValid(cached, token)) {
-      setCart(cached.data);
-      return cached.data;
+    if (!force && cached) {
+      setCart(cached);
+      return cached;
     }
 
-    if (cartFetchPromise && cartFetchToken === token) {
+    if (cartFetchPromise) {
       return cartFetchPromise;
     }
 
-    cartFetchToken = token;
     cartFetchPromise = (async () => {
       try {
         const response = await api.get('/cart/');
-        if (localStorage.getItem('token') !== token) {
-          return null;
-        }
         const items = response.data.items || [];
 
         const formattedCart = items.map((item) => ({
@@ -87,7 +69,7 @@ export const CartProvider = ({ children }) => {
         }));
 
         setCart(formattedCart);
-        writeCartCache(token, formattedCart);
+        writeCartCache(formattedCart);
         return formattedCart;
       } catch (error) {
         console.error('Erro ao carregar carrinho:', error);
@@ -98,15 +80,20 @@ export const CartProvider = ({ children }) => {
     })();
 
     return cartFetchPromise;
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    if (initRef.current) {
-      return;
+    if (isAuthenticated) {
+      fetchCart();
     }
-    initRef.current = true;
-    fetchCart();
-  }, [fetchCart]);
+  }, [fetchCart, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      clearCartCache();
+      setCart([]);
+    }
+  }, [isAuthenticated]);
 
   const toggleCart = () => setIsCartOpen(!isCartOpen);
 

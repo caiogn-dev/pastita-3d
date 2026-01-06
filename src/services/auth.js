@@ -3,10 +3,6 @@ import api from './api';
 
 export const login = async (login, password) => {
   const response = await api.post('/login/', { login, password });
-  if (response.data.token) {
-    localStorage.setItem('token', response.data.token);
-    api.defaults.headers.common['Authorization'] = `Token ${response.data.token}`;
-  }
   return response.data;
 };
 
@@ -15,14 +11,16 @@ export const register = async (userData) => {
   return response.data;
 };
 
-export const logout = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  delete api.defaults.headers.common['Authorization'];
+export const logout = async () => {
+  try {
+    await api.post('/users/logout/');
+  } catch (error) {
+    // Ignore logout errors to allow local state cleanup
+  }
 };
 
 export const isAuthenticated = () => {
-  return localStorage.getItem('token') !== null;
+  return false;
 };
 
 // Get current user profile

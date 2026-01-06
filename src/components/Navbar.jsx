@@ -17,15 +17,15 @@ const Navbar = () => {
     const firstName = profile?.first_name?.trim();
     const lastName = profile?.last_name?.trim();
     const fullName = [firstName, lastName].filter(Boolean).join(' ');
-    const loginFirstName = user?.user?.first_name?.trim();
-    const loginLastName = user?.user?.last_name?.trim();
+    const loginFirstName = user?.first_name?.trim();
+    const loginLastName = user?.last_name?.trim();
     const loginFullName = [loginFirstName, loginLastName].filter(Boolean).join(' ');
     return fullName
       || loginFullName
       || profile?.email
       || profile?.phone
-      || user?.user?.email
-      || user?.user?.phone
+      || user?.email
+      || user?.phone
       || 'Usuario';
   }, [profile, user]);
 
