@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-// API base URL - uses Vite env or defaults to localhost for development
+// API base URL - uses Next env or defaults to localhost for development
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:12000/api';
+
+let authTokenCache = null;
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -43,9 +45,26 @@ export const fetchCsrfToken = async () => {
   }
 };
 
+export const setAuthToken = (token) => {
+  authTokenCache = token || null;
+  if (authTokenCache) {
+    api.defaults.headers.common.Authorization = `Token ${authTokenCache}`;
+  } else {
+    delete api.defaults.headers.common.Authorization;
+  }
+};
+
+export const clearAuthToken = () => {
+  authTokenCache = null;
+  delete api.defaults.headers.common.Authorization;
+};
+
 // Request interceptor - adds auth token and CSRF token to all requests
 api.interceptors.request.use(
   (config) => {
+    if (!config.headers?.Authorization && !config.headers?.authorization && authTokenCache) {
+      config.headers.Authorization = `Token ${authTokenCache}`;
+    }
     // Add CSRF token for non-GET requests (POST, PUT, PATCH, DELETE)
     if (config.method !== 'get') {
       const csrfToken = getCsrfTokenFromCookie();
