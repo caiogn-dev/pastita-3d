@@ -3,8 +3,6 @@ import axios from 'axios';
 // API base URL - uses Next env or defaults to localhost for development
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-let authTokenCache = null;
-
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -55,26 +53,9 @@ const refreshCsrfToken = () => {
   return csrfRefreshPromise;
 };
 
-export const setAuthToken = (token) => {
-  authTokenCache = token || null;
-  if (authTokenCache) {
-    api.defaults.headers.common.Authorization = `Token ${authTokenCache}`;
-  } else {
-    delete api.defaults.headers.common.Authorization;
-  }
-};
-
-export const clearAuthToken = () => {
-  authTokenCache = null;
-  delete api.defaults.headers.common.Authorization;
-};
-
 // Request interceptor - adds auth token and CSRF token to all requests
 api.interceptors.request.use(
   (config) => {
-    if (!config.headers?.Authorization && !config.headers?.authorization && authTokenCache) {
-      config.headers.Authorization = `Token ${authTokenCache}`;
-    }
     // Add CSRF token for non-GET requests (POST, PUT, PATCH, DELETE)
     if (config.method !== 'get') {
       const csrfToken = getCsrfTokenFromCookie();
@@ -94,7 +75,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle 401 Unauthorized - clear token and redirect to login
+    // Handle 401 Unauthorized - redirect to login
     if (error.response?.status === 401 && !error.config?.skipAuthRedirect) {
       // Only redirect if not already on login page
       if (typeof window !== 'undefined' && window.location.pathname !== '/login') {

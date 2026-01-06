@@ -1,15 +1,12 @@
 ﻿// src/services/auth.js
-import api, { fetchCsrfToken, setAuthToken, clearAuthToken } from './api';
+import api, { fetchCsrfToken } from './api';
 
 export const login = async (login, password) => {
   const response = await api.post('/login/', { login, password });
-  if (response.data?.token) {
-    setAuthToken(response.data.token);
-    try {
-      await fetchCsrfToken();
-    } catch {
-      // CSRF refresh failure should not block login
-    }
+  try {
+    await fetchCsrfToken();
+  } catch {
+    // CSRF refresh failure should not block login
   }
   return response.data;
 };
@@ -25,8 +22,6 @@ export const logout = async () => {
     await api.post('/users/logout/');
   } catch {
     // Ignore logout errors to allow local state cleanup
-  } finally {
-    clearAuthToken();
   }
 };
 
