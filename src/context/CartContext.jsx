@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import api from '../services/api';
 import { buildMediaUrl } from '../utils/media';
 import { useAuth } from './AuthContext';
@@ -36,6 +36,11 @@ export const CartProvider = ({ children }) => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { isAuthenticated } = useAuth();
+  const cartRef = useRef([]);
+
+  useEffect(() => {
+    cartRef.current = cart;
+  }, [cart]);
 
   const normalizeCartItem = (item) => ({
     id: item.product.id,
@@ -44,6 +49,15 @@ export const CartProvider = ({ children }) => {
     price: item.product.price,
     image: buildMediaUrl(item.product.image),
     quantity: item.quantity
+  });
+
+  const buildOptimisticItem = (product, quantity) => ({
+    id: product.id,
+    cart_item_id: product.id,
+    name: product.name,
+    price: product.price,
+    image: buildMediaUrl(product.image),
+    quantity
   });
 
   const updateCartState = (nextCart) => {
@@ -116,6 +130,21 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = async (product) => {
     setIsLoading(true);
+    const previousCart = cartRef.current;
+    updateCartState((prevCart) => {
+      const existingIndex = prevCart.findIndex((item) => item.id === product.id);
+      if (existingIndex >= 0) {
+        const updated = [...prevCart];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: updated[existingIndex].quantity + 1
+        };
+        return updated;
+      }
+      return [...prevCart, buildOptimisticItem(product, 1)];
+    });
+    setIsCartOpen(true);
+
     try {
       const response = await api.post('/cart/add_item/', {
         product_id: product.id,
@@ -136,9 +165,9 @@ export const CartProvider = ({ children }) => {
       } else {
         await fetchCart({ force: true });
       }
-      setIsCartOpen(true);
     } catch (error) {
       console.error('Erro ao adicionar item:', error);
+      updateCartState(previousCart);
       alert('Erro ao adicionar ao carrinho. Verifique se esta logado.');
     } finally {
       setIsLoading(false);
@@ -146,11 +175,13 @@ export const CartProvider = ({ children }) => {
   };
 
   const removeFromCart = async (productId) => {
+    const previousCart = cartRef.current;
+    updateCartState((prevCart) => prevCart.filter((item) => item.id !== productId));
     try {
       await api.post('/cart/remove_item/', { product_id: productId });
-      updateCartState((prevCart) => prevCart.filter((item) => item.id !== productId));
     } catch (error) {
       console.error('Erro ao remover item:', error);
+      updateCartState(previousCart);
     }
   };
 
@@ -160,6 +191,11 @@ export const CartProvider = ({ children }) => {
 
     const newQuantity = currentItem.quantity + amount;
     if (newQuantity < 1) return;
+
+    const previousCart = cartRef.current;
+    updateCartState((prevCart) => prevCart.map((item) =>
+      item.id === productId ? { ...item, quantity: newQuantity } : item
+    ));
 
     try {
       const response = await api.post('/cart/update_item/', {
@@ -176,6 +212,7 @@ export const CartProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Erro ao atualizar quantidade:', error);
+      updateCartState(previousCart);
     }
   };
 
