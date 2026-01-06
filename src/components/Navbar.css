@@ -19,16 +19,24 @@
 
 /* Logo */
 .navbar-logo {
-  font-size: 1.5rem;
-  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--color-marsala);
   text-decoration: none;
   letter-spacing: 1px;
+  line-height: 1;
   flex-shrink: 0;
 }
 
 .navbar-logo:hover {
   color: var(--color-marsala-dark);
+}
+
+.navbar-logo-image {
+  height: 42px;
+  width: auto;
+  display: block;
 }
 
 /* Desktop Links */
@@ -269,7 +277,6 @@
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 1.35rem;
   }
 
   .navbar-links {
@@ -302,7 +309,11 @@
   }
 
   .navbar-logo {
-    font-size: 1.25rem;
+    transform: translateX(-50%);
+  }
+
+  .navbar-logo-image {
+    height: 36px;
   }
 
   .navbar-mobile-menu {

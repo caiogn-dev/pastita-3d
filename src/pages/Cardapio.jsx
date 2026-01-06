@@ -9,6 +9,22 @@ import Navbar from '../components/Navbar';
 
 const fetchProducts = (url) => api.get(url).then((res) => res.data);
 
+const CATEGORY_PRIORITY = ['rondelli', 'rondellis', 'molho', 'molhos'];
+
+const normalizeCategory = (value) => (value || '')
+  .toString()
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-z0-9]+/g, '')
+  .trim();
+
+const getCategoryRank = (value) => {
+  const normalized = normalizeCategory(value);
+  const index = CATEGORY_PRIORITY.indexOf(normalized);
+  return index === -1 ? CATEGORY_PRIORITY.length + 1 : index;
+};
+
 const Cardapio = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingProduct, setPendingProduct] = useState(null);
@@ -39,18 +55,33 @@ const Cardapio = () => {
     const values = products
       .map((product) => (product.category || '').trim())
       .filter(Boolean);
-    return Array.from(new Set(values));
+    return Array.from(new Set(values)).sort((a, b) => {
+      const rankA = getCategoryRank(a);
+      const rankB = getCategoryRank(b);
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+      return a.localeCompare(b, 'pt-BR');
+    });
   }, [products]);
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return products.filter((product) => {
+    const filtered = products.filter((product) => {
       const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
       if (!normalizedQuery) {
         return matchesCategory;
       }
       const haystack = `${product.name || ''} ${product.description || ''}`.toLowerCase();
       return matchesCategory && haystack.includes(normalizedQuery);
+    });
+    return filtered.slice().sort((a, b) => {
+      const rankA = getCategoryRank(a.category);
+      const rankB = getCategoryRank(b.category);
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+      return (a.name || '').localeCompare(b.name || '', 'pt-BR');
     });
   }, [products, query, categoryFilter]);
 

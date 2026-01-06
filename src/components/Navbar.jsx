@@ -45,8 +45,8 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         {/* Logo */}
-        <Link href="/" className="navbar-logo" onClick={closeMobileMenu}>
-          PASTITA
+        <Link href="/" className="navbar-logo" onClick={closeMobileMenu} aria-label="Pastita">
+          <img src="/pastita-logo.ico" alt="Pastita" className="navbar-logo-image" />
         </Link>
 
         {/* Desktop Navigation */}
