@@ -37,6 +37,23 @@ export const CartProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { isAuthenticated } = useAuth();
 
+  const normalizeCartItem = (item) => ({
+    id: item.product.id,
+    cart_item_id: item.id,
+    name: item.product.name,
+    price: item.product.price,
+    image: buildMediaUrl(item.product.image),
+    quantity: item.quantity
+  });
+
+  const updateCartState = (nextCart) => {
+    setCart((prevCart) => {
+      const resolved = typeof nextCart === 'function' ? nextCart(prevCart) : nextCart;
+      writeCartCache(resolved);
+      return resolved;
+    });
+  };
+
   const fetchCart = useCallback(async ({ force = false } = {}) => {
     if (!isAuthenticated) {
       clearCartCache();
@@ -100,12 +117,25 @@ export const CartProvider = ({ children }) => {
   const addToCart = async (product) => {
     setIsLoading(true);
     try {
-      await api.post('/cart/add_item/', {
+      const response = await api.post('/cart/add_item/', {
         product_id: product.id,
         quantity: 1
       });
 
-      await fetchCart({ force: true });
+      if (response.data?.item) {
+        const newItem = normalizeCartItem(response.data.item);
+        updateCartState((prevCart) => {
+          const existingIndex = prevCart.findIndex((item) => item.id === newItem.id);
+          if (existingIndex >= 0) {
+            const updated = [...prevCart];
+            updated[existingIndex] = { ...updated[existingIndex], quantity: newItem.quantity };
+            return updated;
+          }
+          return [...prevCart, newItem];
+        });
+      } else {
+        await fetchCart({ force: true });
+      }
       setIsCartOpen(true);
     } catch (error) {
       console.error('Erro ao adicionar item:', error);
@@ -118,7 +148,7 @@ export const CartProvider = ({ children }) => {
   const removeFromCart = async (productId) => {
     try {
       await api.post('/cart/remove_item/', { product_id: productId });
-      await fetchCart({ force: true });
+      updateCartState((prevCart) => prevCart.filter((item) => item.id !== productId));
     } catch (error) {
       console.error('Erro ao remover item:', error);
     }
@@ -132,11 +162,18 @@ export const CartProvider = ({ children }) => {
     if (newQuantity < 1) return;
 
     try {
-      await api.post('/cart/update_item/', {
+      const response = await api.post('/cart/update_item/', {
         product_id: productId,
         quantity: newQuantity
       });
-      await fetchCart({ force: true });
+      if (response.data?.item) {
+        const updatedItem = normalizeCartItem(response.data.item);
+        updateCartState((prevCart) => prevCart.map((item) =>
+          item.id === productId ? { ...item, quantity: updatedItem.quantity } : item
+        ));
+      } else {
+        await fetchCart({ force: true });
+      }
     } catch (error) {
       console.error('Erro ao atualizar quantidade:', error);
     }
