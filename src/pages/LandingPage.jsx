@@ -16,7 +16,7 @@ const LandingPage = () => {
           {/* Lado Esquerdo: Texto */}
           <div className="hero-text">
             <span className="hero-eyebrow">
-              Artesanal & Pratico
+              Artesanal & Prático
             </span>
             <h1 className="hero-title">
               O verdadeiro sabor italiano em minutos.
@@ -128,7 +128,7 @@ const LandingPage = () => {
             <div className="footer-contact">
               <h4>Contato</h4>
               <p>contato@pastita.com.br</p>
-              <p>(11) 99999-9999</p>
+              <p href="https://api.whatsapp.com/send?phone=556391172166"> Whatsapp </p>
             </div>
           </div>
           <div className="footer-bottom">
