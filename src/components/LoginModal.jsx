@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
-import './LoginModal.css';
 
 const LoginModal = ({ isOpen, onClose, onSuccess }) => {
   const { signIn } = useAuth();
@@ -81,7 +80,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }) => {
         <div className="login-modal-footer">
           <p>
             Nao tem conta?{' '}
-            <Link to="/registro" onClick={onClose}>Cadastre-se</Link>
+            <Link href="/registro" onClick={onClose}>Cadastre-se</Link>
           </p>
         </div>
       </div>

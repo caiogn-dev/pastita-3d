@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import '../styles/forms.css';
-import './CheckoutPage.css';
 
 const validateCPF = (cpf) => {
   const cleanCpf = cpf.replace(/[^\d]/g, '');
@@ -72,7 +70,7 @@ const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 const CheckoutPage = () => {
   const { cart, cartTotal, clearCart } = useCart();
   const { profile, updateProfile } = useAuth();
-  const mpPublicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY;
+  const mpPublicKey = process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -150,7 +148,7 @@ const CheckoutPage = () => {
             setUseNewAddress(false);
           }
         }
-      } catch (error) {
+      } catch {
         console.log('No previous orders found');
       }
     };
@@ -264,7 +262,7 @@ const CheckoutPage = () => {
     try {
       const issuerResponse = await mpInstance.getIssuers({ paymentMethodId, bin });
       issuerId = issuerResponse?.results?.[0]?.id || issuerResponse?.[0]?.id;
-    } catch (error) {
+    } catch {
       issuerId = undefined;
     }
 
@@ -495,7 +493,7 @@ const CheckoutPage = () => {
         <div>
           <h2>Seu carrinho esta vazio</h2>
           <p>Adicione produtos ao carrinho para continuar.</p>
-          <Link to="/cardapio" className="btn-secondary">Voltar ao Cardapio</Link>
+          <Link href="/cardapio" className="btn-secondary">Voltar ao Cardapio</Link>
         </div>
       </div>
     );
@@ -505,7 +503,7 @@ const CheckoutPage = () => {
     <div className="checkout-page">
       <div className="checkout-container">
         <div className="checkout-header">
-          <Link to="/cardapio" className="checkout-back-link">
+          <Link href="/cardapio" className="checkout-back-link">
             &larr; Voltar ao Cardapio
           </Link>
           <h1>Finalizar Pedido</h1>
@@ -562,7 +560,7 @@ const CheckoutPage = () => {
 
             <div>
               <Link
-                to={`/pendente?order=${paymentResult.order_number}`}
+                href={`/pendente?order=${paymentResult.order_number}`}
                 className="checkout-pending-link"
               >
                 Acompanhar status do pagamento

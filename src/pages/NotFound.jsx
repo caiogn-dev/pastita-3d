@@ -1,6 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import '../styles/status-pages.css';
+import Link from 'next/link';
 
 const NotFound = () => {
   return (
@@ -14,10 +13,10 @@ const NotFound = () => {
         </p>
 
         <div className="status-actions">
-          <Link to="/" className="status-button status-button-primary">
+          <Link href="/" className="status-button status-button-primary">
             Voltar ao inicio
           </Link>
-          <Link to="/cardapio" className="status-button status-button-secondary">
+          <Link href="/cardapio" className="status-button status-button-secondary">
             Ver cardapio
           </Link>
         </div>

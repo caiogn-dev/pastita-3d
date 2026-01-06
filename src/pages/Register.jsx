@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { register } from '../services/auth';
-import './Auth.css';
-import '../styles/forms.css';
 
 const formatPhone = (value) => {
   const numbers = value.replace(/\D/g, '').slice(0, 11);
@@ -12,7 +11,7 @@ const formatPhone = (value) => {
 };
 
 const Register = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [formData, setFormData] = useState({
     email: '',
     phone: '',
@@ -89,7 +88,7 @@ const Register = () => {
 
       setSuccess(true);
       setTimeout(() => {
-        navigate('/login');
+        router.push('/login');
       }, 2000);
     } catch (err) {
       if (err.response?.data) {
@@ -141,7 +140,7 @@ const Register = () => {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <Link to="/" className="auth-logo">PASTITA</Link>
+            <Link href="/" className="auth-logo">PASTITA</Link>
             <p>Crie sua conta para fazer pedidos</p>
           </div>
 
@@ -261,12 +260,12 @@ const Register = () => {
 
           <div className="auth-footer">
             <p>
-              Ja tem conta? <Link to="/login">Faca login</Link>
+              Ja tem conta? <Link href="/login">Faca login</Link>
             </p>
           </div>
         </div>
 
-        <Link to="/" className="auth-back">&lt; Voltar ao inicio</Link>
+        <Link href="/" className="auth-back">&lt; Voltar ao inicio</Link>
       </div>
     </div>
   );

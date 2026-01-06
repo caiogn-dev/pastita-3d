@@ -1,8 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import InteractiveModel from '../components/InteractiveModel';
+import Link from 'next/link';
 import Navbar from '../components/Navbar';
-import './LandingPage.css';
 
 const LandingPage = () => {
   return (
@@ -26,8 +24,19 @@ const LandingPage = () => {
               Tire do freezer, aquece e impressione.
             </p>
             <div className="hero-buttons">
-              <Link to="/cardapio" className="btn-primary">Ver Cardapio</Link>
+              <Link href="/cardapio" className="btn-primary">Ver Cardapio</Link>
               <a href="#como-funciona" className="btn-secondary">Como funciona</a>
+            </div>
+          </div>
+
+          <div className="hero-media">
+            <div className="hero-image-frame">
+              <img
+                src="/4queijos.webp"
+                alt="Rondelli quatro queijos Pastita"
+                className="hero-image"
+                loading="eager"
+              />
             </div>
           </div>
 
@@ -104,7 +113,7 @@ const LandingPage = () => {
           <div className="cta-content">
             <h2>Pronto para experimentar?</h2>
             <p>Descubra o sabor autentico das massas artesanais Pastita.</p>
-            <Link to="/cardapio" className="btn-primary btn-large">
+            <Link href="/cardapio" className="btn-primary btn-large">
               Ver cardapio completo
             </Link>
           </div>
@@ -121,9 +130,9 @@ const LandingPage = () => {
             </div>
             <div className="footer-links">
               <h4>Links</h4>
-              <Link to="/">Inicio</Link>
-              <Link to="/cardapio">Cardapio</Link>
-              <Link to="/login">Login</Link>
+              <Link href="/">Inicio</Link>
+              <Link href="/cardapio">Cardapio</Link>
+              <Link href="/login">Login</Link>
             </div>
             <div className="footer-contact">
               <h4>Contato</h4>

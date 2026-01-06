@@ -1,5 +1,4 @@
 import React from 'react';
-import '../styles/status-pages.css';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -17,7 +16,7 @@ class ErrorBoundary extends React.Component {
       errorInfo
     });
 
-    if (import.meta.env.DEV) {
+    if (process.env.NODE_ENV !== 'production') {
       console.error('Error caught by boundary:', error, errorInfo);
     }
   }

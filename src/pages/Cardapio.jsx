@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import api from '../services/api';
 import useSWR from 'swr';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import LoginModal from '../components/LoginModal';
 import Navbar from '../components/Navbar';
-import './Cardapio.css';
 
 const fetchProducts = (url) => api.get(url).then((res) => res.data);
 
@@ -16,7 +15,7 @@ const Cardapio = () => {
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   
-  const { addToCart, cartCount, toggleCart } = useCart();
+  const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
   const { data, error, isLoading } = useSWR('/products/', fetchProducts, {
     dedupingInterval: 60 * 1000,
@@ -108,7 +107,7 @@ const Cardapio = () => {
       {!loading && products.length === 0 && (
         <div className="cardapio-empty">
           <p>Nenhum produto disponivel no momento.</p>
-          <Link to="/" className="btn-secondary">Voltar ao Inicio</Link>
+          <Link href="/" className="btn-secondary">Voltar ao Inicio</Link>
         </div>
       )}
 

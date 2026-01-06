@@ -15,7 +15,7 @@ export const logout = async () => {
   try {
     await fetchCsrfToken();
     await api.post('/users/logout/');
-  } catch (error) {
+  } catch {
     // Ignore logout errors to allow local state cleanup
   }
 };

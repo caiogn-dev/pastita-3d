@@ -1,8 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import './CartSidebar.css';
 
 const CartSidebar = () => {
   const { cart, removeFromCart, updateQuantity, cartTotal, isCartOpen, toggleCart } = useCart();
@@ -76,7 +75,7 @@ const CartSidebar = () => {
             </div>
             {isAuthenticated ? (
               <Link
-                to="/checkout"
+                href="/checkout"
                 onClick={toggleCart}
                 className="btn-primary cart-checkout-btn"
               >
@@ -84,7 +83,7 @@ const CartSidebar = () => {
               </Link>
             ) : (
               <Link
-                to="/login"
+                href="/login"
                 onClick={toggleCart}
                 className="btn-primary cart-checkout-btn"
               >

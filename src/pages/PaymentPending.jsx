@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import api from '../services/api';
-import '../styles/status-pages.css';
 
 const PaymentPending = () => {
-  const [searchParams] = useSearchParams();
-  const orderNumber = searchParams.get('order');
+  const router = useRouter();
+  const orderParam = router.query.order;
+  const orderNumber = Array.isArray(orderParam) ? orderParam[0] : orderParam;
   const [orderDetails, setOrderDetails] = useState(null);
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [cachedPayment, setCachedPayment] = useState(null);
@@ -20,7 +21,6 @@ const PaymentPending = () => {
     || activePayment?.payment_method_id === 'pix'
     || activePayment?.qr_code_base64
     || activePayment?.qr_code;
-  const isTicketPayment = activePayment?.payment_type_id === 'ticket' || activePayment?.ticket_url;
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
@@ -31,7 +31,7 @@ const PaymentPending = () => {
         if (cached) {
           setCachedPayment(JSON.parse(cached));
         }
-      } catch (storageError) {
+      } catch {
         setCachedPayment(null);
       }
 
@@ -61,8 +61,8 @@ const PaymentPending = () => {
       } else if (response.data.payment_status === 'failed') {
         window.location.href = `/erro?order=${orderNumber}`;
       }
-    } catch (error) {
-      console.error('Error checking status:', error);
+    } catch (err) {
+      console.error('Error checking status:', err);
     }
     setChecking(false);
   };
@@ -80,7 +80,7 @@ const PaymentPending = () => {
       }
       setPixCopied(true);
       setTimeout(() => setPixCopied(false), 1500);
-    } catch (error) {
+    } catch {
       window.prompt('Copie o codigo PIX:', activePayment.qr_code);
     }
   };
@@ -171,10 +171,10 @@ const PaymentPending = () => {
         </button>
 
         <div className="status-actions">
-          <Link to="/cardapio" className="status-button status-button-primary">
+          <Link href="/cardapio" className="status-button status-button-primary">
             Continuar comprando
           </Link>
-          <Link to="/" className="status-button status-button-secondary">
+          <Link href="/" className="status-button status-button-secondary">
             Voltar ao inicio
           </Link>
         </div>

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import api from '../services/api';
-import '../styles/status-pages.css';
 
 const PaymentSuccess = () => {
-  const [searchParams] = useSearchParams();
-  const orderNumber = searchParams.get('order');
+  const router = useRouter();
+  const orderParam = router.query.order;
+  const orderNumber = Array.isArray(orderParam) ? orderParam[0] : orderParam;
   const [orderDetails, setOrderDetails] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -67,10 +68,10 @@ const PaymentSuccess = () => {
         )}
 
         <div className="status-actions">
-          <Link to="/cardapio" className="status-button status-button-primary">
+          <Link href="/cardapio" className="status-button status-button-primary">
             Continuar comprando
           </Link>
-          <Link to="/" className="status-button status-button-secondary">
+          <Link href="/" className="status-button status-button-secondary">
             Voltar ao inicio
           </Link>
         </div>

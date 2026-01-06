@@ -1,11 +1,13 @@
 import React from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import '../styles/status-pages.css';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 const PaymentError = () => {
-  const [searchParams] = useSearchParams();
-  const orderNumber = searchParams.get('order');
-  const errorCode = searchParams.get('error');
+  const router = useRouter();
+  const orderParam = router.query.order;
+  const errorParam = router.query.error;
+  const orderNumber = Array.isArray(orderParam) ? orderParam[0] : orderParam;
+  const errorCode = Array.isArray(errorParam) ? errorParam[0] : errorParam;
 
   const getErrorMessage = (code) => {
     const errorMessages = {
@@ -58,10 +60,10 @@ const PaymentError = () => {
         </div>
 
         <div className="status-actions">
-          <Link to="/checkout" className="status-button status-button-primary">
+          <Link href="/checkout" className="status-button status-button-primary">
             Tentar novamente
           </Link>
-          <Link to="/cardapio" className="status-button status-button-secondary">
+          <Link href="/cardapio" className="status-button status-button-secondary">
             Voltar ao cardapio
           </Link>
         </div>

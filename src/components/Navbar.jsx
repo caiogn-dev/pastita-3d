@@ -1,17 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import './Navbar.css';
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { cartCount, toggleCart } = useCart();
   const { isAuthenticated, signOut, profile, user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const router = useRouter();
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => router.pathname === path;
 
   const displayName = useMemo(() => {
     const firstName = profile?.first_name?.trim();
@@ -39,27 +38,27 @@ const Navbar = () => {
 
   const handleMobileNavigate = (path) => {
     closeMobileMenu();
-    navigate(path);
+    router.push(path);
   };
 
   return (
     <nav className="navbar">
       <div className="navbar-container">
         {/* Logo */}
-        <Link to="/" className="navbar-logo" onClick={closeMobileMenu}>
+        <Link href="/" className="navbar-logo" onClick={closeMobileMenu}>
           PASTITA
         </Link>
 
         {/* Desktop Navigation */}
         <div className="navbar-links">
           <Link 
-            to="/" 
+            href="/" 
             className={`navbar-link ${isActive('/') ? 'active' : ''}`}
           >
             Inicio
           </Link>
           <Link 
-            to="/cardapio" 
+            href="/cardapio" 
             className={`navbar-link ${isActive('/cardapio') ? 'active' : ''}`}
           >
             Cardapio
@@ -76,7 +75,7 @@ const Navbar = () => {
             </>
           ) : (
             <Link 
-              to="/login" 
+              href="/login" 
               className={`navbar-link ${isActive('/login') ? 'active' : ''}`}
             >
               Login
@@ -114,7 +113,7 @@ const Navbar = () => {
       {/* Mobile Menu */}
       <div className={`navbar-mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
         <Link 
-          to="/"
+          href="/"
           className={`navbar-mobile-link ${isActive('/') ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >

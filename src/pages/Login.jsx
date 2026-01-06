@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
-import './Auth.css';
-import '../styles/forms.css';
 
 const Login = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
   const { signIn } = useAuth();
   const [formData, setFormData] = useState({ login: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const from = location.state?.from?.pathname || '/cardapio';
+  const returnToParam = router.query.returnTo;
+  const returnTo = Array.isArray(returnToParam)
+    ? returnToParam[0]
+    : returnToParam || '/cardapio';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +23,7 @@ const Login = () => {
     const result = await signIn(formData.login, formData.password);
 
     if (result.success) {
-      navigate(from, { replace: true });
+      router.replace(returnTo);
     } else {
       setError(result.error || 'E-mail ou celular invalidos');
     }
@@ -34,7 +35,7 @@ const Login = () => {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <Link to="/" className="auth-logo">PASTITA</Link>
+            <Link href="/" className="auth-logo">PASTITA</Link>
             <p>Bem-vindo de volta</p>
           </div>
 
@@ -76,12 +77,12 @@ const Login = () => {
           <div className="auth-footer">
             <p>
               Nao tem uma conta?{' '}
-              <Link to="/registro">Cadastre-se</Link>
+              <Link href="/registro">Cadastre-se</Link>
             </p>
           </div>
         </div>
 
-        <Link to="/" className="auth-back">&lt; Voltar ao inicio</Link>
+        <Link href="/" className="auth-back">&lt; Voltar ao inicio</Link>
       </div>
     </div>
   );

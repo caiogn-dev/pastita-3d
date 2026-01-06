@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API base URL - uses Vite env or defaults to localhost for development
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:12000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:12000/api';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -17,6 +17,9 @@ let csrfTokenCache = null;
 
 // Helper to get CSRF token from cookie
 const getCsrfTokenFromCookie = () => {
+  if (typeof document === 'undefined') {
+    return csrfTokenCache;
+  }
   const name = 'csrftoken';
   const cookies = document.cookie.split(';');
   for (let cookie of cookies) {
@@ -65,7 +68,7 @@ api.interceptors.response.use(
     // Handle 401 Unauthorized - clear token and redirect to login
     if (error.response?.status === 401 && !error.config?.skipAuthRedirect) {
       // Only redirect if not already on login page
-      if (window.location.pathname !== '/login') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }
