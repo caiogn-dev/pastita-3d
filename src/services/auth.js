@@ -1,5 +1,5 @@
 ﻿// src/services/auth.js
-import api from './api';
+import api, { fetchCsrfToken } from './api';
 
 export const login = async (login, password) => {
   const response = await api.post('/login/', { login, password });
@@ -13,6 +13,7 @@ export const register = async (userData) => {
 
 export const logout = async () => {
   try {
+    await fetchCsrfToken();
     await api.post('/users/logout/');
   } catch (error) {
     // Ignore logout errors to allow local state cleanup

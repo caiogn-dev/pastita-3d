@@ -13,6 +13,8 @@ const api = axios.create({
   withCredentials: true, // Enable sending cookies for CSRF
 });
 
+let csrfTokenCache = null;
+
 // Helper to get CSRF token from cookie
 const getCsrfTokenFromCookie = () => {
   const name = 'csrftoken';
@@ -23,13 +25,14 @@ const getCsrfTokenFromCookie = () => {
       return cookieValue;
     }
   }
-  return null;
+  return csrfTokenCache;
 };
 
 // Fetch CSRF token from server (call this on app init)
 export const fetchCsrfToken = async () => {
   try {
     const response = await api.get('/csrf/');
+    csrfTokenCache = response.data.csrfToken;
     return response.data.csrfToken;
   } catch (error) {
     console.error('Failed to fetch CSRF token:', error);
