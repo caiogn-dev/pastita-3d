@@ -1,7 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import api from '../services/api';
+
+const normalizePayment = (payment) => {
+  if (!payment) return null;
+  const poi = payment.point_of_interaction?.transaction_data || payment.transaction_data || {};
+  const paymentMethodId = payment.payment_method_id
+    || payment.payment_method?.id
+    || poi.payment_method_id;
+  return {
+    ...payment,
+    payment_method_id: paymentMethodId,
+    payment_type_id: payment.payment_type_id || payment.payment_method?.type || poi.payment_type_id,
+    qr_code: payment.qr_code || poi.qr_code,
+    qr_code_base64: payment.qr_code_base64 || poi.qr_code_base64,
+  };
+};
 
 const PaymentPending = () => {
   const router = useRouter();
@@ -13,7 +28,10 @@ const PaymentPending = () => {
   const [checking, setChecking] = useState(false);
   const [pixCopied, setPixCopied] = useState(false);
 
-  const activePayment = paymentInfo || cachedPayment;
+  const activePayment = useMemo(
+    () => normalizePayment(paymentInfo) || normalizePayment(cachedPayment),
+    [paymentInfo, cachedPayment]
+  );
   const paymentStatus = orderDetails?.payment_status;
   const isPendingStatus = ['pending', 'processing'].includes(paymentStatus);
   const showPaymentDetails = isPendingStatus || !paymentStatus;
@@ -29,7 +47,7 @@ const PaymentPending = () => {
       try {
         const cached = sessionStorage.getItem(`mp_payment_${orderNumber}`);
         if (cached) {
-          setCachedPayment(JSON.parse(cached));
+          setCachedPayment(normalizePayment(JSON.parse(cached)));
         }
       } catch {
         setCachedPayment(null);
@@ -38,7 +56,7 @@ const PaymentPending = () => {
       try {
         const response = await api.get(`/checkout/status/?order_number=${orderNumber}`, { skipAuthRedirect: true });
         setOrderDetails(response.data);
-        setPaymentInfo(response.data.payment || null);
+        setPaymentInfo(response.data.payment ? normalizePayment(response.data.payment) : null);
       } catch (error) {
         console.error('Error fetching order details:', error);
       }
@@ -54,7 +72,7 @@ const PaymentPending = () => {
     try {
     const response = await api.get(`/checkout/status/?order_number=${orderNumber}`, { skipAuthRedirect: true });
       setOrderDetails(response.data);
-      setPaymentInfo(response.data.payment || null);
+      setPaymentInfo(response.data.payment ? normalizePayment(response.data.payment) : null);
 
       if (response.data.payment_status === 'completed') {
         router.push(`/sucesso?order=${orderNumber}`);
