@@ -36,7 +36,8 @@ const formatPhone = (value) => {
 };
 
 const formatCEP = (value) => {
-  const numbers = value.replace(/\D/g, '').slice(0, 8);
+  const safe = value || '';
+  const numbers = safe.replace(/\D/g, '').slice(0, 8);
   if (numbers.length <= 5) return numbers;
   return `${numbers.slice(0, 5)}-${numbers.slice(5)}`;
 };
@@ -67,12 +68,9 @@ const BRAZILIAN_STATES = [
 
 const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 const DELIVERY_FEE = 15;
-const STORE_ADDRESS = {
-  address: 'Q. 112 Sul Rua SR 1, conj. 06 lote 04 - Plano Diretor Sul',
-  city: 'Palmas',
-  state: 'TO',
-  zip_code: '77020-170'
-};
+const STORE_ADDRESS = 'Ivoneth Banqueteria';
+const STORE_MAPS_QUERY = 'Ivoneth+Banqueteria';
+const STORE_MAPS_URL = `https://www.google.com/maps?q=${STORE_MAPS_QUERY}`;
 
 const CheckoutPage = () => {
   const { cart, cartTotal, clearCart } = useCart();
@@ -733,9 +731,37 @@ const CheckoutPage = () => {
                     {errors.cpf && <span className="form-error">{errors.cpf}</span>}
                   </div>
                 </div>
+                <h4 className="checkout-subsection-title">
+                  {shippingMethod === 'pickup' ? 'Endereço de retirada' : 'Endereço de entrega'}
+                </h4>
 
-                <h4 className="checkout-subsection-title">Endereço de entrega</h4>
-
+                {shippingMethod === 'pickup' && (
+                  <div className="pickup-map-card">
+                    <div className="pickup-map-header">
+                      <div>
+                        <strong>Retirada na loja</strong>
+                        <div>{STORE_ADDRESS}</div>
+                      </div>
+                      <a
+                        href={STORE_MAPS_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-secondary"
+                      >
+                        Ver no Google Maps
+                      </a>
+                    </div>
+                    <div className="pickup-map-embed">
+                      <iframe
+                        title="Mapa Pastita"
+                        src={`${STORE_MAPS_URL}&output=embed`}
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                    </div>
+                  </div>
+                )}
+                {shippingMethod === 'delivery' && useNewAddress && (
                 <div className="checkout-field-group">
                   <div className="checkout-grid-cep">
                     <div className="form-field">
@@ -804,6 +830,7 @@ const CheckoutPage = () => {
                     </div>
                   </div>
                 </div>
+                )}
 
                 <h4 className="checkout-subsection-title">Pagamento</h4>
 
@@ -911,7 +938,7 @@ const CheckoutPage = () => {
                         name="holder"
                         value={cardData.holder}
                         onChange={handleCardChange}
-                        placeholder="Nome impresso"
+                        placeholder="Nome contido no cartão"
                         className="form-input"
                       />
                     </div>
