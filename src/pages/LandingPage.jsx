@@ -194,7 +194,7 @@ const LandingPage = () => {
           <div className="cta-content">
             <h2>Pronto para experimentar?</h2>
             <p>Descubra o sabor autêntico das massas artesanais Pastita.</p>
-            <Link href="/cardápio" className="btn-primary btn-large">
+            <Link href="/cardapio" className="btn-primary btn-large">
               Ver cardápio completo
             </Link>
           </div>
