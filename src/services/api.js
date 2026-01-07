@@ -3,6 +3,8 @@ import axios from 'axios';
 // API base URL - uses Next env or defaults to localhost for development
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
+let authTokenMemory = null;
+
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -53,9 +55,17 @@ const refreshCsrfToken = () => {
   return csrfRefreshPromise;
 };
 
+export const setAuthToken = (token) => {
+  authTokenMemory = token || null;
+};
+
 // Request interceptor - adds auth token and CSRF token to all requests
 api.interceptors.request.use(
   (config) => {
+    if (authTokenMemory && !config.headers.Authorization) {
+      config.headers.Authorization = `Token ${authTokenMemory}`;
+    }
+
     // Add CSRF token for non-GET requests (POST, PUT, PATCH, DELETE)
     if (config.method !== 'get') {
       const csrfToken = getCsrfTokenFromCookie();
