@@ -4,7 +4,8 @@ import { buildMediaUrl } from '../utils/media';
 import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
-const CART_CACHE_TTL_MS = 2 * 60 * 1000;
+// Alinhado com cache de perfil para reduzir requisições em navegação rápida
+const CART_CACHE_TTL_MS = 5 * 60 * 1000;
 let cartFetchPromise = null;
 let cartCache = null;
 let cartCacheTs = 0;

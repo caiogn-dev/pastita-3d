@@ -20,7 +20,7 @@ const normalizePayment = (payment) => {
 
 const PaymentPending = () => {
   const router = useRouter();
-  const orderParam = router.query.order;
+  const orderParam = router.isReady ? router.query.order : null;
   const orderNumber = Array.isArray(orderParam) ? orderParam[0] : orderParam;
   const [orderDetails, setOrderDetails] = useState(null);
   const [paymentInfo, setPaymentInfo] = useState(null);
@@ -63,7 +63,18 @@ const PaymentPending = () => {
       try {
         const response = await api.get(`/checkout/status/?order_number=${orderNumber}`, { skipAuthRedirect: true });
         setOrderDetails(response.data);
-        setPaymentInfo(response.data.payment ? normalizePayment(response.data.payment) : null);
+        const normalizedPayment = response.data.payment ? normalizePayment(response.data.payment) : null;
+        setPaymentInfo(normalizedPayment);
+        if (normalizedPayment) {
+          try {
+            sessionStorage.setItem(
+              `mp_payment_${orderNumber}`,
+              JSON.stringify(normalizedPayment)
+            );
+          } catch {
+            // ignore cache errors
+          }
+        }
       } catch (error) {
         console.error('Error fetching order details:', error);
       }
@@ -79,7 +90,18 @@ const PaymentPending = () => {
     try {
     const response = await api.get(`/checkout/status/?order_number=${orderNumber}`, { skipAuthRedirect: true });
       setOrderDetails(response.data);
-      setPaymentInfo(response.data.payment ? normalizePayment(response.data.payment) : null);
+      const normalizedPayment = response.data.payment ? normalizePayment(response.data.payment) : null;
+      setPaymentInfo(normalizedPayment);
+      if (normalizedPayment) {
+        try {
+          sessionStorage.setItem(
+            `mp_payment_${orderNumber}`,
+            JSON.stringify(normalizedPayment)
+          );
+        } catch {
+          // ignore cache errors
+        }
+      }
 
       if (response.data.payment_status === 'completed') {
         router.push(`/sucesso?order=${orderNumber}`);
@@ -124,6 +146,11 @@ const PaymentPending = () => {
         <p className="status-subtitle">
           Seu pagamento esta sendo processado e sera confirmado em breve.
         </p>
+        {!activePayment && (
+          <p className="status-subtitle">
+            Aguarde um momento e clique em "Verificar status" para atualizar os dados do pagamento.
+          </p>
+        )}
 
         {orderNumber && (
           <div className="status-order">
