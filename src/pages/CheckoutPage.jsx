@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import api, { fetchCsrfToken } from '../services/api';
 
 const validateCPF = (cpf) => {
   const cleanCpf = cpf.replace(/[^\d]/g, '');
@@ -407,6 +407,7 @@ const CheckoutPage = () => {
     setPaymentResult(null);
 
     try {
+      await fetchCsrfToken();
       if (saveAddress && shippingMethod === 'delivery') {
         await updateProfile({
           phone: formData.phone.replace(/\D/g, ''),
@@ -740,7 +741,7 @@ const CheckoutPage = () => {
                       <div className="pickup-map-text">
                         <strong>Retirada na loja</strong>
                         <div className="pickup-map-address">
-                          {STORE_ADDRESS}
+                          {STORE_ADDRESS.address}, {STORE_ADDRESS.city} - {STORE_ADDRESS.state}
                         </div>
                       </div>
                       <a
