@@ -36,7 +36,7 @@ const PaymentPending = () => {
       }
 
       try {
-        const response = await api.get(`/checkout/status/?order_number=${orderNumber}`);
+        const response = await api.get(`/checkout/status/?order_number=${orderNumber}`, { skipAuthRedirect: true });
         setOrderDetails(response.data);
         setPaymentInfo(response.data.payment || null);
       } catch (error) {
@@ -52,14 +52,14 @@ const PaymentPending = () => {
 
     setChecking(true);
     try {
-      const response = await api.get(`/checkout/status/?order_number=${orderNumber}`);
+    const response = await api.get(`/checkout/status/?order_number=${orderNumber}`, { skipAuthRedirect: true });
       setOrderDetails(response.data);
       setPaymentInfo(response.data.payment || null);
 
       if (response.data.payment_status === 'completed') {
-        window.location.href = `/sucesso?order=${orderNumber}`;
+        router.push(`/sucesso?order=${orderNumber}`);
       } else if (response.data.payment_status === 'failed') {
-        window.location.href = `/erro?order=${orderNumber}`;
+        router.push(`/erro?order=${orderNumber}`);
       }
     } catch (err) {
       console.error('Error checking status:', err);

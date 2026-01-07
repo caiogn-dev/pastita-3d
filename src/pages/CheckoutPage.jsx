@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import api, { fetchCsrfToken } from '../services/api';
@@ -68,16 +69,23 @@ const BRAZILIAN_STATES = [
 
 const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 const DELIVERY_FEE = 15;
-const STORE_ADDRESS = 'Ivoneth Banqueteria';;
+const STORE_ADDRESS = {
+  address: 'Q. 112 Sul Rua SR 1, conj. 06 lote 04 - Plano Diretor Sul',
+  city: 'Palmas',
+  state: 'TO',
+  zip_code: '77020-170'
+};
 const STORE_MAPS_URL = `https://www.google.com/maps?q=Ivoneth+Banqueteria`;
 
 const CheckoutPage = () => {
   const { cart, cartTotal, clearCart } = useCart();
   const { profile, updateProfile } = useAuth();
   const mpPublicKey = process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY;
+  const router = useRouter();
   const [shippingCost, setShippingCost] = useState(null);
   const [shippingMethod, setShippingMethod] = useState('delivery');
   const deliveryAddressRef = useRef(null);
+  const previousSavePref = useRef(true);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -212,6 +220,8 @@ const CheckoutPage = () => {
 
   useEffect(() => {
     if (shippingMethod === 'pickup') {
+      previousSavePref.current = saveAddress;
+      setSaveAddress(false);
       setFormData((prev) => {
         deliveryAddressRef.current = {
           address: prev.address,
@@ -227,6 +237,7 @@ const CheckoutPage = () => {
       });
       setShippingCost(0);
     } else {
+      setSaveAddress(previousSavePref.current ?? true);
       setShippingCost(DELIVERY_FEE);
       if (deliveryAddressRef.current) {
         setFormData((prev) => ({ ...prev, ...deliveryAddressRef.current }));
@@ -475,28 +486,28 @@ const CheckoutPage = () => {
         });
 
         if (isPixPayment || isTicketPayment) {
-          window.location.href = `/pendente?order=${orderNumber}`;
+          router.push(`/pendente?order=${orderNumber}`);
           return;
         }
 
         if (paymentStatus === 'approved') {
-          window.location.href = `/sucesso?order=${orderNumber}`;
+          router.push(`/sucesso?order=${orderNumber}`);
           return;
         }
 
         if (paymentStatus === 'rejected') {
           const errorCode = payment.status_detail || '';
-          window.location.href = `/erro?order=${orderNumber}&error=${errorCode}`;
+          router.push(`/erro?order=${orderNumber}&error=${errorCode}`);
           return;
         }
 
-        window.location.href = `/pendente?order=${orderNumber}`;
+        router.push(`/pendente?order=${orderNumber}`);
         return;
       }
 
       const paymentLink = response.data.init_point || response.data.sandbox_init_point;
       if (paymentLink) {
-        window.location.href = paymentLink;
+        router.push(paymentLink);
       } else {
         throw new Error('Link de pagamento não recebido');
       }
@@ -1002,6 +1013,7 @@ const CheckoutPage = () => {
                     type="checkbox"
                     checked={saveAddress}
                     onChange={(event) => setSaveAddress(event.target.checked)}
+                    disabled={shippingMethod === 'pickup'}
                   />
                   <span>Salvar endereço para próximas compras</span>
                 </label>

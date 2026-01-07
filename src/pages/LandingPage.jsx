@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
 
 const LandingPage = () => {
-  const [showPromo, setShowPromo] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return !sessionStorage.getItem('pastitaPromoSeen');
-  });
+  const [showPromo, setShowPromo] = useState(false);
+  const [promoReady, setPromoReady] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hasSeen = sessionStorage.getItem('pastitaPromoSeen');
+    setShowPromo(!hasSeen);
+    setPromoReady(true);
+  }, []);
 
   const handleClosePromo = () => {
     if (typeof window !== 'undefined') {
@@ -19,7 +24,7 @@ const LandingPage = () => {
     <div className="landing-page">
       <Navbar />
 
-      {showPromo && (
+      {promoReady && showPromo && (
         <div className="promo-modal-overlay" onClick={handleClosePromo} role="presentation">
           <div
             className="promo-modal"
@@ -64,7 +69,7 @@ const LandingPage = () => {
               Tire do freezer, aqueça e impressione.
             </p>
             <div className="hero-buttons">
-              <Link href="/cardápio" className="btn-primary">Ver cardápio</Link>
+              <Link href="/cardapio" className="btn-primary">Ver cardápio</Link>
               <a href="#como-funciona" className="btn-secondary">Como funciona</a>
             </div>
           </div>
@@ -207,7 +212,7 @@ const LandingPage = () => {
             <div className="footer-links">
               <h4>Links</h4>
               <Link href="/">Início</Link>
-              <Link href="/cardápio">Cardápio</Link>
+              <Link href="/cardapio">Cardápio</Link>
               <Link href="/login">Login</Link>
             </div>
             <div className="footer-contact">

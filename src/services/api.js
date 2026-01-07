@@ -4,6 +4,7 @@ import axios from 'axios';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 let authTokenMemory = null;
+const AUTH_COOKIE_NAME = process.env.NEXT_PUBLIC_AUTH_COOKIE_NAME || 'auth_token';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -59,6 +60,28 @@ export const setAuthToken = (token) => {
   authTokenMemory = token || null;
 };
 
+const getAuthTokenFromCookie = () => {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [cookieName, cookieValue] = cookie.trim().split('=');
+    if (cookieName === AUTH_COOKIE_NAME) {
+      return cookieValue || null;
+    }
+  }
+  return null;
+};
+
+// Bootstrap auth token from HttpOnly cookie (if present)
+if (typeof document !== 'undefined' && !authTokenMemory) {
+  const cookieToken = getAuthTokenFromCookie();
+  if (cookieToken) {
+    authTokenMemory = cookieToken;
+  }
+}
+
 // Request interceptor - adds auth token and CSRF token to all requests
 api.interceptors.request.use(
   (config) => {
@@ -85,13 +108,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle 401 Unauthorized - redirect to login
-    if (error.response?.status === 401 && !error.config?.skipAuthRedirect) {
-      // Only redirect if not already on login page
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
-    }
+    // Handle 401 Unauthorized - do not force redirect (avoid logout loops)
+    // Caller can decide whether to show login modal.
     
     // Handle 429 Rate Limiting
     if (error.response?.status === 429) {
