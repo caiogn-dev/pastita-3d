@@ -32,6 +32,13 @@ const PaymentPending = () => {
     () => normalizePayment(paymentInfo) || normalizePayment(cachedPayment),
     [paymentInfo, cachedPayment]
   );
+
+  const totalAmount = useMemo(() => {
+    if (orderDetails?.total_amount) return Number(orderDetails.total_amount);
+    if (orderDetails?.checkout?.total_amount) return Number(orderDetails.checkout.total_amount);
+    if (activePayment?.transaction_amount) return Number(activePayment.transaction_amount);
+    return null;
+  }, [orderDetails, activePayment]);
   const paymentStatus = orderDetails?.payment_status;
   const isPendingStatus = ['pending', 'processing'].includes(paymentStatus);
   const showPaymentDetails = isPendingStatus || !paymentStatus;
@@ -134,7 +141,7 @@ const PaymentPending = () => {
             <div className="status-row">
               <span>Total:</span>
               <span className="status-price">
-                R$ {orderDetails.total_amount ? Number(orderDetails.total_amount).toFixed(2) : '0.00'}
+                R$ {totalAmount !== null ? totalAmount.toFixed(2) : '0.00'}
               </span>
             </div>
           </div>
