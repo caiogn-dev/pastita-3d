@@ -1,17 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
 
 const LandingPage = () => {
-  const [showPromo, setShowPromo] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const hasSeenPromo = sessionStorage.getItem('pastitaPromoSeen');
-    if (!hasSeenPromo) {
-      setShowPromo(true);
-    }
-  }, []);
+  const [showPromo, setShowPromo] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !sessionStorage.getItem('pastitaPromoSeen');
+  });
 
   const handleClosePromo = () => {
     if (typeof window !== 'undefined') {
