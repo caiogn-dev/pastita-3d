@@ -68,9 +68,8 @@ const BRAZILIAN_STATES = [
 
 const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 const DELIVERY_FEE = 15;
-const STORE_ADDRESS = 'Ivoneth Banqueteria';
-const STORE_MAPS_QUERY = 'Ivoneth+Banqueteria';
-const STORE_MAPS_URL = `https://www.google.com/maps?q=${STORE_MAPS_QUERY}`;
+const STORE_ADDRESS = 'Ivoneth Banqueteria';;
+const STORE_MAPS_URL = `https://www.google.com/maps?q=Ivoneth+Banqueteria`;
 
 const CheckoutPage = () => {
   const { cart, cartTotal, clearCart } = useCart();
@@ -741,7 +740,7 @@ const CheckoutPage = () => {
                       <div className="pickup-map-text">
                         <strong>Retirada na loja</strong>
                         <div className="pickup-map-address">
-                          {STORE_ADDRESS.address}, {STORE_ADDRESS.city} - {STORE_ADDRESS.state}
+                          {STORE_ADDRESS}
                         </div>
                       </div>
                       <a
