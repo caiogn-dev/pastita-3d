@@ -122,7 +122,7 @@ const Cardapio = () => {
       {/* Header */}
       <div className="cardapio-header">
         <span className="cardapio-subtitle">Artesanal</span>
-        <h1 className="cardapio-title">Nosso Cardapio</h1>
+        <h1 className="cardapio-title">Nosso Cardápio</h1>
         <div className="cardapio-divider"></div>
       </div>
 
@@ -137,8 +137,8 @@ const Cardapio = () => {
       {/* Empty State */}
       {!loading && products.length === 0 && (
         <div className="cardapio-empty">
-          <p>Nenhum produto disponivel no momento.</p>
-          <Link href="/" className="btn-secondary">Voltar ao Inicio</Link>
+          <p>Nenhum produto disponível no momento.</p>
+          <Link href="/" className="btn-secondary">Voltar ao Início</Link>
         </div>
       )}
 
@@ -149,7 +149,7 @@ const Cardapio = () => {
             <div className="cardapio-search">
               <input
                 type="text"
-                placeholder="Buscar por nome ou descricao"
+                placeholder="Buscar por nome ou descrição"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -207,7 +207,7 @@ const Cardapio = () => {
                     className={`product-add-btn ${inStock ? '' : 'product-add-btn-disabled'}`}
                     disabled={!inStock}
                   >
-                    {inStock ? 'Adicionar' : 'Indisponivel'}
+                    {inStock ? 'Adicionar' : 'Indisponível'}
                   </button>
                 </div>
               </div>

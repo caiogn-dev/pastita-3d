@@ -25,7 +25,7 @@ const Navbar = () => {
       || profile?.phone
       || user?.email
       || user?.phone
-      || 'Usuario';
+      || 'Usuário';
   }, [profile, user]);
 
   const toggleMobileMenu = () => {
@@ -55,13 +55,13 @@ const Navbar = () => {
             href="/" 
             className={`navbar-link ${isActive('/') ? 'active' : ''}`}
           >
-            Inicio
+            Início
           </Link>
           <Link 
             href="/cardapio" 
             className={`navbar-link ${isActive('/cardapio') ? 'active' : ''}`}
           >
-            Cardapio
+            Cardápio
           </Link>
           
           {isAuthenticated ? (
@@ -123,14 +123,14 @@ const Navbar = () => {
           className={`navbar-mobile-link ${isActive('/') ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
-          Inicio
+          Início
         </Link>
         <button
           type="button"
           className={`navbar-mobile-link ${isActive('/cardapio') ? 'active' : ''}`}
           onClick={() => handleMobileNavigate('/cardapio')}
         >
-          Cardapio
+          Cardápio
         </button>
         
         {isAuthenticated ? (
@@ -143,7 +143,7 @@ const Navbar = () => {
               Perfil
             </button>
             <span className="navbar-mobile-user">
-              Ola, {displayName}
+              Olá, {displayName}
             </span>
             <button 
               onClick={() => { signOut(); closeMobileMenu(); }} 
@@ -166,7 +166,7 @@ const Navbar = () => {
               className="navbar-mobile-link navbar-mobile-register"
               onClick={() => handleMobileNavigate('/registro')}
             >
-              Criar Conta
+              Criar conta
             </button>
           </>
         )}

@@ -213,7 +213,7 @@ const Profile = () => {
                     </span>
                   </div>
                   <div className="profile-info-full">
-                    <span className="profile-label">Endereco</span>
+                    <span className="profile-label">Endereço</span>
                     <span className="profile-value">{formattedAddress}</span>
                   </div>
                 </div>
@@ -223,7 +223,7 @@ const Profile = () => {
                   className="btn-primary profile-edit-btn"
                   onClick={() => setIsEditing(true)}
                 >
-                  Editar informacoes
+                  Editar informações
                 </button>
               </>
             ) : (
@@ -292,7 +292,7 @@ const Profile = () => {
                 </div>
 
                 <div className="form-field">
-                  <label className="form-label">Endereco</label>
+                  <label className="form-label">Endereo</label>
                   <input
                     type="text"
                     name="address"
@@ -390,7 +390,7 @@ const Profile = () => {
             )}
 
             {!ordersLoading && !ordersError && orders.length === 0 && (
-              <div className="profile-empty">Voce ainda nao realizou pedidos.</div>
+              <div className="profile-empty">Você ainda não realizou pedidos.</div>
             )}
 
             {!ordersLoading && orders.length > 0 && (

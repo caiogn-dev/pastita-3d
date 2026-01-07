@@ -25,9 +25,9 @@ const CartSidebar = () => {
           {cart.length === 0 ? (
             <div className="cart-empty">
               <span className="cart-empty-icon">[]</span>
-              <p>Seu carrinho esta vazio.</p>
+              <p>Seu carrinho está vazio.</p>
               <button onClick={toggleCart} className="btn-secondary">
-                Ver Cardapio
+                Ver cardápio
               </button>
             </div>
           ) : (

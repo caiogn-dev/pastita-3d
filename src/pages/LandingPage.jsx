@@ -1,11 +1,56 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
 
 const LandingPage = () => {
+  const [showPromo, setShowPromo] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hasSeenPromo = sessionStorage.getItem('pastitaPromoSeen');
+    if (!hasSeenPromo) {
+      setShowPromo(true);
+    }
+  }, []);
+
+  const handleClosePromo = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('pastitaPromoSeen', '1');
+    }
+    setShowPromo(false);
+  };
+
   return (
     <div className="landing-page">
       <Navbar />
+
+      {showPromo && (
+        <div className="promo-modal-overlay" onClick={handleClosePromo} role="presentation">
+          <div
+            className="promo-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Promoção Pastita 10% OFF"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button className="promo-close" onClick={handleClosePromo} aria-label="Fechar promoção">
+              x
+            </button>
+            <div className="promo-badge">Novidade</div>
+            <h3>Ganhe 10% OFF no primeiro pedido</h3>
+            <p>
+              Crie sua conta agora e receba um cupom exclusivo para usar na primeira compra.
+              Válido para pedidos feitos pelo site.
+            </p>
+            <div className="promo-actions">
+              <Link href="/registro" className="btn-primary">Criar conta e ganhar 10%</Link>
+              <button type="button" className="btn-secondary" onClick={handleClosePromo}>
+                Ver cardápio primeiro
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <header className="hero-section">
@@ -20,11 +65,11 @@ const LandingPage = () => {
               O verdadeiro sabor italiano em minutos.
             </h1>
             <p className="hero-description">
-              Massas frescas, recheios generosos e a praticidade que voce precisa.
-              Tire do freezer, aquece e impressione.
+              Massas frescas, recheios generosos e a praticidade que você precisa.
+              Tire do freezer, aqueça e impressione.
             </p>
             <div className="hero-buttons">
-              <Link href="/cardapio" className="btn-primary">Ver Cardapio</Link>
+              <Link href="/cardápio" className="btn-primary">Ver cardápio</Link>
               <a href="#como-funciona" className="btn-secondary">Como funciona</a>
             </div>
           </div>
@@ -58,7 +103,7 @@ const LandingPage = () => {
             <div className="step-card">
               <div className="step-number">01</div>
               <h3>Escolha</h3>
-              <p>Navegue pelo nosso cardapio e escolha suas massas favoritas.</p>
+              <p>Navegue pelo nosso cardápio e escolha suas massas favoritas.</p>
             </div>
             <div className="step-arrow" aria-hidden="true">
               <svg viewBox="0 0 40 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -80,7 +125,7 @@ const LandingPage = () => {
             <div className="step-card">
               <div className="step-number">03</div>
               <h3>Prepare</h3>
-              <p>Tire do freezer, aquece em minutos e sirva uma refeicao incrivel.</p>
+              <p>Tire do freezer, aqueça em minutos e sirva uma refeição incrível.</p>
             </div>
           </div>
         </div>
@@ -126,7 +171,7 @@ const LandingPage = () => {
                 />
               </span>
               <h3>Recheios generosos</h3>
-              <p>Cada mordida e uma explosao de sabor.</p>
+              <p>Cada mordida é uma explosão de sabor.</p>
             </div>
             <div className="feature-card">
               <span className="feature-icon">
@@ -137,7 +182,7 @@ const LandingPage = () => {
                 />
               </span>
               <h3>Entrega congelada</h3>
-              <p>Mantem a qualidade e frescor ate voce.</p>
+              <p>Mantém a qualidade e o frescor até você.</p>
             </div>
           </div>
         </div>
@@ -148,9 +193,9 @@ const LandingPage = () => {
         <div className="container">
           <div className="cta-content">
             <h2>Pronto para experimentar?</h2>
-            <p>Descubra o sabor autentico das massas artesanais Pastita.</p>
-            <Link href="/cardapio" className="btn-primary btn-large">
-              Ver cardapio completo
+            <p>Descubra o sabor autêntico das massas artesanais Pastita.</p>
+            <Link href="/cardápio" className="btn-primary btn-large">
+              Ver cardápio completo
             </Link>
           </div>
         </div>
@@ -166,14 +211,14 @@ const LandingPage = () => {
             </div>
             <div className="footer-links">
               <h4>Links</h4>
-              <Link href="/">Inicio</Link>
-              <Link href="/cardapio">Cardapio</Link>
+              <Link href="/">Início</Link>
+              <Link href="/cardápio">Cardápio</Link>
               <Link href="/login">Login</Link>
             </div>
             <div className="footer-contact">
               <h4>Contato</h4>
               <p>contato@pastita.com.br</p>
-              <p href="https://api.whatsapp.com/send?phone=556391172166"> Whatsapp </p>
+              <a href="https://api.whatsapp.com/send?phone=556391172166">WhatsApp</a>
             </div>
           </div>
           <div className="footer-bottom">

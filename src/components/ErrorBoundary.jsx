@@ -48,7 +48,7 @@ class ErrorBoundary extends React.Component {
 
             <h1 className="status-title">Ops! Algo deu errado</h1>
             <p className="status-subtitle">
-              Tente atualizar a pagina. Se o problema continuar, volte mais tarde.
+              Tente atualizar a página. Se o problema continuar, volte mais tarde.
             </p>
 
             {showDetails && (
@@ -71,7 +71,7 @@ class ErrorBoundary extends React.Component {
                 onClick={this.handleGoHome}
                 className="status-button status-button-secondary"
               >
-                Ir para inicio
+                Ir para início
               </button>
             </div>
           </div>

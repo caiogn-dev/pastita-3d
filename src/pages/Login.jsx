@@ -25,7 +25,7 @@ const Login = () => {
     if (result.success) {
       router.replace(returnTo);
     } else {
-      setError(result.error || 'E-mail ou celular invalidos');
+      setError(result.error || 'E-mail ou celular inválidos');
     }
     setLoading(false);
   };
@@ -76,13 +76,13 @@ const Login = () => {
 
           <div className="auth-footer">
             <p>
-              Nao tem uma conta?{' '}
+              Não tem uma conta?{' '}
               <Link href="/registro">Cadastre-se</Link>
             </p>
           </div>
         </div>
 
-        <Link href="/" className="auth-back">&lt; Voltar ao inicio</Link>
+        <Link href="/" className="auth-back">&lt; Voltar ao início</Link>
       </div>
     </div>
   );

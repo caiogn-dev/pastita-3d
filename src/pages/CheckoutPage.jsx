@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -66,11 +66,21 @@ const BRAZILIAN_STATES = [
 ];
 
 const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
+const DELIVERY_FEE = 15;
+const STORE_ADDRESS = {
+  address: 'Q. 112 Sul Rua SR 1, conj. 06 lote 04 - Plano Diretor Sul',
+  city: 'Palmas',
+  state: 'TO',
+  zip_code: '77020-170'
+};
 
 const CheckoutPage = () => {
   const { cart, cartTotal, clearCart } = useCart();
   const { profile, updateProfile } = useAuth();
   const mpPublicKey = process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY;
+  const [shippingCost, setShippingCost] = useState(null);
+  const [shippingMethod, setShippingMethod] = useState('delivery');
+  const deliveryAddressRef = useRef(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -203,6 +213,30 @@ const CheckoutPage = () => {
     }
   };
 
+  useEffect(() => {
+    if (shippingMethod === 'pickup') {
+      setFormData((prev) => {
+        deliveryAddressRef.current = {
+          address: prev.address,
+          city: prev.city,
+          state: prev.state,
+          zip_code: prev.zip_code
+        };
+        return {
+          ...prev,
+          ...STORE_ADDRESS,
+          zip_code: formatCEP(STORE_ADDRESS.zip_code)
+        };
+      });
+      setShippingCost(0);
+    } else {
+      setShippingCost(DELIVERY_FEE);
+      if (deliveryAddressRef.current) {
+        setFormData((prev) => ({ ...prev, ...deliveryAddressRef.current }));
+      }
+    }
+  }, [shippingMethod]);
+
   const handleCardChange = (event) => {
     const { name, value } = event.target;
     let formattedValue = value;
@@ -238,16 +272,16 @@ const CheckoutPage = () => {
     const securityCode = onlyDigits(cardData.cvv);
 
     if (!cardNumber || cardNumber.length < 13) {
-      throw new Error('Numero do cartao invalido');
+      throw new Error('Numero do cartão inválido');
     }
     if (!cardholderName) {
-      throw new Error('Nome impresso no cartao e obrigatorio');
+      throw new Error('Nome impresso no cartão é obrigatório');
     }
     if (!expMonth || !expYear) {
-      throw new Error('Validade do cartao invalida');
+      throw new Error('Validade do cartão inválida');
     }
     if (!securityCode) {
-      throw new Error('Codigo de seguranca invalido');
+      throw new Error('Código de segurança inválido');
     }
 
     const bin = cardNumber.slice(0, 6);
@@ -255,7 +289,7 @@ const CheckoutPage = () => {
     const paymentMethodId = paymentMethodResponse?.results?.[0]?.id || paymentMethodResponse?.[0]?.id;
 
     if (!paymentMethodId) {
-      throw new Error('Nao foi possivel identificar a bandeira do cartao');
+      throw new Error('Não foi possível identificar a bandeira do cartão');
     }
 
     let issuerId;
@@ -278,7 +312,7 @@ const CheckoutPage = () => {
 
     const tokenId = tokenResponse?.id || tokenResponse?.token;
     if (!tokenId) {
-      throw new Error('Nao foi possivel gerar o token do cartao');
+      throw new Error('Não foi possível gerar o token do cartão');
     }
 
     return {
@@ -333,29 +367,31 @@ const CheckoutPage = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) newErrors.name = 'Nome e obrigatorio';
-    if (!formData.email.trim()) newErrors.email = 'E-mail e obrigatorio';
+    if (!formData.name.trim()) newErrors.name = 'Nome é obrigatorio';
+    if (!formData.email.trim()) newErrors.email = 'E-mail é obrigatorio';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'E-mail invalido';
+      newErrors.email = 'E-mail inválido';
     }
 
-    if (!formData.phone.trim()) newErrors.phone = 'Telefone e obrigatorio';
+    if (!formData.phone.trim()) newErrors.phone = 'Telefone é obrigatorio';
     else if (formData.phone.replace(/\D/g, '').length < 10) {
-      newErrors.phone = 'Telefone invalido (minimo 10 digitos)';
+      newErrors.phone = 'Telefone inválido (mínimo 10 dígitos)';
     }
 
-    if (!formData.cpf.trim()) newErrors.cpf = 'CPF e obrigatorio';
+    if (!formData.cpf.trim()) newErrors.cpf = 'CPF é obrigatorio';
     else if (!validateCPF(formData.cpf)) {
-      newErrors.cpf = 'CPF invalido';
+      newErrors.cpf = 'CPF inválido';
     }
 
-    if (!formData.address.trim()) newErrors.address = 'Endereco e obrigatorio';
-    if (!formData.city.trim()) newErrors.city = 'Cidade e obrigatoria';
-    if (!formData.state) newErrors.state = 'Estado e obrigatorio';
+    if (shippingMethod === 'delivery') {
+      if (!formData.address.trim()) newErrors.address = 'Endereço é obrigatório';
+      if (!formData.city.trim()) newErrors.city = 'Cidade é obrigatória';
+      if (!formData.state) newErrors.state = 'Estado é obrigatório';
 
-    if (!formData.zip_code.trim()) newErrors.zip_code = 'CEP e obrigatorio';
-    else if (formData.zip_code.replace(/\D/g, '').length !== 8) {
-      newErrors.zip_code = 'CEP invalido (8 digitos)';
+      if (!formData.zip_code.trim()) newErrors.zip_code = 'CEP é obrigatório';
+      else if (formData.zip_code.replace(/\D/g, '').length !== 8) {
+        newErrors.zip_code = 'CEP inválido (8 dígitos)';
+      }
     }
 
     setErrors(newErrors);
@@ -374,7 +410,7 @@ const CheckoutPage = () => {
     setPaymentResult(null);
 
     try {
-      if (saveAddress) {
+      if (saveAddress && shippingMethod === 'delivery') {
         await updateProfile({
           phone: formData.phone.replace(/\D/g, ''),
           cpf: formData.cpf.replace(/\D/g, ''),
@@ -395,15 +431,19 @@ const CheckoutPage = () => {
       }
 
       const response = await api.post('/checkout/create_checkout/', {
+        shipping_method: shippingMethod,
         buyer: {
           name: formData.name,
           email: formData.email,
           phone: formData.phone.replace(/\D/g, ''),
           cpf: formData.cpf.replace(/\D/g, ''),
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          zip_code: formData.zip_code.replace(/\D/g, '')
+          address: shippingMethod === 'pickup' ? STORE_ADDRESS.address : formData.address,
+          city: shippingMethod === 'pickup' ? STORE_ADDRESS.city : formData.city,
+          state: shippingMethod === 'pickup' ? STORE_ADDRESS.state : formData.state,
+          zip_code: shippingMethod === 'pickup'
+            ? STORE_ADDRESS.zip_code.replace(/\D/g, '')
+            : formData.zip_code.replace(/\D/g, ''),
+          shipping_method: shippingMethod
         },
         payment: paymentPayload
       });
@@ -460,7 +500,7 @@ const CheckoutPage = () => {
       if (paymentLink) {
         window.location.href = paymentLink;
       } else {
-        throw new Error('Link de pagamento nao recebido');
+        throw new Error('Link de pagamento não recebido');
       }
     } catch (error) {
       console.error('Erro ao gerar pagamento:', error);
@@ -487,13 +527,16 @@ const CheckoutPage = () => {
         ? 'GERAR BOLETO'
         : 'PAGAR COM CARTAO';
 
+  const shippingValue = shippingCost ?? 0;
+  const totalWithShipping = cartTotal + shippingValue;
+
   if (cart.length === 0) {
     return (
       <div className="checkout-empty">
         <div>
-          <h2>Seu carrinho esta vazio</h2>
+          <h2>Seu carrinho está vazio</h2>
           <p>Adicione produtos ao carrinho para continuar.</p>
-          <Link href="/cardapio" className="btn-secondary">Voltar ao Cardapio</Link>
+          <Link href="/cardapio" className="btn-secondary">Voltar ao Cardápio</Link>
         </div>
       </div>
     );
@@ -504,7 +547,7 @@ const CheckoutPage = () => {
       <div className="checkout-container">
         <div className="checkout-header">
           <Link href="/cardapio" className="checkout-back-link">
-            &larr; Voltar ao Cardapio
+            &larr; Voltar ao Cardápio
           </Link>
           <h1>Finalizar Pedido</h1>
           <p>Confirme seus dados para prosseguir com o pagamento</p>
@@ -526,7 +569,7 @@ const CheckoutPage = () => {
 
             {paymentResult.payment_type_id === 'pix' && (
               <div className="checkout-payment-block">
-                <p>Escaneie o QR Code ou copie o codigo PIX.</p>
+                <p>Escaneie o QR Code ou copie o código PIX.</p>
                 {paymentResult.qr_code_base64 && (
                   <img
                     src={`data:image/png;base64,${paymentResult.qr_code_base64}`}
@@ -571,9 +614,9 @@ const CheckoutPage = () => {
 
         <div className="checkout-grid">
           <div>
-            {savedAddresses.length > 0 && (
+            {shippingMethod === 'delivery' && savedAddresses.length > 0 && (
               <div className="checkout-address-card">
-                <h3 className="checkout-address-title">Enderecos salvos</h3>
+                <h3 className="checkout-address-title">Endereços salvos</h3>
                 {savedAddresses.map((addr) => {
                   const isSelected = !useNewAddress && formData.address === addr.address;
                   return (
@@ -600,7 +643,7 @@ const CheckoutPage = () => {
                     checked={useNewAddress}
                     onChange={() => setUseNewAddress(true)}
                   />
-                  <span className="checkout-address-label">Usar novo endereco</span>
+                  <span className="checkout-address-label">Usar novo endereço</span>
                 </label>
               </div>
             )}
@@ -609,6 +652,33 @@ const CheckoutPage = () => {
               <h3 className="checkout-section-title">Dados de entrega</h3>
 
               <form onSubmit={handleSubmit}>
+                <div className="checkout-field-group">
+                  <label className="checkout-payment-option">
+                    <input
+                      type="radio"
+                      name="shippingMethod"
+                      checked={shippingMethod === 'delivery'}
+                      onChange={() => setShippingMethod('delivery')}
+                    />
+                    <div>
+                      <div className="checkout-payment-option-label">Entrega</div>
+                      <div className="checkout-payment-option-hint">Frete fixo R$ 15,00</div>
+                    </div>
+                  </label>
+                  <label className="checkout-payment-option">
+                    <input
+                      type="radio"
+                      name="shippingMethod"
+                      checked={shippingMethod === 'pickup'}
+                      onChange={() => setShippingMethod('pickup')}
+                    />
+                    <div>
+                      <div className="checkout-payment-option-label">Retirada</div>
+                      <div className="checkout-payment-option-hint">Sem frete na loja (112 Sul)</div>
+                    </div>
+                  </label>
+                </div>
+
                 <div className="checkout-field-group">
                   <div className="form-field">
                     <label className="form-label">Nome completo *</label>
@@ -664,7 +734,7 @@ const CheckoutPage = () => {
                   </div>
                 </div>
 
-                <h4 className="checkout-subsection-title">Endereco de entrega</h4>
+                <h4 className="checkout-subsection-title">Endereço de entrega</h4>
 
                 <div className="checkout-field-group">
                   <div className="checkout-grid-cep">
@@ -679,6 +749,7 @@ const CheckoutPage = () => {
                           onBlur={handleCEPBlur}
                           placeholder="00000-000"
                           className={`form-input ${errors.zip_code ? 'is-error' : ''}`}
+                          disabled={shippingMethod === 'pickup'}
                         />
                         {loadingCEP && (
                           <span className="checkout-field-note">Buscando...</span>
@@ -687,15 +758,16 @@ const CheckoutPage = () => {
                       {errors.zip_code && <span className="form-error">{errors.zip_code}</span>}
                     </div>
                     <div className="form-field">
-                      <label className="form-label">Endereco (Rua, numero, bairro) *</label>
-                      <input
-                        type="text"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                        placeholder="Rua Exemplo, 123, Centro"
-                        className={`form-input ${errors.address ? 'is-error' : ''}`}
-                      />
+                      <label className="form-label">Endereço (Rua, número, bairro) *</label>
+                        <input
+                          type="text"
+                          name="address"
+                          value={formData.address}
+                          onChange={handleChange}
+                          placeholder="Rua Exemplo, 123, Centro"
+                          className={`form-input ${errors.address ? 'is-error' : ''}`}
+                          disabled={shippingMethod === 'pickup'}
+                        />
                       {errors.address && <span className="form-error">{errors.address}</span>}
                     </div>
                   </div>
@@ -703,24 +775,26 @@ const CheckoutPage = () => {
                   <div className="checkout-grid-city">
                     <div className="form-field">
                       <label className="form-label">Cidade *</label>
-                      <input
-                        type="text"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleChange}
-                        placeholder="Sao Paulo"
-                        className={`form-input ${errors.city ? 'is-error' : ''}`}
-                      />
+                        <input
+                          type="text"
+                          name="city"
+                          value={formData.city}
+                          onChange={handleChange}
+                          placeholder="Sao Paulo"
+                          className={`form-input ${errors.city ? 'is-error' : ''}`}
+                          disabled={shippingMethod === 'pickup'}
+                        />
                       {errors.city && <span className="form-error">{errors.city}</span>}
                     </div>
                     <div className="form-field">
                       <label className="form-label">Estado *</label>
-                      <select
-                        name="state"
-                        value={formData.state}
-                        onChange={handleChange}
-                        className={`form-input ${errors.state ? 'is-error' : ''}`}
-                      >
+                        <select
+                          name="state"
+                          value={formData.state}
+                          onChange={handleChange}
+                          className={`form-input ${errors.state ? 'is-error' : ''}`}
+                          disabled={shippingMethod === 'pickup'}
+                        >
                         <option value="">Selecione</option>
                         {BRAZILIAN_STATES.map((state) => (
                           <option key={state.value} value={state.value}>{state.label}</option>
@@ -743,7 +817,7 @@ const CheckoutPage = () => {
                     />
                     <div>
                       <div className="checkout-payment-option-label">PIX</div>
-                      <div className="checkout-payment-option-hint">Aprovacao rapida, QR Code apos confirmar.</div>
+                      <div className="checkout-payment-option-hint">Aprovação rápida, QR Code após confirmar.</div>
                     </div>
                   </label>
                   <label className="checkout-payment-option">
@@ -755,7 +829,7 @@ const CheckoutPage = () => {
                     />
                     <div>
                       <div className="checkout-payment-option-label">Boleto</div>
-                      <div className="checkout-payment-option-hint">Pagamento em ate 3 dias uteis.</div>
+                      <div className="checkout-payment-option-hint">Pagamento em até 3 dias úteis.</div>
                     </div>
                   </label>
                   <label className="checkout-payment-option">
@@ -766,21 +840,21 @@ const CheckoutPage = () => {
                       onChange={() => setPaymentMethod('card')}
                     />
                     <div>
-                      <div className="checkout-payment-option-label">Cartao</div>
-                      <div className="checkout-payment-option-hint">Credito ou debito com tokenizacao.</div>
+                      <div className="checkout-payment-option-label">Cartão</div>
+                      <div className="checkout-payment-option-hint">Crédito ou débito com tokenização.</div>
                     </div>
                   </label>
                 </div>
 
                 {paymentMethod === 'pix' && (
                   <div className="checkout-payment-note">
-                    O QR Code sera exibido apos confirmar o pedido.
+                    O QR Code será exibido após confirmar o pedido.
                   </div>
                 )}
 
                 {paymentMethod === 'cash' && (
                   <div className="checkout-payment-note">
-                    <label className="form-label">Metodo de boleto</label>
+                    <label className="form-label">Método de boleto</label>
                     <select
                       name="cashMethod"
                       value={cashMethod}
@@ -796,7 +870,7 @@ const CheckoutPage = () => {
                   <div className="checkout-payment-card">
                     {!mpPublicKey && (
                       <div className="checkout-payment-warning">
-                        Public key do Mercado Pago nao configurada.
+                        Public key do Mercado Pago não configurada.
                       </div>
                     )}
                     {mpPublicKey && !mpReady && (
@@ -806,20 +880,20 @@ const CheckoutPage = () => {
                     )}
 
                     <div className="form-field">
-                      <label className="form-label">Tipo do cartao</label>
+                      <label className="form-label">Tipo do cartão</label>
                       <select
                         name="cardPaymentType"
                         value={cardPaymentType}
                         onChange={(event) => setCardPaymentType(event.target.value)}
                         className="form-input"
                       >
-                        <option value="credit_card">Credito</option>
-                        <option value="debit_card">Debito</option>
+                        <option value="credit_card">Crédito</option>
+                        <option value="debit_card">Débito</option>
                       </select>
                     </div>
 
                     <div className="form-field">
-                      <label className="form-label">Numero do cartao</label>
+                      <label className="form-label">Número do cartão</label>
                       <input
                         type="text"
                         name="number"
@@ -831,7 +905,7 @@ const CheckoutPage = () => {
                     </div>
 
                     <div className="form-field">
-                      <label className="form-label">Nome no cartao</label>
+                      <label className="form-label">Nome no cartão</label>
                       <input
                         type="text"
                         name="holder"
@@ -844,7 +918,7 @@ const CheckoutPage = () => {
 
                     <div className="checkout-payment-grid">
                       <div className="form-field">
-                        <label className="form-label">Mes</label>
+                        <label className="form-label">Mês</label>
                         <input
                           type="text"
                           name="expMonth"
@@ -900,7 +974,7 @@ const CheckoutPage = () => {
                     checked={saveAddress}
                     onChange={(event) => setSaveAddress(event.target.checked)}
                   />
-                  <span>Salvar endereco para proximas compras</span>
+                  <span>Salvar endereço para próximas compras</span>
                 </label>
 
                 <button
@@ -941,19 +1015,26 @@ const CheckoutPage = () => {
                   <span>R$ {cartTotal.toFixed(2)}</span>
                 </div>
                 <div className="checkout-summary-row">
-                  <span>Frete</span>
-                  <span>Gratis</span>
+                  <span>{shippingMethod === 'pickup' ? 'Retirada' : 'Frete'}</span>
+                  <span>
+                    {shippingMethod === 'pickup'
+                      ? 'R$ 0,00'
+                      : `R$ ${shippingValue.toFixed(2)}`}
+                  </span>
                 </div>
               </div>
 
               <div className="checkout-summary-total">
                 <span>Total</span>
-                <span>R$ {cartTotal.toFixed(2)}</span>
+                <span>R$ {totalWithShipping.toFixed(2)}</span>
               </div>
 
               <div className="checkout-security">
                 Pagamento seguro via Mercado Pago
               </div>
+              <p className="checkout-summary-note">
+                Entrega com frete fixo de R$ 15,00 ou retirada sem custo na 112 Sul.
+              </p>
             </div>
           </div>
         </div>

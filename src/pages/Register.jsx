@@ -28,25 +28,25 @@ const Register = () => {
     const newErrors = {};
 
     if (!formData.email.trim()) {
-      newErrors.email = 'E-mail e obrigatorio';
+      newErrors.email = 'E-mail é obrigatório';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'E-mail invalido';
+      newErrors.email = 'E-mail inválido';
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Celular e obrigatorio';
+      newErrors.phone = 'Celular é obrigatório';
     } else if (formData.phone.replace(/\D/g, '').length < 10) {
-      newErrors.phone = 'Celular invalido (10-11 digitos)';
+      newErrors.phone = 'Celular inválido (10-11 dígitos)';
     }
 
     if (!formData.password) {
-      newErrors.password = 'Senha e obrigatoria';
+      newErrors.password = 'Senha é obrigatória';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Senha deve ter pelo menos 8 caracteres';
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'As senhas nao coincidem';
+      newErrors.confirmPassword = 'As senhas não coincidem';
     }
 
     setErrors(newErrors);
@@ -65,7 +65,7 @@ const Register = () => {
     if (/[^A-Za-z0-9]/.test(password)) strength += 1;
 
     if (strength <= 2) return { level: strength, text: 'Fraca', color: '#dc2626' };
-    if (strength <= 3) return { level: strength, text: 'Media', color: '#d97706' };
+    if (strength <= 3) return { level: strength, text: 'Média', color: '#d97706' };
     return { level: strength, text: 'Forte', color: '#16a34a' };
   };
 
@@ -96,11 +96,11 @@ const Register = () => {
         Object.entries(err.response.data).forEach(([key, value]) => {
           if (key === 'email' && Array.isArray(value)) {
             backendErrors.email = value[0].includes('exists')
-              ? 'Este e-mail ja esta cadastrado'
+              ? 'Este e-mail já está cadastrado'
               : value[0];
           } else if (key === 'phone' && Array.isArray(value)) {
             backendErrors.phone = value[0].includes('exists')
-              ? 'Este celular ja esta cadastrado'
+              ? 'Este celular já está cadastrado'
               : value[0];
           } else if (Array.isArray(value)) {
             backendErrors[key] = value[0];
@@ -154,7 +154,7 @@ const Register = () => {
                   type="text"
                   value={formData.first_name}
                   onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  placeholder="Joao"
+                  placeholder="João"
                   className="form-input"
                 />
               </div>
@@ -210,7 +210,7 @@ const Register = () => {
                   setFormData({ ...formData, password: e.target.value });
                   if (errors.password) setErrors({ ...errors, password: '' });
                 }}
-                placeholder="Minimo 8 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 className={`form-input ${errors.password ? 'is-error' : ''}`}
               />
               {formData.password && (
@@ -227,7 +227,7 @@ const Register = () => {
                     ))}
                   </div>
                   <span style={{ color: passwordStrength.color }}>
-                    Forca: {passwordStrength.text}
+                    Força: {passwordStrength.text}
                   </span>
                 </div>
               )}
@@ -260,12 +260,12 @@ const Register = () => {
 
           <div className="auth-footer">
             <p>
-              Ja tem conta? <Link href="/login">Faca login</Link>
+              Já tem conta? <Link href="/login">Faça login</Link>
             </p>
           </div>
         </div>
 
-        <Link href="/" className="auth-back">&lt; Voltar ao inicio</Link>
+        <Link href="/" className="auth-back">&lt; Voltar ao início</Link>
       </div>
     </div>
   );

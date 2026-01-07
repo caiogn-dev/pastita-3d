@@ -21,7 +21,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }) => {
       onSuccess?.();
       onClose();
     } else {
-      setError(result.error || 'Usuario ou senha invalidos');
+      setError(result.error || 'Usuário ou senha inválidos');
     }
     setLoading(false);
   };
@@ -38,7 +38,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }) => {
         <button className="login-modal-close" onClick={onClose}>x</button>
 
         <div className="login-modal-header">
-          <h2>Faca login</h2>
+          <h2>Faça login</h2>
           <p>Entre para adicionar produtos ao carrinho</p>
         </div>
 
@@ -46,12 +46,12 @@ const LoginModal = ({ isOpen, onClose, onSuccess }) => {
 
         <form onSubmit={handleSubmit} className="login-modal-form">
           <div className="login-modal-field">
-            <label>E-mail ou Celular</label>
+            <label>E-mail ou celular</label>
             <input
               type="text"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              placeholder="Seu E-mail ou Celular"
+              placeholder="Seu e-mail ou celular"
               required
               autoFocus
             />
@@ -79,7 +79,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }) => {
 
         <div className="login-modal-footer">
           <p>
-            Nao tem conta?{' '}
+            Não tem conta?{' '}
             <Link href="/registro" onClick={onClose}>Cadastre-se</Link>
           </p>
         </div>
