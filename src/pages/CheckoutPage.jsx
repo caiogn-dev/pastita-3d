@@ -738,15 +738,17 @@ const CheckoutPage = () => {
                 {shippingMethod === 'pickup' && (
                   <div className="pickup-map-card">
                     <div className="pickup-map-header">
-                      <div>
+                      <div className="pickup-map-text">
                         <strong>Retirada na loja</strong>
-                        <div>{STORE_ADDRESS}</div>
+                        <div className="pickup-map-address">
+                          {STORE_ADDRESS.address}, {STORE_ADDRESS.city} - {STORE_ADDRESS.state}
+                        </div>
                       </div>
                       <a
                         href={STORE_MAPS_URL}
                         target="_blank"
                         rel="noreferrer"
-                        className="btn-secondary"
+                        className="btn-secondary pickup-map-button"
                       >
                         Ver no Google Maps
                       </a>
