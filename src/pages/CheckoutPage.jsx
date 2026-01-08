@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { CardPayment, initMercadoPago } from '@mercadopago/sdk-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import api, { fetchCsrfToken } from '../services/api';
@@ -46,11 +47,6 @@ const formatCEP = (value) => {
   return `${numbers.slice(0, 5)}-${numbers.slice(5)}`;
 };
 
-const formatCardNumber = (value) => {
-  const numbers = toSafeString(value).replace(/\D/g, '').slice(0, 19);
-  return numbers.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
-};
-
 const onlyDigits = (value) => toSafeString(value).replace(/\D/g, '');
 
 const BRAZILIAN_STATES = [
@@ -70,7 +66,6 @@ const BRAZILIAN_STATES = [
   { value: 'TO', label: 'Tocantins' }
 ];
 
-const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
 const DELIVERY_FEE = 15;
 const STORE_ADDRESS = {
   address: 'Q. 112 Sul Rua SR 1, conj. 06 lote 04 - Plano Diretor Sul',
@@ -103,25 +98,14 @@ const CheckoutPage = () => {
   });
 
   const [paymentMethod, setPaymentMethod] = useState('pix');
-  const [cardPaymentType] = useState('credit_card');
-  const [cardData, setCardData] = useState({
-    number: '',
-    holder: '',
-    expMonth: '',
-    expYear: '',
-    cvv: '',
-    installments: '1'
-  });
-  const [cashMethod] = useState('bolbradesco');
+  const cashMethod = 'bolbradesco';
   const [paymentError, setPaymentError] = useState('');
-  const [mpReady, setMpReady] = useState(false);
-  const [mpInstance, setMpInstance] = useState(null);
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [loadingCEP, setLoadingCEP] = useState(false);
   const [saveAddress, setSaveAddress] = useState(true);
-  const isCardReady = paymentMethod !== 'card' || (mpReady && mpPublicKey);
+  const isCardReady = paymentMethod !== 'card' || Boolean(mpPublicKey);
   const saveAddressRef = useRef(saveAddress);
 
   // ... (Effects e handlers permanecem iguais até o handleSubmit)
@@ -159,25 +143,7 @@ const CheckoutPage = () => {
 
   useEffect(() => {
     if (!mpPublicKey) return;
-    if (window.MercadoPago) {
-      const instance = new window.MercadoPago(mpPublicKey, { locale: 'pt-BR' });
-      setMpInstance(instance);
-      setMpReady(true);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://sdk.mercadopago.com/js/v2';
-    script.async = true;
-    script.onload = () => {
-      if (window.MercadoPago) {
-        const instance = new window.MercadoPago(mpPublicKey, { locale: 'pt-BR' });
-        setMpInstance(instance);
-        setMpReady(true);
-      }
-    };
-    script.onerror = () => setMpReady(false);
-    document.body.appendChild(script);
-    return () => script.remove();
+    initMercadoPago(mpPublicKey, { locale: 'pt-BR' });
   }, [mpPublicKey]);
 
   const handleChange = (event) => {
@@ -217,68 +183,6 @@ const CheckoutPage = () => {
     }
   }, [shippingMethod]);
 
-  const handleCardChange = (event) => {
-    const { name, value } = event.target;
-    let formattedValue = value;
-    if (name === 'number') formattedValue = formatCardNumber(value);
-    else if (name === 'expMonth') formattedValue = onlyDigits(value).slice(0, 2);
-    else if (name === 'expYear') formattedValue = onlyDigits(value).slice(0, 4);
-    else if (name === 'cvv') formattedValue = onlyDigits(value).slice(0, 4);
-    else if (name === 'installments') formattedValue = onlyDigits(value).slice(0, 2);
-    setCardData((prev) => ({ ...prev, [name]: formattedValue }));
-  };
-
-  const buildCardPaymentData = async () => {
-    if (!mpPublicKey) throw new Error('Public key do Mercado Pago nao configurada');
-    if (!mpInstance || !mpReady) throw new Error('SDK do Mercado Pago nao carregado');
-
-    const cardNumber = onlyDigits(cardData.number);
-    const cardholderName = cardData.holder.trim();
-    const expMonth = onlyDigits(cardData.expMonth);
-    const expYearRaw = onlyDigits(cardData.expYear);
-    const expYear = expYearRaw.length === 4 ? expYearRaw.slice(-2) : expYearRaw;
-    const securityCode = onlyDigits(cardData.cvv);
-
-    if (!cardNumber || cardNumber.length < 13) throw new Error('Numero do cartão inválido');
-    if (!cardholderName) throw new Error('Nome impresso no cartão é obrigatório');
-    if (!expMonth || !expYear) throw new Error('cartão vencido');
-    if (!securityCode) throw new Error('Código de segurança inválido');
-
-    const bin = cardNumber.slice(0, 6);
-    const paymentMethodResponse = await mpInstance.getPaymentMethods({ bin });
-    const paymentMethodId = paymentMethodResponse?.results?.[0]?.id || paymentMethodResponse?.[0]?.id;
-
-    if (!paymentMethodId) throw new Error('Não foi possível identificar a bandeira do cartão');
-
-    let issuerId;
-    try {
-      const issuerResponse = await mpInstance.getIssuers({ paymentMethodId, bin });
-      issuerId = issuerResponse?.results?.[0]?.id || issuerResponse?.[0]?.id;
-    } catch {
-      issuerId = undefined;
-    }
-
-    const tokenResponse = await mpInstance.createCardToken({
-      cardNumber,
-      cardholderName,
-      cardExpirationMonth: expMonth,
-      cardExpirationYear: expYear,
-      securityCode,
-      identificationType: 'CPF',
-      identificationNumber: onlyDigits(formData.cpf),
-    });
-
-    const tokenId = tokenResponse?.id || tokenResponse?.token;
-    if (!tokenId) throw new Error('Não foi possível gerar o token do cartão');
-
-    return {
-      method: cardPaymentType,
-      payment_method_id: paymentMethodId,
-      token: tokenId,
-      issuer_id: issuerId,
-      installments: Number(cardData.installments) || 1
-    };
-  };
 
   const fetchAddressFromCEP = async (cep) => {
     const cleanCEP = onlyDigits(cep);
@@ -330,8 +234,132 @@ const CheckoutPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const buildBuyerPayload = () => ({
+    name: formData.name,
+    email: formData.email,
+    phone: onlyDigits(formData.phone),
+    cpf: onlyDigits(formData.cpf),
+    address: shippingMethod === 'pickup' ? STORE_ADDRESS.address : formData.address,
+    city: shippingMethod === 'pickup' ? STORE_ADDRESS.city : formData.city,
+    state: shippingMethod === 'pickup' ? STORE_ADDRESS.state : formData.state,
+    zip_code: shippingMethod === 'pickup'
+      ? onlyDigits(STORE_ADDRESS.zip_code)
+      : onlyDigits(formData.zip_code),
+    shipping_method: shippingMethod
+  });
+
+  const processCheckout = async (paymentPayload) => {
+    const response = await api.post('/checkout/create_checkout/', {
+      shipping_method: shippingMethod,
+      buyer: buildBuyerPayload(),
+      payment: paymentPayload
+    });
+
+    clearCart();
+
+    if (response.data.payment_error) {
+      let msg = response.data.payment_error;
+      if (typeof msg === 'object') msg = JSON.stringify(msg);
+      throw new Error(`Erro no pagamento: ${msg}`);
+    }
+
+    const payment = response.data.payment;
+    const orderNumber = response.data.order_number;
+
+    if (payment) {
+      try {
+        sessionStorage.setItem(
+          `mp_payment_${orderNumber}`,
+          JSON.stringify({ ...payment, order_number: orderNumber })
+        );
+      } catch (storageError) {
+        console.warn('Could not cache payment data', storageError);
+      }
+
+      const paymentStatus = payment.status;
+
+      if (paymentStatus === 'rejected') {
+        const errorCode = payment.status_detail || '';
+        router.push(`/erro?order=${orderNumber}&error=${errorCode}`);
+        return;
+      }
+
+      router.push(`/pendente?order=${orderNumber}`);
+      return;
+    }
+
+    const paymentLink = response.data.init_point || response.data.sandbox_init_point;
+    if (paymentLink) {
+      router.push(paymentLink);
+      return;
+    }
+
+    throw new Error('Link de pagamento nao recebido do servidor.');
+  };
+
+  const handleCardSubmit = async (cardFormData, additionalData) => {
+    if (!validateForm()) {
+      setPaymentError('Verifique os erros no formulario.');
+      return Promise.reject(new Error('Formulario invalido'));
+    }
+
+    setLoading(true);
+    setPaymentError('');
+
+    try {
+      await fetchCsrfToken();
+      if (saveAddress && shippingMethod === 'delivery') {
+        await updateProfile({
+          phone: onlyDigits(formData.phone),
+          cpf: onlyDigits(formData.cpf),
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zip_code: onlyDigits(formData.zip_code)
+        });
+      }
+
+      const paymentType = additionalData?.paymentTypeId
+        || cardFormData.payment_type_id
+        || 'credit_card';
+
+      const paymentPayload = {
+        method: paymentType,
+        payment_method_id: cardFormData.payment_method_id,
+        token: cardFormData.token,
+        installments: cardFormData.installments,
+        issuer_id: cardFormData.issuer_id
+      };
+
+      await processCheckout(paymentPayload);
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Erro ao gerar pagamento:', error);
+      let errorMsg = 'Erro ao processar pagamento. Tente novamente.';
+
+      if (error.response?.data?.details) {
+        const backendErrors = {};
+        Object.entries(error.response.data.details).forEach(([key, value]) => {
+          backendErrors[key] = Array.isArray(value) ? value[0] : value;
+        });
+        setErrors(backendErrors);
+        errorMsg = 'Verifique os erros no formulario.';
+      } else if (error.response?.data?.error) {
+        errorMsg = error.response.data.error;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+
+      setPaymentError(errorMsg);
+      return Promise.reject(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (paymentMethod === 'card') return;
     if (!validateForm()) return;
 
     setLoading(true);
@@ -339,8 +367,7 @@ const CheckoutPage = () => {
 
     try {
       await fetchCsrfToken();
-      
-      // Update profile only for delivery
+
       if (saveAddress && shippingMethod === 'delivery') {
         await updateProfile({
           phone: onlyDigits(formData.phone),
@@ -357,74 +384,9 @@ const CheckoutPage = () => {
         paymentPayload = { method: 'pix' };
       } else if (paymentMethod === 'cash') {
         paymentPayload = { method: 'cash', payment_method_id: cashMethod };
-      } else if (paymentMethod === 'card') {
-        paymentPayload = await buildCardPaymentData();
       }
 
-      const response = await api.post('/checkout/create_checkout/', {
-        shipping_method: shippingMethod,
-        buyer: {
-          name: formData.name,
-          email: formData.email,
-          phone: onlyDigits(formData.phone),
-          cpf: onlyDigits(formData.cpf),
-          // Ensure we send store address for pickup, or form address for delivery
-          address: shippingMethod === 'pickup' ? STORE_ADDRESS.address : formData.address,
-          city: shippingMethod === 'pickup' ? STORE_ADDRESS.city : formData.city,
-          state: shippingMethod === 'pickup' ? STORE_ADDRESS.state : formData.state,
-          zip_code: shippingMethod === 'pickup' 
-            ? onlyDigits(STORE_ADDRESS.zip_code)
-            : onlyDigits(formData.zip_code),
-          shipping_method: shippingMethod
-        },
-        payment: paymentPayload
-      });
-
-      clearCart();
-
-      // Check for backend-reported payment error even if status is 201
-      if (response.data.payment_error) {
-        // This is where "Unexpected Error" came from before.
-        // We now throw specific error from backend.
-        let msg = response.data.payment_error;
-        if (typeof msg === 'object') msg = JSON.stringify(msg);
-        throw new Error(`Erro no pagamento: ${msg}`);
-      }
-
-      const payment = response.data.payment;
-      const orderNumber = response.data.order_number;
-
-      if (payment) {
-        try {
-          sessionStorage.setItem(
-            `mp_payment_${orderNumber}`,
-            JSON.stringify({ ...payment, order_number: orderNumber })
-          );
-        } catch (storageError) {
-          console.warn('Could not cache payment data', storageError);
-        }
-
-        const paymentStatus = payment.status;
-        
-        if (paymentStatus === 'rejected') {
-          const errorCode = payment.status_detail || '';
-          router.push(`/erro?order=${orderNumber}&error=${errorCode}`);
-          return;
-        }
-
-        // Redirect to pending for PIX, Boleto, or Processing
-        router.push(`/pendente?order=${orderNumber}`);
-        return;
-      }
-
-      // Fallback for Preference (standard checkout)
-      const paymentLink = response.data.init_point || response.data.sandbox_init_point;
-      if (paymentLink) {
-        router.push(paymentLink);
-      } else {
-        throw new Error('Link de pagamento não recebido do servidor.');
-      }
-
+      await processCheckout(paymentPayload);
     } catch (error) {
       console.error('Erro ao gerar pagamento:', error);
       let errorMsg = 'Erro ao processar pagamento. Tente novamente.';
@@ -435,14 +397,15 @@ const CheckoutPage = () => {
           backendErrors[key] = Array.isArray(value) ? value[0] : value;
         });
         setErrors(backendErrors);
-        errorMsg = 'Verifique os erros no formulário.';
+        errorMsg = 'Verifique os erros no formulario.';
       } else if (error.response?.data?.error) {
         errorMsg = error.response.data.error;
       } else if (error.message) {
         errorMsg = error.message;
       }
-      
+
       setPaymentError(errorMsg);
+    } finally {
       setLoading(false);
     }
   };
@@ -621,37 +584,25 @@ const CheckoutPage = () => {
                   </label>
                 </div>
                 
-                {/* ... Campos condicionais de cartão ... */}
+                {/* ... Campos condicionais de cartao ... */}
                 {paymentMethod === 'card' && (
                   <div className="checkout-payment-card">
-                     <div className="form-field">
-                      <label className="form-label">Número do cartão</label>
-                      <input type="text" name="number" value={cardData.number} onChange={handleCardChange} className="form-input" />
-                    </div>
-                    <div className="form-field">
-                      <label className="form-label">Nome no cartão</label>
-                      <input type="text" name="holder" value={cardData.holder} onChange={handleCardChange} className="form-input" />
-                    </div>
-                     <div className="checkout-payment-grid">
-                      <div className="form-field">
-                        <label className="form-label">Mês</label>
-                        <input type="text" name="expMonth" value={cardData.expMonth} onChange={handleCardChange} className="form-input" />
+                    {!mpPublicKey ? (
+                      <div className="checkout-alert" style={{backgroundColor: '#fff7ed', color: '#c2410c', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #fed7aa'}}>
+                        Public key do Mercado Pago nao configurada.
                       </div>
-                      <div className="form-field">
-                        <label className="form-label">Ano</label>
-                        <input type="text" name="expYear" value={cardData.expYear} onChange={handleCardChange} className="form-input" />
-                      </div>
-                      <div className="form-field">
-                        <label className="form-label">CVV</label>
-                        <input type="text" name="cvv" value={cardData.cvv} onChange={handleCardChange} className="form-input" />
-                      </div>
-                    </div>
-                    <div className="form-field">
-                      <label className="form-label">Parcelas</label>
-                      <select name="installments" value={cardData.installments} onChange={handleCardChange} className="form-input">
-                        {INSTALLMENT_OPTIONS.map((option) => (<option key={option} value={option}>{option}x</option>))}
-                      </select>
-                    </div>
+                    ) : (
+                      <CardPayment
+                        key={`card-${shippingMethod}-${totalWithShipping}`}
+                        initialization={{ amount: Number(totalWithShipping.toFixed(2)) }}
+                        onSubmit={handleCardSubmit}
+                        onReady={() => {}}
+                        onError={(error) => {
+                          console.error('Erro no Brick de cartao:', error);
+                          setPaymentError('Erro ao processar cartao. Verifique os dados.');
+                        }}
+                      />
+                    )}
                   </div>
                 )}
 
@@ -660,9 +611,11 @@ const CheckoutPage = () => {
                   <span>Salvar endereço para próximas compras</span>
                 </label>
 
-                <button type="submit" className="btn-primary checkout-submit" disabled={loading || !isCardReady}>
-                  {submitLabel}
-                </button>
+                {paymentMethod !== 'card' && (
+                  <button type="submit" className="btn-primary checkout-submit" disabled={loading || !isCardReady}>
+                    {submitLabel}
+                  </button>
+                )}
               </form>
             </div>
             
