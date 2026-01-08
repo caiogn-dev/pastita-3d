@@ -1,30 +1,50 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
 
-const LandingPage = () => {
-  const [showPromo, setShowPromo] = useState(false);
-  const [promoReady, setPromoReady] = useState(false);
+const PROMO_STORAGE_KEY = 'pastitaPromoSeen';
+const PROMO_EVENT = 'pastita-promo';
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const hasSeen = sessionStorage.getItem('pastitaPromoSeen');
-    setShowPromo(!hasSeen);
-    setPromoReady(true);
-  }, []);
+const subscribePromo = (callback) => {
+  if (typeof window === 'undefined') return () => {};
+  const handler = () => callback();
+  window.addEventListener('storage', handler);
+  window.addEventListener(PROMO_EVENT, handler);
+  return () => {
+    window.removeEventListener('storage', handler);
+    window.removeEventListener(PROMO_EVENT, handler);
+  };
+};
+
+const getPromoSnapshot = () => {
+  if (typeof window === 'undefined') return true;
+  return Boolean(sessionStorage.getItem(PROMO_STORAGE_KEY));
+};
+
+const getPromoServerSnapshot = () => true;
+
+const LandingPage = () => {
+  const hasSeenPromo = useSyncExternalStore(
+    subscribePromo,
+    getPromoSnapshot,
+    getPromoServerSnapshot
+  );
+  const [promoDismissed, setPromoDismissed] = useState(false);
+  const showPromo = !hasSeenPromo && !promoDismissed;
 
   const handleClosePromo = () => {
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('pastitaPromoSeen', '1');
+      sessionStorage.setItem(PROMO_STORAGE_KEY, '1');
+      window.dispatchEvent(new Event(PROMO_EVENT));
     }
-    setShowPromo(false);
+    setPromoDismissed(true);
   };
 
   return (
     <div className="landing-page">
       <Navbar />
 
-      {promoReady && showPromo && (
+      {showPromo && (
         <div className="promo-modal-overlay" onClick={handleClosePromo} role="presentation">
           <div
             className="promo-modal"

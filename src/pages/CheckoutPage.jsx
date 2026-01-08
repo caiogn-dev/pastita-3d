@@ -103,7 +103,7 @@ const CheckoutPage = () => {
   });
 
   const [paymentMethod, setPaymentMethod] = useState('pix');
-  const [cardPaymentType, setCardPaymentType] = useState('credit_card');
+  const [cardPaymentType] = useState('credit_card');
   const [cardData, setCardData] = useState({
     number: '',
     holder: '',
@@ -112,8 +112,7 @@ const CheckoutPage = () => {
     cvv: '',
     installments: '1'
   });
-  const [cashMethod, setCashMethod] = useState('bolbradesco');
-  const [paymentResult, setPaymentResult] = useState(null);
+  const [cashMethod] = useState('bolbradesco');
   const [paymentError, setPaymentError] = useState('');
   const [mpReady, setMpReady] = useState(false);
   const [mpInstance, setMpInstance] = useState(null);
@@ -121,12 +120,15 @@ const CheckoutPage = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [loadingCEP, setLoadingCEP] = useState(false);
-  const [savedAddresses, setSavedAddresses] = useState([]);
-  const [useNewAddress, setUseNewAddress] = useState(true);
   const [saveAddress, setSaveAddress] = useState(true);
   const isCardReady = paymentMethod !== 'card' || (mpReady && mpPublicKey);
+  const saveAddressRef = useRef(saveAddress);
 
   // ... (Effects e handlers permanecem iguais até o handleSubmit)
+  useEffect(() => {
+    saveAddressRef.current = saveAddress;
+  }, [saveAddress]);
+
   useEffect(() => {
     const loadUserData = async () => {
       if (profile) {
@@ -146,28 +148,7 @@ const CheckoutPage = () => {
       }
 
       try {
-        const response = await api.get('/orders/history/');
-        if (response.data.recent_orders && response.data.recent_orders.length > 0) {
-          const addresses = response.data.recent_orders
-            .filter((order) => order.shipping_address)
-            .map((order) => ({
-              id: order.id,
-              address: order.shipping_address,
-              city: order.shipping_city,
-              state: order.shipping_state,
-              zip_code: order.shipping_zip_code,
-              label: `${order.shipping_address}, ${order.shipping_city} - ${order.shipping_state}`
-            }))
-            .filter((addr, index, self) =>
-              index === self.findIndex((item) => item.label === addr.label)
-            )
-            .slice(0, 3);
-
-          setSavedAddresses(addresses);
-          if (addresses.length > 0) {
-            setUseNewAddress(false);
-          }
-        }
+        await api.get('/orders/history/');
       } catch {
         console.log('No previous orders found');
       }
@@ -211,7 +192,7 @@ const CheckoutPage = () => {
 
   useEffect(() => {
     if (shippingMethod === 'pickup') {
-      previousSavePref.current = saveAddress;
+      previousSavePref.current = saveAddressRef.current;
       setSaveAddress(false);
       setFormData((prev) => {
         deliveryAddressRef.current = {
@@ -260,7 +241,7 @@ const CheckoutPage = () => {
 
     if (!cardNumber || cardNumber.length < 13) throw new Error('Numero do cartão inválido');
     if (!cardholderName) throw new Error('Nome impresso no cartão é obrigatório');
-    if (!expMonth || !expYear) throw new Error('Validade do cartão inválida');
+    if (!expMonth || !expYear) throw new Error('cartão vencido');
     if (!securityCode) throw new Error('Código de segurança inválido');
 
     const bin = cardNumber.slice(0, 6);
@@ -326,17 +307,6 @@ const CheckoutPage = () => {
     }
   };
 
-  const selectSavedAddress = (address) => {
-    setFormData((prev) => ({
-      ...prev,
-      address: address.address,
-      city: address.city,
-      state: address.state,
-      zip_code: formatCEP(address.zip_code)
-    }));
-    setUseNewAddress(false);
-  };
-
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Nome é obrigatorio';
@@ -366,7 +336,6 @@ const CheckoutPage = () => {
 
     setLoading(true);
     setPaymentError('');
-    setPaymentResult(null);
 
     try {
       await fetchCsrfToken();

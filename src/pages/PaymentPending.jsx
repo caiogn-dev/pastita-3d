@@ -34,21 +34,17 @@ const PaymentPending = () => {
   const orderNumber = Array.isArray(orderParam) ? orderParam[0] : orderParam;
   const [orderDetails, setOrderDetails] = useState(null);
   const [paymentInfo, setPaymentInfo] = useState(null);
-  const [cachedPayment, setCachedPayment] = useState(null);
   const [checking, setChecking] = useState(false);
   const [pixCopied, setPixCopied] = useState(false);
 
-  // Carrega cache imediatamente para mostrar QR Code sem esperar API
-  useEffect(() => {
-    if (orderNumber) {
-      try {
-        const cached = sessionStorage.getItem(`mp_payment_${orderNumber}`);
-        if (cached) {
-          setCachedPayment(normalizePayment(JSON.parse(cached)));
-        }
-      } catch (e) {
-        console.error("Erro ao ler cache", e);
-      }
+  const cachedPayment = useMemo(() => {
+    if (typeof window === 'undefined' || !orderNumber) return null;
+    try {
+      const cached = sessionStorage.getItem(`mp_payment_${orderNumber}`);
+      return cached ? normalizePayment(JSON.parse(cached)) : null;
+    } catch (e) {
+      console.error("Erro ao ler cache", e);
+      return null;
     }
   }, [orderNumber]);
 
