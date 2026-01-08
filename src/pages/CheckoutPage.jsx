@@ -300,7 +300,7 @@ const CheckoutPage = () => {
   };
 
   const fetchAddressFromCEP = async (cep) => {
-    const cleanCEP = cep.replace(/\D/g, '');
+    const cleanCEP = onlyDigits(cep);
     if (cleanCEP.length !== 8) return;
     setLoadingCEP(true);
     try {
@@ -321,7 +321,7 @@ const CheckoutPage = () => {
   };
 
   const handleCEPBlur = () => {
-    if (formData.zip_code.replace(/\D/g, '').length === 8) {
+    if (onlyDigits(formData.zip_code).length === 8) {
       fetchAddressFromCEP(formData.zip_code);
     }
   };
@@ -344,7 +344,7 @@ const CheckoutPage = () => {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'E-mail inválido';
     
     if (!formData.phone.trim()) newErrors.phone = 'Telefone é obrigatorio';
-    else if (formData.phone.replace(/\D/g, '').length < 10) newErrors.phone = 'Telefone inválido (mínimo 10 dígitos)';
+    else if (onlyDigits(formData.phone).length < 10) newErrors.phone = 'Telefone inválido (mínimo 10 dígitos)';
     
     if (!formData.cpf.trim()) newErrors.cpf = 'CPF é obrigatorio';
     else if (!validateCPF(formData.cpf)) newErrors.cpf = 'CPF inválido';
@@ -354,7 +354,7 @@ const CheckoutPage = () => {
       if (!formData.city.trim()) newErrors.city = 'Cidade é obrigatória';
       if (!formData.state) newErrors.state = 'Estado é obrigatório';
       if (!formData.zip_code.trim()) newErrors.zip_code = 'CEP é obrigatório';
-      else if (formData.zip_code.replace(/\D/g, '').length !== 8) newErrors.zip_code = 'CEP inválido (8 dígitos)';
+      else if (onlyDigits(formData.zip_code).length !== 8) newErrors.zip_code = 'CEP inválido (8 dígitos)';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
