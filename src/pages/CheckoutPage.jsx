@@ -100,6 +100,8 @@ const CheckoutPage = () => {
   const [paymentMethod, setPaymentMethod] = useState('pix');
   const cashMethod = 'bolbradesco';
   const [paymentError, setPaymentError] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState('');
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -107,6 +109,7 @@ const CheckoutPage = () => {
   const [saveAddress, setSaveAddress] = useState(true);
   const isCardReady = paymentMethod !== 'card' || Boolean(mpPublicKey);
   const saveAddressRef = useRef(saveAddress);
+  const couponCodeNormalized = couponCode.trim().toUpperCase();
 
   // ... (Effects e handlers permanecem iguais até o handleSubmit)
   useEffect(() => {
@@ -154,6 +157,11 @@ const CheckoutPage = () => {
     else if (name === 'zip_code') formattedValue = formatCEP(value);
     setFormData((prev) => ({ ...prev, [name]: formattedValue }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const handleCouponChange = (event) => {
+    setCouponCode(event.target.value);
+    if (couponError) setCouponError('');
   };
 
   useEffect(() => {
@@ -252,6 +260,7 @@ const CheckoutPage = () => {
     const response = await api.post('/checkout/create_checkout/', {
       shipping_method: shippingMethod,
       buyer: buildBuyerPayload(),
+      coupon_code: couponCodeNormalized,
       payment: paymentPayload
     });
 
@@ -345,7 +354,11 @@ const CheckoutPage = () => {
         setErrors(backendErrors);
         errorMsg = 'Verifique os erros no formulario.';
       } else if (error.response?.data?.error) {
-        errorMsg = error.response.data.error;
+        const backendError = error.response.data.error;
+        if (backendError.toLowerCase().includes('cupom')) {
+          setCouponError(backendError);
+        }
+        errorMsg = backendError;
       } else if (error.message) {
         errorMsg = error.message;
       }
@@ -399,7 +412,11 @@ const CheckoutPage = () => {
         setErrors(backendErrors);
         errorMsg = 'Verifique os erros no formulario.';
       } else if (error.response?.data?.error) {
-        errorMsg = error.response.data.error;
+        const backendError = error.response.data.error;
+        if (backendError.toLowerCase().includes('cupom')) {
+          setCouponError(backendError);
+        }
+        errorMsg = backendError;
       } else if (error.message) {
         errorMsg = error.message;
       }
@@ -420,7 +437,10 @@ const CheckoutPage = () => {
         : 'PAGAR COM CARTAO';
 
   const shippingValue = shippingCost ?? 0;
-  const totalWithShipping = cartTotal + shippingValue;
+  const couponDiscount = couponCodeNormalized === 'PASTITA10'
+    ? Number(((cartTotal + shippingValue) * 0.1).toFixed(2))
+    : 0;
+  const totalWithShipping = Math.max(0, cartTotal + shippingValue - couponDiscount);
 
   if (cart.length === 0) {
     return (
@@ -568,6 +588,21 @@ const CheckoutPage = () => {
                   </div>
                 )}
 
+                <div className="checkout-field-group">
+                  <div className="form-field">
+                    <label className="form-label">Cupom</label>
+                    <input
+                      type="text"
+                      name="coupon"
+                      value={couponCode}
+                      onChange={handleCouponChange}
+                      placeholder="PASTITA10"
+                      className={`form-input ${couponError ? 'is-error' : ''}`}
+                    />
+                    {couponError && <span className="form-error">{couponError}</span>}
+                  </div>
+                </div>
+
                 <h4 className="checkout-subsection-title">Pagamento</h4>
                  <div className="checkout-payment-methods">
                   <label className="checkout-payment-option">
@@ -641,6 +676,12 @@ const CheckoutPage = () => {
                   <span>{shippingMethod === 'pickup' ? 'Retirada' : 'Frete'}</span>
                   <span>{shippingMethod === 'pickup' ? 'R$ 0,00' : `R$ ${shippingValue.toFixed(2)}`}</span>
                 </div>
+                {couponDiscount > 0 && (
+                  <div className="checkout-summary-row">
+                    <span>Cupom {couponCodeNormalized}</span>
+                    <span>-R$ {couponDiscount.toFixed(2)}</span>
+                  </div>
+                )}
               </div>
               <div className="checkout-summary-total">
                 <span>Total</span><span>R$ {totalWithShipping.toFixed(2)}</span>
