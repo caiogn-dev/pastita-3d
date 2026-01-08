@@ -6,8 +6,10 @@ import { useAuth } from '../context/AuthContext';
 import api, { fetchCsrfToken } from '../services/api';
 
 // ... (Funções auxiliares validateCPF, formatCPF, etc. permanecem iguais)
+const toSafeString = (value) => (value == null ? '' : String(value));
+
 const validateCPF = (cpf) => {
-  const cleanCpf = cpf.replace(/[^\d]/g, '');
+  const cleanCpf = toSafeString(cpf).replace(/[^\d]/g, '');
   if (cleanCpf.length !== 11) return false;
   if (/^(\d)\1+$/.test(cleanCpf)) return false;
 
@@ -23,7 +25,7 @@ const validateCPF = (cpf) => {
 };
 
 const formatCPF = (value) => {
-  const numbers = value.replace(/\D/g, '').slice(0, 11);
+  const numbers = toSafeString(value).replace(/\D/g, '').slice(0, 11);
   if (numbers.length <= 3) return numbers;
   if (numbers.length <= 6) return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
   if (numbers.length <= 9) return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
@@ -31,25 +33,25 @@ const formatCPF = (value) => {
 };
 
 const formatPhone = (value) => {
-  const numbers = value.replace(/\D/g, '').slice(0, 11);
+  const numbers = toSafeString(value).replace(/\D/g, '').slice(0, 11);
   if (numbers.length <= 2) return numbers;
   if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
   return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
 };
 
 const formatCEP = (value) => {
-  const safe = value || '';
+  const safe = toSafeString(value);
   const numbers = safe.replace(/\D/g, '').slice(0, 8);
   if (numbers.length <= 5) return numbers;
   return `${numbers.slice(0, 5)}-${numbers.slice(5)}`;
 };
 
 const formatCardNumber = (value) => {
-  const numbers = value.replace(/\D/g, '').slice(0, 19);
+  const numbers = toSafeString(value).replace(/\D/g, '').slice(0, 19);
   return numbers.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
 };
 
-const onlyDigits = (value) => value.replace(/\D/g, '');
+const onlyDigits = (value) => toSafeString(value).replace(/\D/g, '');
 
 const BRAZILIAN_STATES = [
   { value: 'AC', label: 'Acre' }, { value: 'AL', label: 'Alagoas' },
@@ -372,12 +374,12 @@ const CheckoutPage = () => {
       // Update profile only for delivery
       if (saveAddress && shippingMethod === 'delivery') {
         await updateProfile({
-          phone: formData.phone.replace(/\D/g, ''),
-          cpf: formData.cpf.replace(/\D/g, ''),
+          phone: onlyDigits(formData.phone),
+          cpf: onlyDigits(formData.cpf),
           address: formData.address,
           city: formData.city,
           state: formData.state,
-          zip_code: formData.zip_code.replace(/\D/g, '')
+          zip_code: onlyDigits(formData.zip_code)
         });
       }
 
@@ -395,15 +397,15 @@ const CheckoutPage = () => {
         buyer: {
           name: formData.name,
           email: formData.email,
-          phone: formData.phone.replace(/\D/g, ''),
-          cpf: formData.cpf.replace(/\D/g, ''),
+          phone: onlyDigits(formData.phone),
+          cpf: onlyDigits(formData.cpf),
           // Ensure we send store address for pickup, or form address for delivery
           address: shippingMethod === 'pickup' ? STORE_ADDRESS.address : formData.address,
           city: shippingMethod === 'pickup' ? STORE_ADDRESS.city : formData.city,
           state: shippingMethod === 'pickup' ? STORE_ADDRESS.state : formData.state,
           zip_code: shippingMethod === 'pickup' 
-            ? STORE_ADDRESS.zip_code.replace(/\D/g, '') 
-            : formData.zip_code.replace(/\D/g, ''),
+            ? onlyDigits(STORE_ADDRESS.zip_code)
+            : onlyDigits(formData.zip_code),
           shipping_method: shippingMethod
         },
         payment: paymentPayload
