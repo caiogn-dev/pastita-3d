@@ -218,6 +218,21 @@
   margin: 0 0 10px 0;
 }
 
+.product-weight {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #f0e0d2;
+  background-color: #fff6ec;
+  color: var(--color-marsala);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  margin-bottom: 10px;
+  width: fit-content;
+}
+
 .product-description {
   color: #666;
   font-size: 0.9rem;

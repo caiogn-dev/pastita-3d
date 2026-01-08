@@ -10,6 +10,7 @@ import Navbar from '../components/Navbar';
 const fetchProducts = (url) => api.get(url).then((res) => res.data);
 
 const CATEGORY_PRIORITY = ['rondelli', 'rondellis', 'molho', 'molhos'];
+const WEIGHTED_CATEGORIES = new Set(['rondelli', 'rondellis', 'molho', 'molhos']);
 
 const normalizeCategory = (value) => (value || '')
   .toString()
@@ -23,6 +24,14 @@ const getCategoryRank = (value) => {
   const normalized = normalizeCategory(value);
   const index = CATEGORY_PRIORITY.indexOf(normalized);
   return index === -1 ? CATEGORY_PRIORITY.length + 1 : index;
+};
+
+const getProductWeightLabel = (product) => {
+  const normalized = normalizeCategory(product?.category);
+  if (WEIGHTED_CATEGORIES.has(normalized)) {
+    return '500g';
+  }
+  return '';
 };
 
 const Cardapio = () => {
@@ -182,6 +191,7 @@ const Cardapio = () => {
             {filteredProducts.map((p) => {
               const imageUrl = p.image;
               const inStock = Number(p.stock_quantity) > 0;
+              const weightLabel = getProductWeightLabel(p);
               return (
               <div key={p.id} className="product-card">
                 <div className={`product-image ${imageUrl ? '' : 'product-image-empty'}`}>
@@ -200,6 +210,7 @@ const Cardapio = () => {
 
                 <div className="product-content">
                   <h3 className="product-name">{p.name}</h3>
+                  {weightLabel && <span className="product-weight">{weightLabel}</span>}
                   <p className="product-description">{p.description}</p>
                   
                   <button 
