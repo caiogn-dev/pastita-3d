@@ -41,8 +41,13 @@ const PaymentPending = () => {
   const [pixCopied, setPixCopied] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [lastChecked, setLastChecked] = useState(null);
-  const startTimeRef = useRef(Date.now());
+  const startTimeRef = useRef(null);
   const intervalRef = useRef(null);
+
+  // Initialize startTime on mount (not during render)
+  useEffect(() => {
+    startTimeRef.current = Date.now();
+  }, []);
 
   const cachedPayment = useMemo(() => {
     if (typeof window === 'undefined' || !orderNumber) return null;
@@ -113,10 +118,41 @@ const PaymentPending = () => {
 
   // Initial fetch
   useEffect(() => {
-    if (orderNumber) {
-      checkStatus(true);
-    }
-  }, [orderNumber, checkStatus]);
+    if (!orderNumber) return;
+    
+    let isMounted = true;
+    
+    const fetchInitialStatus = async () => {
+      try {
+        const response = await api.get(`/checkout/status/?order_number=${orderNumber}`, { skipAuthRedirect: true });
+        if (!isMounted) return;
+        
+        setOrderDetails(response.data);
+        setLastChecked(new Date());
+        
+        if (response.data.payment) {
+          setPaymentInfo(response.data.payment);
+        }
+        
+        const currentStatus = response.data.payment_status || response.data.payment?.status;
+        if (currentStatus === 'completed' || currentStatus === 'approved') {
+          setAutoRefreshEnabled(false);
+          router.push(`/sucesso?order=${orderNumber}`);
+        } else if (currentStatus === 'failed' || currentStatus === 'rejected') {
+          setAutoRefreshEnabled(false);
+          router.push(`/erro?order=${orderNumber}`);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar status inicial:', err);
+      }
+    };
+    
+    fetchInitialStatus();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [orderNumber, router]);
 
   // Auto-refresh effect
   useEffect(() => {
@@ -124,7 +160,7 @@ const PaymentPending = () => {
 
     intervalRef.current = setInterval(() => {
       // Stop auto-refresh after max time
-      if (Date.now() - startTimeRef.current > MAX_AUTO_REFRESH_TIME) {
+      if (startTimeRef.current && Date.now() - startTimeRef.current > MAX_AUTO_REFRESH_TIME) {
         setAutoRefreshEnabled(false);
         return;
       }
