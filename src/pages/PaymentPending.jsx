@@ -1,7 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import api from '../services/api';
+
+const AUTO_REFRESH_INTERVAL = 5000; // 5 seconds
+const MAX_AUTO_REFRESH_TIME = 30 * 60 * 1000; // 30 minutes
 
 const normalizePayment = (payment) => {
   if (!payment) return null;
@@ -36,6 +39,10 @@ const PaymentPending = () => {
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [checking, setChecking] = useState(false);
   const [pixCopied, setPixCopied] = useState(false);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [lastChecked, setLastChecked] = useState(null);
+  const startTimeRef = useRef(Date.now());
+  const intervalRef = useRef(null);
 
   const cachedPayment = useMemo(() => {
     if (typeof window === 'undefined' || !orderNumber) return null;
@@ -75,44 +82,61 @@ const PaymentPending = () => {
     || activePayment?.payment_method_id === 'pix'
     || !!activePayment?.qr_code;
 
-  useEffect(() => {
-    const fetchOrderDetails = async () => {
-      if (!orderNumber) return;
-      try {
-        const response = await api.get(`/checkout/status/?order_number=${orderNumber}`, { skipAuthRedirect: true });
-        setOrderDetails(response.data);
-        if (response.data.payment) {
-            setPaymentInfo(response.data.payment);
-        }
-      } catch (error) {
-        console.error('Erro ao buscar detalhes:', error);
-      }
-    };
-    fetchOrderDetails();
-  }, [orderNumber]);
-
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async (isAutoRefresh = false) => {
     if (!orderNumber) return;
-    setChecking(true);
+    if (!isAutoRefresh) setChecking(true);
+    
     try {
       const response = await api.get(`/checkout/status/?order_number=${orderNumber}`, { skipAuthRedirect: true });
       setOrderDetails(response.data);
+      setLastChecked(new Date());
+      
       if (response.data.payment) {
-          setPaymentInfo(response.data.payment);
+        setPaymentInfo(response.data.payment);
       }
       
       const currentStatus = response.data.payment_status || response.data.payment?.status;
 
       if (currentStatus === 'completed' || currentStatus === 'approved') {
+        setAutoRefreshEnabled(false);
         router.push(`/sucesso?order=${orderNumber}`);
       } else if (currentStatus === 'failed' || currentStatus === 'rejected') {
+        setAutoRefreshEnabled(false);
         router.push(`/erro?order=${orderNumber}`);
       }
     } catch (err) {
       console.error('Erro ao verificar status:', err);
     }
-    setChecking(false);
-  };
+    
+    if (!isAutoRefresh) setChecking(false);
+  }, [orderNumber, router]);
+
+  // Initial fetch
+  useEffect(() => {
+    if (orderNumber) {
+      checkStatus(true);
+    }
+  }, [orderNumber, checkStatus]);
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefreshEnabled || !orderNumber) return;
+
+    intervalRef.current = setInterval(() => {
+      // Stop auto-refresh after max time
+      if (Date.now() - startTimeRef.current > MAX_AUTO_REFRESH_TIME) {
+        setAutoRefreshEnabled(false);
+        return;
+      }
+      checkStatus(true);
+    }, AUTO_REFRESH_INTERVAL);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [autoRefreshEnabled, orderNumber, checkStatus]);
 
   const handleCopyPix = async () => {
     if (!activePayment?.qr_code) return;
@@ -189,14 +213,37 @@ const PaymentPending = () => {
           </ul>
         </div>
 
+        {/* Auto-refresh indicator */}
+        {autoRefreshEnabled && (
+          <div className="auto-refresh-indicator">
+            <div className="auto-refresh-spinner"></div>
+            <span>Verificando automaticamente a cada 5 segundos...</span>
+          </div>
+        )}
+
+        {lastChecked && (
+          <p className="status-last-checked">
+            Última verificação: {lastChecked.toLocaleTimeString('pt-BR')}
+          </p>
+        )}
+
         <div className="status-actions">
-           <button onClick={checkStatus} disabled={checking} className="status-button status-button-primary">
+           <button onClick={() => checkStatus(false)} disabled={checking} className="status-button status-button-primary">
              {checking ? 'Verificando...' : 'Já paguei / Verificar status'}
            </button>
            <Link href="/cardapio" className="status-button status-button-secondary">
              Voltar ao Cardápio
            </Link>
         </div>
+
+        {!autoRefreshEnabled && (
+          <button 
+            onClick={() => { startTimeRef.current = Date.now(); setAutoRefreshEnabled(true); }}
+            className="status-button-link"
+          >
+            Reativar verificação automática
+          </button>
+        )}
       </div>
     </div>
   );

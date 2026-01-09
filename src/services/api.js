@@ -1,7 +1,11 @@
 import axios from 'axios';
 
 // API base URL - uses Next env or defaults to localhost for development
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+// Now pointing to the unified backend (whatsapp_business)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/ecommerce';
+
+// WebSocket URL for real-time notifications
+const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
 
 let authTokenMemory = null;
 const AUTH_COOKIE_NAME = process.env.NEXT_PUBLIC_AUTH_COOKIE_NAME || 'auth_token';
@@ -147,4 +151,4 @@ api.interceptors.response.use(
 );
 
 export default api;
-export { API_BASE_URL };
+export { API_BASE_URL, WS_BASE_URL };

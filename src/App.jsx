@@ -9,6 +9,7 @@ import { CartProvider } from './context/CartContext';
 import PrivateRoute from './components/PrivateRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import CartSidebar from './components/CartSidebar';
+import { ToastProvider } from './components/Toast';
 
 // Services
 import { fetchCsrfToken } from './services/api';
@@ -60,34 +61,36 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <CartProvider>
-          <Router>
-            <CartSidebar />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/cardapio" element={<Cardapio />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/registro" element={<Register />} />
-                
-                {/* Payment Result Routes (Public - user may not be logged in after redirect) */}
-                <Route path="/sucesso" element={<PaymentSuccess />} />
-                <Route path="/erro" element={<PaymentError />} />
-                <Route path="/pendente" element={<PaymentPending />} />
-                
-                {/* Protected Routes - Require Authentication */}
-                <Route element={<PrivateRoute />}>
-                  <Route path="/checkout" element={<CheckoutPage />} />
-                </Route>
+          <ToastProvider>
+            <Router>
+              <CartSidebar />
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/cardapio" element={<Cardapio />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/registro" element={<Register />} />
+                  
+                  {/* Payment Result Routes (Public - user may not be logged in after redirect) */}
+                  <Route path="/sucesso" element={<PaymentSuccess />} />
+                  <Route path="/erro" element={<PaymentError />} />
+                  <Route path="/pendente" element={<PaymentPending />} />
+                  
+                  {/* Protected Routes - Require Authentication */}
+                  <Route element={<PrivateRoute />}>
+                    <Route path="/checkout" element={<CheckoutPage />} />
+                  </Route>
 
-                {/* 404 Not Found */}
-                <Route path="/404" element={<NotFound />} />
-                
-                {/* Fallback - redirect unknown routes to 404 */}
-                <Route path="*" element={<Navigate to="/404" replace />} />
-              </Routes>
-            </Suspense>
-          </Router>
+                  {/* 404 Not Found */}
+                  <Route path="/404" element={<NotFound />} />
+                  
+                  {/* Fallback - redirect unknown routes to 404 */}
+                  <Route path="*" element={<Navigate to="/404" replace />} />
+                </Routes>
+              </Suspense>
+            </Router>
+          </ToastProvider>
         </CartProvider>
       </AuthProvider>
     </ErrorBoundary>

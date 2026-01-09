@@ -1,8 +1,16 @@
 ﻿// src/services/auth.js
+// Updated to work with unified backend (whatsapp_business)
 import api, { fetchCsrfToken, setAuthToken } from './api';
 
+// Auth API base - points to core auth endpoints
+const AUTH_BASE = '/auth';
+
 export const login = async (login, password) => {
-  const response = await api.post('/login/', { login, password });
+  // Use the unified backend auth endpoint
+  const response = await api.post(`${AUTH_BASE}/login/`, { 
+    username: login, 
+    password 
+  });
   try {
     await fetchCsrfToken();
   } catch {
@@ -15,14 +23,15 @@ export const login = async (login, password) => {
 };
 
 export const register = async (userData) => {
-  const response = await api.post('/users/register/', userData);
+  // Registration endpoint
+  const response = await api.post(`${AUTH_BASE}/register/`, userData);
   return response.data;
 };
 
 export const logout = async () => {
   try {
     await fetchCsrfToken();
-    await api.post('/users/logout/');
+    await api.post(`${AUTH_BASE}/logout/`);
   } catch {
     // Ignore logout errors to allow local state cleanup
   }
@@ -35,12 +44,21 @@ export const isAuthenticated = () => {
 
 // Get current user profile
 export const getProfile = async () => {
-  const response = await api.get('/users/profile/');
+  const response = await api.get(`${AUTH_BASE}/me/`);
   return response.data;
 };
 
 // Update user profile
 export const updateProfile = async (profileData) => {
-  const response = await api.patch('/users/profile/', profileData);
+  const response = await api.patch(`${AUTH_BASE}/me/`, profileData);
+  return response.data;
+};
+
+// Change password
+export const changePassword = async (oldPassword, newPassword) => {
+  const response = await api.post(`${AUTH_BASE}/change-password/`, {
+    old_password: oldPassword,
+    new_password: newPassword
+  });
   return response.data;
 };

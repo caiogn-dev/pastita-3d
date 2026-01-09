@@ -88,7 +88,8 @@ export const CartProvider = ({ children }) => {
 
     cartFetchPromise = (async () => {
       try {
-        const response = await api.get('/cart/');
+        // Updated endpoint for unified backend
+        const response = await api.get('/cart/list/');
         const items = response.data.items || [];
 
         const formattedCart = items.map((item) => ({
