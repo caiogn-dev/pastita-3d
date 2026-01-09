@@ -26,7 +26,7 @@ export function useWebSocket(path = '/notifications/', options = {}) {
   const reconnectAttempts = useRef(0);
   const reconnectTimeout = useRef(null);
 
-  const connect = useCallback(() => {
+  const connect = useCallback(function connectWebSocket() {
     if (!enabled) return;
     
     try {
@@ -48,7 +48,7 @@ export function useWebSocket(path = '/notifications/', options = {}) {
         if (autoReconnect && reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
           reconnectTimeout.current = setTimeout(() => {
             reconnectAttempts.current += 1;
-            connect();
+            connectWebSocket();
           }, RECONNECT_DELAY);
         }
       };
