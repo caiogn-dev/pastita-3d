@@ -8,7 +8,7 @@ const AUTH_BASE = '/auth';
 export const login = async (login, password) => {
   // Use the unified backend auth endpoint
   const response = await api.post(`${AUTH_BASE}/login/`, { 
-    username: login, 
+    email: login, 
     password 
   });
   try {
