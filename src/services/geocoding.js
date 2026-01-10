@@ -1,10 +1,15 @@
 /**
- * Geocoding Service - OpenStreetMap-based geocoding, reverse geocoding, and routing.
+ * Geocoding Service - Address lookup, reverse geocoding, and routing.
  * 
- * Uses the backend API which wraps Nominatim and OSRM services.
+ * Primary: Backend API + HERE Maps (for map display)
+ * Fallback: Nominatim (geocoding) + OSRM (routing) - free, no API key required
+ * Brazilian CEP: ViaCEP API
+ * 
+ * Note: For map display and interactive features, use hereMapService.js and hereRoutingService.js
  */
 import api from './api';
 
+// Fallback services (free, no API key required)
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org';
 const OSRM_URL = 'https://router.project-osrm.org';
 

@@ -2,32 +2,37 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  reverseGeocode,
-  getAddressSuggestions,
-  getCurrentLocation,
-  geocodeBrazilianAddress,
-} from '../services/geocoding';
-
-// Leaflet CSS is loaded dynamically
-const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-
-// Default center (Brazil)
-const DEFAULT_CENTER = [-10.3333, -53.2];
-const DEFAULT_ZOOM = 4;
+  initHereMaps,
+  createMap,
+  createDeliveryMarker,
+  createStoreMarker,
+  createCircle,
+  createPolyline,
+  setMapCenter,
+  enableObjectDragging,
+  calculateDistance,
+  DEFAULT_CENTER,
+  DEFAULT_ZOOM,
+  PASTITA_COLORS
+} from '../services/hereMapService';
+import { calculateRouteWithPolyline, getRouteSummary } from '../services/hereRoutingService';
+import { lookupCEP, geocodeBrazilianAddress, getCurrentLocation } from '../services/geocoding';
 
 /**
- * Interactive Map Component using OpenStreetMap/Leaflet
+ * Interactive Map Component using HERE Maps JavaScript API
  * 
  * Features:
  * - Click to select location
  * - Use current location (geolocation)
- * - Search for address
+ * - Search for address (ViaCEP + HERE)
  * - Reverse geocoding on selection
  * - Draggable marker
+ * - Route visualization
+ * - Delivery zones display
  */
 export default function InteractiveMap({
   initialLocation = null,
+  storeLocation = null,
   onLocationSelect,
   onAddressChange,
   height = '400px',
@@ -35,119 +40,230 @@ export default function InteractiveMap({
   showGeolocation = true,
   showMarker = true,
   markerDraggable = true,
+  showRoute = false,
+  showZones = false,
+  zones = [],
   className = '',
-  placeholder = 'Buscar endereço...',
+  placeholder = 'Buscar endereço ou CEP...',
 }) {
   const mapContainerRef = useRef(null);
-  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
+  const storeMarkerRef = useRef(null);
+  const routeLineRef = useRef(null);
+  const zoneObjectsRef = useRef([]);
+  
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
+  const [routeInfo, setRouteInfo] = useState(null);
   const [error, setError] = useState(null);
+  
   const searchTimeoutRef = useRef(null);
   const suggestionsRef = useRef(null);
 
-  // Load Leaflet dynamically
+  // Initialize HERE Maps
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
-    // Check if already loaded
-    if (window.L) {
-      setIsLoaded(true);
-      return;
-    }
 
-    // Load CSS
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = LEAFLET_CSS;
-    document.head.appendChild(link);
+    let mounted = true;
 
-    // Load JS
-    const script = document.createElement('script');
-    script.src = LEAFLET_JS;
-    script.async = true;
-    script.onload = () => setIsLoaded(true);
-    script.onerror = () => setError('Erro ao carregar o mapa');
-    document.head.appendChild(script);
+    const init = async () => {
+      try {
+        await initHereMaps();
+        if (mounted) {
+          setIsLoaded(true);
+        }
+      } catch (err) {
+        console.error('Failed to initialize HERE Maps:', err);
+        if (mounted) {
+          setError('Erro ao carregar o mapa');
+        }
+      }
+    };
+
+    init();
 
     return () => {
-      // Cleanup is handled by Leaflet
+      mounted = false;
     };
   }, []);
 
-  // Initialize map
+  // Create map instance
   useEffect(() => {
-    if (!isLoaded || !mapContainerRef.current || mapRef.current) return;
+    if (!isLoaded || !mapContainerRef.current || mapInstanceRef.current) return;
 
-    const L = window.L;
-    
-    // Create map
-    const map = L.map(mapContainerRef.current, {
-      center: initialLocation 
-        ? [initialLocation.latitude, initialLocation.longitude]
-        : DEFAULT_CENTER,
-      zoom: initialLocation ? 15 : DEFAULT_ZOOM,
-      zoomControl: true,
-    });
+    try {
+      const center = initialLocation 
+        ? { lat: initialLocation.latitude, lng: initialLocation.longitude }
+        : storeLocation
+        ? { lat: storeLocation.latitude, lng: storeLocation.longitude }
+        : DEFAULT_CENTER;
 
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19,
-    }).addTo(map);
+      const zoom = initialLocation || storeLocation ? 15 : DEFAULT_ZOOM;
 
-    // Add marker if initial location
-    if (initialLocation && showMarker) {
-      const marker = L.marker([initialLocation.latitude, initialLocation.longitude], {
-        draggable: markerDraggable,
-      }).addTo(map);
+      const instance = createMap(mapContainerRef.current, { center, zoom });
+      mapInstanceRef.current = instance;
 
-      markerRef.current = marker;
+      // Add store marker if provided
+      if (storeLocation) {
+        const storeMarker = createStoreMarker({
+          lat: storeLocation.latitude,
+          lng: storeLocation.longitude
+        });
+        instance.map.addObject(storeMarker);
+        storeMarkerRef.current = storeMarker;
+      }
+
+      // Add delivery marker if initial location
+      if (initialLocation && showMarker) {
+        const marker = createDeliveryMarker(
+          { lat: initialLocation.latitude, lng: initialLocation.longitude },
+          { draggable: markerDraggable }
+        );
+        instance.map.addObject(marker);
+        markerRef.current = marker;
+      }
+
+      // Enable dragging if needed
+      if (markerDraggable) {
+        enableObjectDragging(instance.map, instance.behavior, handleDragEnd);
+      }
+
+      // Add click handler
+      instance.map.addEventListener('tap', handleMapClick);
+
+    } catch (err) {
+      console.error('Failed to create map:', err);
+      setError('Erro ao criar o mapa');
     }
 
-    mapRef.current = map;
-
     return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.cleanup();
+        mapInstanceRef.current = null;
         markerRef.current = null;
+        storeMarkerRef.current = null;
+        routeLineRef.current = null;
+        zoneObjectsRef.current = [];
       }
     };
-  }, [isLoaded, initialLocation, showMarker, markerDraggable]);
+  }, [isLoaded]);
+
+  // Display zones
+  useEffect(() => {
+    if (!mapInstanceRef.current || !showZones) return;
+
+    const map = mapInstanceRef.current.map;
+
+    // Remove existing zone objects
+    zoneObjectsRef.current.forEach(obj => {
+      try {
+        map.removeObject(obj);
+      } catch (e) {
+        // Object might already be removed
+      }
+    });
+    zoneObjectsRef.current = [];
+
+    // Add new zones
+    zones.forEach((zone, index) => {
+      if (zone.center && zone.radius) {
+        const colors = [
+          { fill: 'rgba(114, 47, 55, 0.15)', stroke: '#722F37' },
+          { fill: 'rgba(212, 175, 55, 0.15)', stroke: '#D4AF37' },
+          { fill: 'rgba(76, 175, 80, 0.15)', stroke: '#4CAF50' },
+        ];
+        const colorIndex = index % colors.length;
+        
+        const circle = createCircle(
+          { lat: zone.center.latitude || zone.center.lat, lng: zone.center.longitude || zone.center.lng },
+          zone.radius * 1000, // Convert km to meters
+          {
+            fillColor: colors[colorIndex].fill,
+            strokeColor: colors[colorIndex].stroke,
+            data: zone
+          }
+        );
+        map.addObject(circle);
+        zoneObjectsRef.current.push(circle);
+      }
+    });
+  }, [zones, showZones, isLoaded]);
+
+  // Handle map click
+  const handleMapClick = useCallback(async (evt) => {
+    if (!mapInstanceRef.current) return;
+    
+    const coord = mapInstanceRef.current.map.screenToGeo(
+      evt.currentPointer.viewportX,
+      evt.currentPointer.viewportY
+    );
+    
+    await selectLocation(coord.lat, coord.lng);
+  }, []);
+
+  // Handle marker drag end
+  const handleDragEnd = useCallback(async (event) => {
+    if (event.type === 'marker' && event.position) {
+      await selectLocation(event.position.lat, event.position.lng, false);
+    }
+  }, []);
 
   // Select location and reverse geocode
   const selectLocation = useCallback(async (latitude, longitude, updateMarker = true) => {
+    if (!mapInstanceRef.current) return;
+    
     setIsLoading(true);
     setError(null);
 
     try {
-      // Update marker position
-      if (updateMarker && mapRef.current) {
-        const L = window.L;
-        
-        if (markerRef.current) {
-          markerRef.current.setLatLng([latitude, longitude]);
-        } else if (showMarker) {
-          const marker = L.marker([latitude, longitude], {
-            draggable: markerDraggable,
-          }).addTo(mapRef.current);
+      const map = mapInstanceRef.current.map;
 
+      // Update or create marker
+      if (updateMarker && showMarker) {
+        if (markerRef.current) {
+          markerRef.current.setGeometry({ lat: latitude, lng: longitude });
+        } else {
+          const marker = createDeliveryMarker(
+            { lat: latitude, lng: longitude },
+            { draggable: markerDraggable }
+          );
+          map.addObject(marker);
           markerRef.current = marker;
         }
-
-        // Center map on location
-        mapRef.current.setView([latitude, longitude], Math.max(mapRef.current.getZoom(), 15));
       }
 
-      // Reverse geocode
-      const addressData = await reverseGeocode(latitude, longitude);
-      
+      // Center map
+      setMapCenter(map, { lat: latitude, lng: longitude }, 15);
+
+      // Try to get address via HERE reverse geocoding
+      let addressData = {};
+      try {
+        const response = await fetch(
+          `https://revgeocode.search.hereapi.com/v1/revgeocode?at=${latitude},${longitude}&apikey=${process.env.NEXT_PUBLIC_HERE_API_KEY}`
+        );
+        const data = await response.json();
+        
+        if (data.items && data.items.length > 0) {
+          const item = data.items[0];
+          addressData = {
+            street: item.address.street || '',
+            number: item.address.houseNumber || '',
+            neighborhood: item.address.district || '',
+            city: item.address.city || '',
+            state: item.address.stateCode || item.address.state || '',
+            zip_code: item.address.postalCode || '',
+            formatted_address: item.address.label || '',
+          };
+        }
+      } catch (e) {
+        console.warn('Reverse geocoding failed:', e);
+      }
+
       const location = {
         latitude,
         longitude,
@@ -157,45 +273,57 @@ export default function InteractiveMap({
       setSelectedLocation(location);
       onLocationSelect?.(location);
       onAddressChange?.(addressData);
-      
-    } catch {
+
+      // Calculate route if store location is set
+      if (showRoute && storeLocation) {
+        await calculateAndShowRoute(
+          { lat: storeLocation.latitude, lng: storeLocation.longitude },
+          { lat: latitude, lng: longitude }
+        );
+      }
+
+    } catch (err) {
+      console.error('Error selecting location:', err);
       setError('Erro ao obter endereço');
       
-      // Still update location even if reverse geocoding fails
       const location = { latitude, longitude };
       setSelectedLocation(location);
       onLocationSelect?.(location);
     } finally {
       setIsLoading(false);
     }
-  }, [showMarker, markerDraggable, onLocationSelect, onAddressChange]);
+  }, [showMarker, markerDraggable, onLocationSelect, onAddressChange, showRoute, storeLocation]);
 
-  // Set up map click and marker drag handlers
-  useEffect(() => {
-    if (!mapRef.current) return;
+  // Calculate and display route
+  const calculateAndShowRoute = useCallback(async (origin, destination) => {
+    if (!mapInstanceRef.current) return;
 
-    // Click handler
-    const handleMapClick = async (e) => {
-      const { lat, lng } = e.latlng;
-      await selectLocation(lat, lng);
-    };
-    mapRef.current.on('click', handleMapClick);
+    try {
+      const map = mapInstanceRef.current.map;
 
-    // Marker drag handler
-    if (markerRef.current && markerDraggable) {
-      const handleMarkerDragEnd = async (e) => {
-        const { lat, lng } = e.target.getLatLng();
-        await selectLocation(lat, lng, false);
-      };
-      markerRef.current.on('dragend', handleMarkerDragEnd);
-    }
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.off('click');
+      // Remove existing route
+      if (routeLineRef.current) {
+        map.removeObject(routeLineRef.current);
+        routeLineRef.current = null;
       }
-    };
-  }, [selectLocation, markerDraggable]);
+
+      const routeData = await calculateRouteWithPolyline(origin, destination);
+      
+      map.addObject(routeData.mapPolyline);
+      routeLineRef.current = routeData.mapPolyline;
+
+      const summary = getRouteSummary(routeData);
+      setRouteInfo({
+        distance: routeData.distanceKm,
+        duration: routeData.durationMinutes,
+        summary: summary.full
+      });
+
+    } catch (err) {
+      console.error('Route calculation failed:', err);
+      setRouteInfo(null);
+    }
+  }, []);
 
   // Handle geolocation
   const handleGetCurrentLocation = useCallback(async () => {
@@ -206,7 +334,7 @@ export default function InteractiveMap({
       const position = await getCurrentLocation();
       await selectLocation(position.latitude, position.longitude);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Erro ao obter localização');
     } finally {
       setIsLoading(false);
     }
@@ -217,7 +345,6 @@ export default function InteractiveMap({
     const query = e.target.value;
     setSearchQuery(query);
 
-    // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
@@ -228,14 +355,53 @@ export default function InteractiveMap({
       return;
     }
 
-    // Debounce search
+    // Check if it's a CEP (8 digits)
+    const cleanQuery = query.replace(/\D/g, '');
+    if (cleanQuery.length === 8) {
+      searchTimeoutRef.current = setTimeout(async () => {
+        try {
+          const cepData = await lookupCEP(cleanQuery);
+          if (cepData && !cepData.erro) {
+            setSuggestions([{
+              display_name: `${cepData.logradouro}, ${cepData.bairro}, ${cepData.localidade} - ${cepData.uf}`,
+              cep: cleanQuery,
+              ...cepData
+            }]);
+            setShowSuggestions(true);
+          }
+        } catch {
+          setSuggestions([]);
+        }
+      }, 300);
+      return;
+    }
+
+    // Search via HERE
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const results = await getAddressSuggestions(query);
-        setSuggestions(results);
-        setShowSuggestions(results.length > 0);
+        const response = await fetch(
+          `https://autosuggest.search.hereapi.com/v1/autosuggest?q=${encodeURIComponent(query)}&in=countryCode:BRA&limit=5&apikey=${process.env.NEXT_PUBLIC_HERE_API_KEY}`
+        );
+        const data = await response.json();
+        
+        if (data.items && data.items.length > 0) {
+          const results = data.items
+            .filter(item => item.position)
+            .map(item => ({
+              display_name: item.title,
+              latitude: item.position.lat,
+              longitude: item.position.lng,
+              address: item.address
+            }));
+          setSuggestions(results);
+          setShowSuggestions(results.length > 0);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
       } catch {
-        // Search failed - suggestions will be empty
+        setSuggestions([]);
+        setShowSuggestions(false);
       }
     }, 300);
   }, []);
@@ -245,8 +411,28 @@ export default function InteractiveMap({
     setSearchQuery(suggestion.display_name);
     setShowSuggestions(false);
     setSuggestions([]);
-    
-    await selectLocation(suggestion.latitude, suggestion.longitude);
+
+    // If it's a CEP result, geocode the address
+    if (suggestion.cep) {
+      try {
+        const geoData = await geocodeBrazilianAddress({
+          street: suggestion.logradouro,
+          city: suggestion.localidade,
+          state: suggestion.uf
+        });
+        if (geoData && geoData.latitude) {
+          await selectLocation(geoData.latitude, geoData.longitude);
+          return;
+        }
+      } catch {
+        // Fall through to use HERE geocoding
+      }
+    }
+
+    // Use coordinates from suggestion
+    if (suggestion.latitude && suggestion.longitude) {
+      await selectLocation(suggestion.latitude, suggestion.longitude);
+    }
   }, [selectLocation]);
 
   // Handle CEP search
@@ -402,14 +588,26 @@ export default function InteractiveMap({
         </div>
       )}
 
+      {/* Route info */}
+      {routeInfo && (
+        <div className="route-info">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
+          </svg>
+          <span>{routeInfo.summary}</span>
+        </div>
+      )}
+
       {/* Selected location info */}
-      {selectedLocation && selectedLocation.display_name && (
+      {selectedLocation && (selectedLocation.formatted_address || selectedLocation.display_name) && (
         <div className="selected-location">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
             <circle cx="12" cy="10" r="3"></circle>
           </svg>
-          <span className="location-text">{selectedLocation.display_name}</span>
+          <span className="location-text">{selectedLocation.formatted_address || selectedLocation.display_name}</span>
         </div>
       )}
 
@@ -605,6 +803,26 @@ export default function InteractiveMap({
           cursor: pointer;
           font-size: 18px;
           padding: 0 4px;
+        }
+
+        .route-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 12px;
+          background: #fff3e0;
+          border-top: 1px solid #ffe0b2;
+        }
+
+        .route-info svg {
+          flex-shrink: 0;
+          color: #f57c00;
+        }
+
+        .route-info span {
+          font-size: 13px;
+          color: #333;
+          font-weight: 500;
         }
 
         .selected-location {

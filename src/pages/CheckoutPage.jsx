@@ -807,9 +807,11 @@ const CheckoutPage = () => {
                     <div className="pickup-map-container">
                       <InteractiveMap
                         initialLocation={STORE_LOCATION}
+                        storeLocation={STORE_LOCATION}
                         height="200px"
                         showSearch={false}
                         showGeolocation={false}
+                        showMarker={false}
                         markerDraggable={false}
                       />
                     </div>
@@ -846,11 +848,13 @@ const CheckoutPage = () => {
                       <div className="delivery-map-container">
                         <InteractiveMap
                           initialLocation={selectedLocation}
+                          storeLocation={STORE_LOCATION}
                           onLocationSelect={handleMapLocationSelect}
                           onAddressChange={handleMapAddressChange}
                           height="300px"
                           showSearch={true}
                           showGeolocation={true}
+                          showRoute={true}
                           placeholder="Buscar endereço ou CEP..."
                         />
                         <p className="map-hint">Clique no mapa ou use sua localização para selecionar o endereço de entrega</p>
