@@ -11,17 +11,17 @@ const PaymentError = () => {
 
   const getErrorMessage = (code) => {
     const errorMessages = {
-      cc_rejected_bad_filled_card_number: 'Numero do cartao invalido',
-      cc_rejected_bad_filled_date: 'Data de validade invalida',
-      cc_rejected_bad_filled_other: 'Dados do cartao incorretos',
-      cc_rejected_bad_filled_security_code: 'Codigo de seguranca invalido',
-      cc_rejected_blacklist: 'Cartao nao autorizado',
-      cc_rejected_call_for_authorize: 'Autorizacao necessaria - entre em contato com seu banco',
-      cc_rejected_card_disabled: 'Cartao desabilitado',
+      cc_rejected_bad_filled_card_number: 'Número do cartão inválido',
+      cc_rejected_bad_filled_date: 'Data de validade inválida',
+      cc_rejected_bad_filled_other: 'Dados do cartão incorretos',
+      cc_rejected_bad_filled_security_code: 'Código de segurança inválido',
+      cc_rejected_blacklist: 'Cartão não autorizado',
+      cc_rejected_call_for_authorize: 'Autorização necessária - entre em contato com seu banco',
+      cc_rejected_card_disabled: 'Cartão desabilitado',
       cc_rejected_duplicated_payment: 'Pagamento duplicado',
-      cc_rejected_high_risk: 'Pagamento recusado por seguranca',
+      cc_rejected_high_risk: 'Pagamento recusado por segurança',
       cc_rejected_insufficient_amount: 'Saldo insuficiente',
-      cc_rejected_invalid_installments: 'Parcelas invalidas',
+      cc_rejected_invalid_installments: 'Parcelas inválidas',
       cc_rejected_max_attempts: 'Limite de tentativas excedido',
       cc_rejected_other_reason: 'Pagamento recusado',
     };
@@ -39,7 +39,7 @@ const PaymentError = () => {
           </svg>
         </div>
 
-        <h1 className="status-title">Pagamento nao aprovado</h1>
+        <h1 className="status-title">Pagamento não aprovado</h1>
         <p className="status-subtitle">{getErrorMessage(errorCode)}</p>
 
         {orderNumber && (
@@ -50,10 +50,10 @@ const PaymentError = () => {
         )}
 
         <div className="status-info status-info-warning">
-          <h3 className="status-info-title">O que voce pode fazer:</h3>
+          <h3 className="status-info-title">O que você pode fazer:</h3>
           <ul className="status-info-list">
-            <li>Verificar os dados do cartao</li>
-            <li>Tentar outro metodo de pagamento</li>
+            <li>Verificar os dados do cartão</li>
+            <li>Tentar outro método de pagamento</li>
             <li>Entrar em contato com seu banco</li>
             <li>Tentar novamente em alguns minutos</li>
           </ul>
@@ -64,7 +64,7 @@ const PaymentError = () => {
             Tentar novamente
           </Link>
           <Link href="/cardapio" className="status-button status-button-secondary">
-            Voltar ao cardapio
+            Voltar ao cardápio
           </Link>
         </div>
 

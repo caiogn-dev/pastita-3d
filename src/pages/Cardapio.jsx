@@ -8,7 +8,7 @@ import LoginModal from '../components/LoginModal';
 import Navbar from '../components/Navbar';
 import FavoriteButton from '../components/FavoriteButton';
 import StockBadge from '../components/StockBadge';
-import { Button, Badge, Input, Skeleton, EmptyState } from '../components/ui';
+import { Input, Skeleton, EmptyState, ProductCard } from '../components/ui';
 
 const fetchProducts = (url) => api.get(url).then((res) => res.data);
 
@@ -37,44 +37,11 @@ const getProductWeightLabel = (product) => {
   return '';
 };
 
-// Product Image with fallback
-const ProductImage = ({ src, alt }) => {
-  const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  if (hasError || !src) {
-    return (
-      <div className="product-image product-image-empty">
-        <div className="product-image-fallback">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <path d="M21 15l-5-5L5 21" />
-          </svg>
-          <span>Sem imagem</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`product-image ${isLoading ? 'product-image-loading' : ''}`}>
-      <img 
-        src={src} 
-        alt={alt} 
-        loading="lazy"
-        onError={() => setHasError(true)}
-        onLoad={() => setIsLoading(false)}
-      />
-    </div>
-  );
-};
-
 // Loading skeleton for products
 const ProductsSkeleton = () => (
   <div className="products-grid">
     {Array.from({ length: 6 }, (_, i) => (
-      <Skeleton.ProductCard key={i} />
+      <Skeleton.ProductCard key={i} index={i} />
     ))}
   </div>
 );
@@ -279,43 +246,17 @@ const Cardapio = () => {
           {/* Products Grid */}
           {filteredProducts.length > 0 && (
             <div className="products-grid">
-              {filteredProducts.map((p) => {
-                const inStock = Number(p.stock_quantity) > 0;
-                const weightLabel = getProductWeightLabel(p);
-                return (
-                  <div key={p.id} className="product-card">
-                    <div className="product-image-wrapper">
-                      <ProductImage src={p.image || p.image_url} alt={p.name} />
-                      <div className="product-price">
-                        R$ {Number(p.price).toFixed(2)}
-                      </div>
-                      <div className="product-favorite">
-                        <FavoriteButton productId={p.id} size="small" />
-                      </div>
-                      <StockBadge quantity={p.stock_quantity} />
-                    </div>
-
-                    <div className="product-content">
-                      <h3 className="product-name">{p.name}</h3>
-                      {weightLabel && (
-                        <Badge variant="marsala" size="sm" className="product-weight">
-                          {weightLabel}
-                        </Badge>
-                      )}
-                      <p className="product-description line-clamp-2">{p.description}</p>
-                      
-                      <Button 
-                        variant={inStock ? 'outline' : 'ghost'}
-                        fullWidth
-                        onClick={() => handleAddToCart(p)}
-                        disabled={!inStock}
-                      >
-                        {inStock ? 'Adicionar' : 'Indisponível'}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+              {filteredProducts.map((p, index) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  index={index}
+                  onAddToCart={handleAddToCart}
+                  weightLabel={getProductWeightLabel(p)}
+                  favoriteButton={<FavoriteButton productId={p.id} size="small" />}
+                  stockBadge={<StockBadge quantity={p.stock_quantity} />}
+                />
+              ))}
             </div>
           )}
         </div>

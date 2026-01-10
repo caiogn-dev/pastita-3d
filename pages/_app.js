@@ -24,6 +24,7 @@ import '../src/components/ui/Modal.css';
 import '../src/components/ui/OrderTimeline.css';
 import '../src/components/ui/PixPayment.css';
 import '../src/components/ui/Skeleton.css';
+import '../src/components/ui/ProductCard.css';
 import '../src/pages/LandingPage.css';
 import '../src/pages/Cardapio.css';
 import '../src/pages/Auth.css';

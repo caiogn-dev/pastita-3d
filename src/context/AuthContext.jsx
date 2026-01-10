@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }) => {
         success: false,
         error: error.response?.data?.non_field_errors?.[0]
           || error.response?.data?.detail
-          || 'E-mail, celular ou senha invalidos'
+          || 'E-mail, celular ou senha inválidos'
       };
     }
   };

@@ -428,14 +428,14 @@ const CheckoutPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Nome é obrigatorio';
-    if (!formData.email.trim()) newErrors.email = 'E-mail é obrigatorio';
+    if (!formData.name.trim()) newErrors.name = 'Nome é obrigatório';
+    if (!formData.email.trim()) newErrors.email = 'E-mail é obrigatório';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'E-mail inválido';
     
-    if (!formData.phone.trim()) newErrors.phone = 'Telefone é obrigatorio';
+    if (!formData.phone.trim()) newErrors.phone = 'Telefone é obrigatório';
     else if (onlyDigits(formData.phone).length < 10) newErrors.phone = 'Telefone inválido (mínimo 10 dígitos)';
     
-    if (!formData.cpf.trim()) newErrors.cpf = 'CPF é obrigatorio';
+    if (!formData.cpf.trim()) newErrors.cpf = 'CPF é obrigatório';
     else if (!validateCPF(formData.cpf)) newErrors.cpf = 'CPF inválido';
 
     if (shippingMethod === 'delivery') {
@@ -556,17 +556,17 @@ const CheckoutPage = () => {
       return;
     }
 
-    throw new Error('Link de pagamento nao recebido do servidor.');
+    throw new Error('Link de pagamento não recebido do servidor.');
   };
 
   const handleCardSubmit = async (cardFormData, additionalData) => {
     if (!validateForm()) {
-      setPaymentError('Verifique os erros no formulario.');
-      return Promise.reject(new Error('Formulario invalido'));
+      setPaymentError('Verifique os erros no formulário.');
+      return Promise.reject(new Error('Formulário inválido'));
     }
     if (shippingMethod === 'delivery' && shippingCost === null) {
       setPaymentError('Calcule o frete pelo CEP antes de continuar.');
-      return Promise.reject(new Error('Frete nao calculado'));
+      return Promise.reject(new Error('Frete não calculado'));
     }
 
     setLoading(true);
@@ -1030,12 +1030,12 @@ const CheckoutPage = () => {
                   </div>
                 )}
                 
-                {/* ... Campos condicionais de cartao ... */}
+                {/* ... Campos condicionais de cartão ... */}
                 {paymentMethod === 'card' && (
                   <div className="checkout-payment-card">
                     {!mpPublicKey ? (
                       <div className="checkout-alert" style={{backgroundColor: '#fff7ed', color: '#c2410c', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #fed7aa'}}>
-                        Public key do Mercado Pago nao configurada.
+                        Public key do Mercado Pago não configurada.
                       </div>
                     ) : (
                       <CardPayment

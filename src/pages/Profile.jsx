@@ -304,7 +304,7 @@ const Profile = () => {
                     value={formData.address}
                     onChange={handleChange}
                     className="form-input"
-                    placeholder="Rua, numero, bairro"
+                    placeholder="Rua, número, bairro"
                   />
                 </div>
 

@@ -7,17 +7,17 @@ const NotFound = () => {
       <div className="status-card">
         <div className="status-number">404</div>
 
-        <h1 className="status-title">Pagina nao encontrada</h1>
+        <h1 className="status-title">Página não encontrada</h1>
         <p className="status-subtitle">
-          A pagina que voce esta procurando nao existe ou foi movida.
+          A página que você está procurando não existe ou foi movida.
         </p>
 
         <div className="status-actions">
           <Link href="/" className="status-button status-button-primary">
-            Voltar ao inicio
+            Voltar ao início
           </Link>
           <Link href="/cardapio" className="status-button status-button-secondary">
-            Ver cardapio
+            Ver cardápio
           </Link>
         </div>
       </div>

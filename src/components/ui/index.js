@@ -8,3 +8,4 @@ export { default as Skeleton } from './Skeleton';
 export { default as EmptyState } from './EmptyState';
 export { default as OrderTimeline } from './OrderTimeline';
 export { default as PixPayment } from './PixPayment';
+export { default as ProductCard } from './ProductCard';
