@@ -1,0 +1,158 @@
+.order-timeline {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid #eee;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.timeline-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.timeline-updated {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.timeline-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timeline-step {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.timeline-step:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-step-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+  border: 2px solid #ddd;
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.timeline-step.completed .timeline-step-icon {
+  background: var(--color-marsala, #722F37);
+  border-color: var(--color-marsala, #722F37);
+  color: #fff;
+}
+
+.timeline-step.current .timeline-step-icon {
+  background: var(--color-gold, #D4AF37);
+  border-color: var(--color-gold, #D4AF37);
+  color: #fff;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.timeline-step-content {
+  margin-left: 12px;
+  padding-top: 8px;
+}
+
+.timeline-step-label {
+  font-size: 0.9rem;
+  color: #666;
+  transition: color 0.3s ease;
+}
+
+.timeline-step.completed .timeline-step-label,
+.timeline-step.current .timeline-step-label {
+  color: #333;
+  font-weight: 500;
+}
+
+.timeline-step-line {
+  position: absolute;
+  left: 17px;
+  top: 36px;
+  width: 2px;
+  height: calc(100% - 36px);
+  background: #ddd;
+  transition: background 0.3s ease;
+}
+
+.timeline-step-line.completed {
+  background: var(--color-marsala, #722F37);
+}
+
+/* Cancelled state */
+.order-timeline-cancelled {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.timeline-cancelled-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.timeline-cancelled-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .timeline-steps {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .timeline-step {
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    padding-bottom: 0;
+  }
+  
+  .timeline-step-content {
+    margin-left: 0;
+    margin-top: 8px;
+    text-align: center;
+  }
+  
+  .timeline-step-line {
+    left: calc(50% + 18px);
+    top: 17px;
+    width: calc(100% - 36px);
+    height: 2px;
+  }
+  
+  .timeline-step:last-child .timeline-step-line {
+    display: none;
+  }
+}
