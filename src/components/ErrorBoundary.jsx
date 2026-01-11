@@ -1,4 +1,5 @@
 import React from 'react';
+import logger from '../services/logger';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -16,9 +17,10 @@ class ErrorBoundary extends React.Component {
       errorInfo
     });
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('Error caught by boundary:', error, errorInfo);
-    }
+    // Always log to our logger (handles dev/prod appropriately)
+    logger.error('React Error Boundary caught error', error, {
+      componentStack: errorInfo?.componentStack,
+    });
   }
 
   handleReload = () => {

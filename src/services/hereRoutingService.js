@@ -4,6 +4,7 @@
  */
 
 import { getPlatform, createPolyline, PASTITA_COLORS, HERE_API_KEY } from './hereMapService';
+import logger from './logger';
 
 /**
  * Calculate route between two points
@@ -55,7 +56,7 @@ export async function calculateRoute(origin, destination, options = {}) {
         reject(new Error('No route found'));
       }
     }, (error) => {
-      console.error('Routing error:', error);
+      logger.error('Routing error', error, { origin, destination });
       reject(error);
     });
   });
@@ -115,7 +116,7 @@ export async function calculateMatrix(origins, destinations) {
       throw new Error('No matrix data returned');
     }
   } catch (error) {
-    console.error('Matrix calculation error:', error);
+    logger.error('Matrix calculation error', error);
     throw error;
   }
 }

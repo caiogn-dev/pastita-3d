@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { WS_BASE_URL } from '../services/api';
+import logger from '../services/logger';
 
 const RECONNECT_DELAY = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -37,17 +38,20 @@ export function useWebSocket(path = '/notifications/', options = {}) {
         setIsConnected(true);
         setError(null);
         reconnectAttempts.current = 0;
+        logger.wsEvent('connected', { path });
         onConnect?.();
       };
 
       wsRef.current.onclose = (event) => {
         setIsConnected(false);
+        logger.wsEvent('disconnected', { path, code: event.code, reason: event.reason });
         onDisconnect?.(event);
 
         // Auto reconnect logic
         if (autoReconnect && reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
           reconnectTimeout.current = setTimeout(() => {
             reconnectAttempts.current += 1;
+            logger.wsEvent('reconnecting', { path, attempt: reconnectAttempts.current });
             connectWebSocket();
           }, RECONNECT_DELAY);
         }
@@ -55,7 +59,7 @@ export function useWebSocket(path = '/notifications/', options = {}) {
 
       wsRef.current.onerror = (event) => {
         setError('WebSocket connection error');
-        console.error('WebSocket error:', event);
+        logger.error('WebSocket error', null, { path, event: event.type });
       };
 
       wsRef.current.onmessage = (event) => {
@@ -65,12 +69,12 @@ export function useWebSocket(path = '/notifications/', options = {}) {
           setMessages((prev) => [...prev.slice(-99), data]); // Keep last 100 messages
           onMessage?.(data);
         } catch (e) {
-          console.error('Failed to parse WebSocket message:', e);
+          logger.error('Failed to parse WebSocket message', e, { path, data: event.data?.substring(0, 100) });
         }
       };
     } catch (e) {
       setError('Failed to connect to WebSocket');
-      console.error('WebSocket connection failed:', e);
+      logger.error('WebSocket connection failed', e, { path });
     }
   }, [path, enabled, autoReconnect, onMessage, onConnect, onDisconnect]);
 

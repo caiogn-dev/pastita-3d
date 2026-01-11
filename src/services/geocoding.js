@@ -8,6 +8,8 @@
  * Note: Nominatim/OSRM fallbacks have been removed in favor of HERE Maps reliability.
  */
 
+import logger from './logger';
+
 const HERE_API_KEY = process.env.NEXT_PUBLIC_HERE_API_KEY || '';
 const HERE_GEOCODE_URL = 'https://geocode.search.hereapi.com/v1/geocode';
 const HERE_REVGEOCODE_URL = 'https://revgeocode.search.hereapi.com/v1/revgeocode';
@@ -93,7 +95,7 @@ export async function geocodeAddress(query, options = {}) {
   }
 
   if (!isHEREConfigured()) {
-    console.warn('HERE API key not configured. Geocoding unavailable.');
+    logger.warn('HERE API key not configured. Geocoding unavailable.');
     return [];
   }
 
@@ -134,9 +136,9 @@ export async function geocodeAddress(query, options = {}) {
     }));
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.error('Geocoding request timed out');
+      logger.warn('Geocoding request timed out', { query });
     } else {
-      console.error('Geocoding error:', error);
+      logger.error('Geocoding error', error, { query });
     }
     return [];
   }
@@ -150,12 +152,12 @@ export async function geocodeAddress(query, options = {}) {
  */
 export async function reverseGeocode(latitude, longitude) {
   if (!isHEREConfigured()) {
-    console.warn('HERE API key not configured. Reverse geocoding unavailable.');
+    logger.warn('HERE API key not configured. Reverse geocoding unavailable.');
     return null;
   }
 
   if (!isValidCoordinate(latitude, longitude)) {
-    console.error('Invalid coordinates provided');
+    logger.warn('Invalid coordinates provided', { latitude, longitude });
     return null;
   }
 
@@ -196,9 +198,9 @@ export async function reverseGeocode(latitude, longitude) {
     };
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.error('Reverse geocoding request timed out');
+      logger.warn('Reverse geocoding request timed out', { latitude, longitude });
     } else {
-      console.error('Reverse geocoding error:', error);
+      logger.error('Reverse geocoding error', error, { latitude, longitude });
     }
     return null;
   }
@@ -254,9 +256,9 @@ export async function getAddressSuggestions(query, options = {}) {
       }));
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.error('Suggestions request timed out');
+      logger.warn('Suggestions request timed out', { query });
     } else {
-      console.error('Suggestions error:', error);
+      logger.error('Suggestions error', error, { query });
     }
     return [];
   }
@@ -281,7 +283,7 @@ export async function calculateRoute(origin, destination, options = {}) {
     !isValidCoordinate(origin.latitude, origin.longitude) ||
     !isValidCoordinate(destination.latitude, destination.longitude)
   ) {
-    console.error('Invalid coordinates provided for routing');
+    logger.warn('Invalid coordinates provided for routing', { origin, destination });
     return null;
   }
 
@@ -318,9 +320,9 @@ export async function calculateRoute(origin, destination, options = {}) {
     };
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.error('Routing request timed out');
+      logger.warn('Routing request timed out', { origin, destination });
     } else {
-      console.error('Routing error:', error);
+      logger.error('Routing error', error, { origin, destination });
     }
     return null;
   }
@@ -364,9 +366,9 @@ export async function lookupCEP(cep) {
     };
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.error('CEP lookup request timed out');
+      logger.warn('CEP lookup request timed out', { cep });
     } else {
-      console.error('CEP lookup error:', error);
+      logger.error('CEP lookup error', error, { cep });
     }
     return null;
   }

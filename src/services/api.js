@@ -1,4 +1,5 @@
 import axios from 'axios';
+import logger from './logger';
 
 // API base URLs
 // NEXT_PUBLIC_API_URL should point to the ecommerce API base (e.g., http://localhost:8000/api/v1/ecommerce)
@@ -71,7 +72,7 @@ export const fetchCsrfToken = async () => {
     csrfTokenCache = response.data.csrfToken;
     return response.data.csrfToken;
   } catch (error) {
-    console.error('Failed to fetch CSRF token:', error);
+    logger.apiError('/csrf/', error);
     return null;
   }
 };
@@ -142,15 +143,17 @@ api.interceptors.response.use(
     
     // Handle 429 Rate Limiting
     if (error.response?.status === 429) {
-      console.warn('Rate limit exceeded. Please wait before making more requests.');
-      // The error will be propagated to the caller for UI handling
+      logger.warn('Rate limit exceeded. Please wait before making more requests.', {
+        endpoint: error.config?.url,
+        status: 429,
+      });
     }
     
     // Handle 403 CSRF errors - refresh token and retry
     if (error.response?.status === 403) {
       const errorDetail = error.response?.data?.detail || '';
       if (errorDetail.toLowerCase().includes('csrf')) {
-        console.warn('CSRF token expired, refreshing...');
+        logger.warn('CSRF token expired, refreshing...', { endpoint: error.config?.url });
         if (!error.config?._retry) {
           const retryConfig = { ...error.config, _retry: true };
           return refreshCsrfToken()
@@ -168,7 +171,9 @@ api.interceptors.response.use(
     
     // Handle network errors
     if (!error.response) {
-      console.error('Network error - please check your connection');
+      logger.error('Network error - please check your connection', error, {
+        endpoint: error.config?.url,
+      });
     }
     
     return Promise.reject(error);

@@ -4,6 +4,7 @@
  */
 
 import { createPolygon, PASTITA_COLORS, HERE_API_KEY } from './hereMapService';
+import logger from './logger';
 
 /**
  * Calculate isoline (isochrone or isodistance)
@@ -48,7 +49,7 @@ export async function calculateIsoline(center, options = {}) {
       throw new Error('No isoline data returned');
     }
   } catch (error) {
-    console.error('Isoline calculation error:', error);
+    logger.error('Isoline calculation error', error, { center, options });
     throw error;
   }
 }
@@ -128,7 +129,7 @@ export async function calculateMultipleIsolines(center, ranges, rangeType = 'tim
       throw new Error('No isoline data returned');
     }
   } catch (error) {
-    console.error('Multiple isolines calculation error:', error);
+    logger.error('Multiple isolines calculation error', error);
     throw error;
   }
 }
@@ -239,7 +240,7 @@ function decodeFlexiblePolylineFallback(encoded) {
   try {
     return decode(encoded);
   } catch (e) {
-    console.error('Polyline decode error:', e);
+    logger.warn('Polyline decode error', { error: e.message });
     return [];
   }
 }

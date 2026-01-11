@@ -17,6 +17,7 @@ import {
 } from '../services/hereMapService';
 import { calculateRouteWithPolyline, getRouteSummary } from '../services/hereRoutingService';
 import { lookupCEP, geocodeBrazilianAddress, getCurrentLocation } from '../services/geocoding';
+import logger from '../services/logger';
 
 /**
  * Interactive Map Component using HERE Maps JavaScript API
@@ -78,7 +79,7 @@ export default function InteractiveMap({
           setIsLoaded(true);
         }
       } catch (err) {
-        console.error('Failed to initialize HERE Maps:', err);
+        logger.error('Failed to initialize HERE Maps', err);
         if (mounted) {
           setError('Erro ao carregar o mapa');
         }
@@ -137,7 +138,7 @@ export default function InteractiveMap({
       instance.map.addEventListener('tap', handleMapClick);
 
     } catch (err) {
-      console.error('Failed to create map:', err);
+      logger.error('Failed to create map', err);
       setError('Erro ao criar o mapa');
     }
 
@@ -283,7 +284,7 @@ export default function InteractiveMap({
       }
 
     } catch (err) {
-      console.error('Error selecting location:', err);
+      logger.error('Error selecting location', err);
       setError('Erro ao obter endereço');
       
       const location = { latitude, longitude };
@@ -320,7 +321,7 @@ export default function InteractiveMap({
       });
 
     } catch (err) {
-      console.error('Route calculation failed:', err);
+      logger.error('Route calculation failed', err);
       setRouteInfo(null);
     }
   }, []);

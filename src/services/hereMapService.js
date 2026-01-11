@@ -3,6 +3,8 @@
  * Core service for HERE Maps JavaScript API integration
  */
 
+import logger from './logger';
+
 // HERE Maps API configuration
 const HERE_API_KEY = process.env.NEXT_PUBLIC_HERE_API_KEY || '';
 const HERE_API_VERSION = '3.1';
@@ -99,9 +101,10 @@ export async function initHereMaps() {
       });
 
       isLoaded = true;
+      logger.mapEvent('HERE Maps initialized successfully');
       return platform;
     } catch (error) {
-      console.error('Failed to load HERE Maps:', error);
+      logger.error('Failed to load HERE Maps', error);
       loadPromise = null;
       throw error;
     }
