@@ -7,6 +7,20 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/a
 const PASTITA_API = `${API_BASE_URL}/pastita`;
 
 /**
+ * Get CSRF token from cookie
+ */
+function getCsrfToken() {
+  if (typeof document === 'undefined') return null;
+  const name = 'csrftoken';
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [key, value] = cookie.trim().split('=');
+    if (key === name) return value;
+  }
+  return null;
+}
+
+/**
  * Helper function for API requests
  */
 async function apiRequest(endpoint, options = {}) {
@@ -16,16 +30,25 @@ async function apiRequest(endpoint, options = {}) {
     'Content-Type': 'application/json',
   };
 
-  // Add auth token if available
+  // Add auth token if available (Django REST Framework uses "Token" prefix)
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('access_token');
     if (token) {
-      defaultHeaders['Authorization'] = `Bearer ${token}`;
+      defaultHeaders['Authorization'] = `Token ${token}`;
+    }
+  }
+
+  // Add CSRF token for non-GET requests
+  if (options.method && options.method !== 'GET') {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      defaultHeaders['X-CSRFToken'] = csrfToken;
     }
   }
 
   const config = {
     ...options,
+    credentials: 'include', // Include cookies for session auth
     headers: {
       ...defaultHeaders,
       ...options.headers,
