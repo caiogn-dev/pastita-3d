@@ -4,10 +4,25 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
 const CartSidebar = () => {
-  const { cart, removeFromCart, updateQuantity, cartTotal, isCartOpen, toggleCart } = useCart();
+  const { 
+    cart, 
+    combos,
+    removeFromCart, 
+    removeComboFromCart,
+    updateQuantity, 
+    updateComboQuantity,
+    cartTotal,
+    productTotal,
+    comboTotal,
+    hasItems,
+    isCartOpen, 
+    toggleCart 
+  } = useCart();
   const { isAuthenticated } = useAuth();
 
   if (!isCartOpen) return null;
+
+  const isEmpty = !hasItems;
 
   return (
     <>
@@ -17,12 +32,12 @@ const CartSidebar = () => {
         <div className="cart-header">
           <h2>Seu Pedido</h2>
           <button onClick={toggleCart} className="cart-close-btn" aria-label="Fechar">
-            x
+            ✕
           </button>
         </div>
 
         <div className="cart-items">
-          {cart.length === 0 ? (
+          {isEmpty ? (
             <div className="cart-empty">
               <span className="cart-empty-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
@@ -37,43 +52,114 @@ const CartSidebar = () => {
               </button>
             </div>
           ) : (
-            cart.map((item) => (
-              <div key={item.id} className="cart-item">
-                <img src={item.image} alt={item.name} className="cart-item-image" />
-                <div className="cart-item-details">
-                  <h4 className="cart-item-name">{item.name}</h4>
-                  <p className="cart-item-price">R$ {Number(item.price).toFixed(2)}</p>
+            <>
+              {/* Products Section */}
+              {cart.length > 0 && (
+                <div className="cart-section">
+                  <h3 className="cart-section-title">
+                    <span>🍝</span> Produtos
+                  </h3>
+                  {cart.map((item) => (
+                    <div key={`product-${item.id}`} className="cart-item">
+                      {item.image && (
+                        <img src={item.image} alt={item.name} className="cart-item-image" />
+                      )}
+                      <div className="cart-item-details">
+                        <h4 className="cart-item-name">{item.name}</h4>
+                        <p className="cart-item-price">R$ {Number(item.price).toFixed(2)}</p>
 
-                  <div className="cart-item-actions">
-                    <div className="quantity-control">
-                      <button
-                        onClick={() => updateQuantity(item.id, -1)}
-                        aria-label="Diminuir quantidade"
-                      >
-                        -
-                      </button>
-                      <span>{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, 1)}
-                        aria-label="Aumentar quantidade"
-                      >
-                        +
-                      </button>
+                        <div className="cart-item-actions">
+                          <div className="quantity-control">
+                            <button
+                              onClick={() => updateQuantity(item.id, -1)}
+                              aria-label="Diminuir quantidade"
+                            >
+                              −
+                            </button>
+                            <span>{item.quantity}</span>
+                            <button
+                              onClick={() => updateQuantity(item.id, 1)}
+                              aria-label="Aumentar quantidade"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => removeFromCart(item.id)}
+                            className="cart-item-remove"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => removeFromCart(item.id)}
-                      className="cart-item-remove"
-                    >
-                      Remover
-                    </button>
-                  </div>
+                  ))}
+                  {productTotal > 0 && (
+                    <div className="cart-section-subtotal">
+                      <span>Subtotal produtos:</span>
+                      <span>R$ {productTotal.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))
+              )}
+
+              {/* Combos Section */}
+              {combos.length > 0 && (
+                <div className="cart-section cart-section-combos">
+                  <h3 className="cart-section-title">
+                    <span>🎁</span> Combos
+                  </h3>
+                  {combos.map((item) => (
+                    <div key={`combo-${item.id}`} className="cart-item cart-item-combo">
+                      {item.image && (
+                        <img src={item.image} alt={item.name} className="cart-item-image" />
+                      )}
+                      <div className="cart-item-details">
+                        <h4 className="cart-item-name">
+                          <span className="combo-badge">COMBO</span>
+                          {item.name}
+                        </h4>
+                        <p className="cart-item-price">R$ {Number(item.price).toFixed(2)}</p>
+
+                        <div className="cart-item-actions">
+                          <div className="quantity-control">
+                            <button
+                              onClick={() => updateComboQuantity(item.id, -1)}
+                              aria-label="Diminuir quantidade"
+                            >
+                              −
+                            </button>
+                            <span>{item.quantity}</span>
+                            <button
+                              onClick={() => updateComboQuantity(item.id, 1)}
+                              aria-label="Aumentar quantidade"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => removeComboFromCart(item.id)}
+                            className="cart-item-remove"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {comboTotal > 0 && (
+                    <div className="cart-section-subtotal">
+                      <span>Subtotal combos:</span>
+                      <span>R$ {comboTotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {cart.length > 0 && (
+        {hasItems && (
           <div className="cart-footer">
             <div className="cart-total">
               <span>Total:</span>

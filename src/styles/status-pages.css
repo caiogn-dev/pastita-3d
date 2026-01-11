@@ -421,8 +421,70 @@
   font-weight: 600;
 }
 
+/* WhatsApp Confirmation */
+.whatsapp-confirmation {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 24px 0;
+  border: 1px solid #86efac;
+}
+
+.whatsapp-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: #166534;
+  margin: 0 0 16px 0;
+  font-weight: 500;
+}
+
+.whatsapp-icon {
+  font-size: 1.2rem;
+}
+
+.whatsapp-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background-color: #25D366;
+  color: #fff;
+  padding: 14px 28px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+}
+
+.whatsapp-button:hover {
+  background-color: #128C7E;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+}
+
+.whatsapp-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Success badge variant */
+.status-badge-success {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
 @media (max-width: 640px) {
   .status-card {
     padding: 32px 24px;
+  }
+  
+  .whatsapp-button {
+    width: 100%;
+    padding: 12px 20px;
   }
 }

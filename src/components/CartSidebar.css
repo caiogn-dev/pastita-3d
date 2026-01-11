@@ -307,6 +307,85 @@
   box-shadow: 0 6px 20px rgba(114, 47, 55, 0.25);
 }
 
+/* Cart Sections */
+.cart-section {
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.cart-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.cart-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-marsala);
+  margin: 0 0 var(--space-md) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cart-section-title span {
+  font-size: 1.1rem;
+}
+
+.cart-section-subtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  margin-top: var(--space-md);
+  background-color: var(--color-gray-100);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+}
+
+.cart-section-subtotal span:first-child {
+  color: var(--color-gray-600);
+}
+
+.cart-section-subtotal span:last-child {
+  font-weight: 600;
+  color: var(--color-gray-800);
+}
+
+/* Combo Items */
+.cart-section-combos {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.05) 0%, rgba(212, 175, 55, 0.02) 100%);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.cart-item-combo {
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.cart-item-combo:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-color: rgba(212, 175, 55, 0.4);
+}
+
+.combo-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-light) 100%);
+  color: var(--color-marsala-dark);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  margin-right: var(--space-xs);
+  vertical-align: middle;
+  letter-spacing: 0.5px;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .cart-sidebar {
@@ -341,5 +420,9 @@
 
   .quantity-control button {
     padding: 6px 10px;
+  }
+
+  .cart-section-combos {
+    padding: var(--space-sm);
   }
 }
