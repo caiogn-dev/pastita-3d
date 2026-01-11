@@ -4,16 +4,13 @@ import { buildMediaUrl } from '../utils/media';
 import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
-// Alinhado com cache de perfil para reduzir requisições em navegação rápida
 const CART_CACHE_TTL_MS = 5 * 60 * 1000;
 let cartFetchPromise = null;
 let cartCache = null;
 let cartCacheTs = 0;
 
 const readCartCache = () => {
-  if (!cartCache || !cartCacheTs) {
-    return null;
-  }
+  if (!cartCache || !cartCacheTs) return null;
   if (Date.now() - cartCacheTs > CART_CACHE_TTL_MS) {
     cartCache = null;
     cartCacheTs = 0;
@@ -22,8 +19,8 @@ const readCartCache = () => {
   return cartCache;
 };
 
-const writeCartCache = (items) => {
-  cartCache = items;
+const writeCartCache = (data) => {
+  cartCache = data;
   cartCacheTs = Date.now();
 };
 
@@ -33,79 +30,104 @@ const clearCartCache = () => {
 };
 
 export const CartProvider = ({ children }) => {
+  // Separate state for products and combos
   const [cart, setCart] = useState([]);
+  const [combos, setCombos] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { isAuthenticated } = useAuth();
-  const cartRef = useRef([]);
+  const cartRef = useRef({ products: [], combos: [] });
 
   useEffect(() => {
-    cartRef.current = cart;
-  }, [cart]);
+    cartRef.current = { products: cart, combos };
+  }, [cart, combos]);
 
   const normalizeCartItem = (item) => ({
-    id: item.product.id,
+    id: item.product?.id || item.id,
     cart_item_id: item.id,
-    name: item.product.name,
-    price: item.product.price,
-    image: buildMediaUrl(item.product.image),
-    quantity: item.quantity
+    name: item.product?.name || item.produto_info?.nome || item.name,
+    price: item.product?.price || item.produto_info?.preco || item.price,
+    image: buildMediaUrl(item.product?.image || item.produto_info?.imagem_url),
+    quantity: item.quantity || item.quantidade
+  });
+
+  const normalizeComboItem = (item) => ({
+    id: item.combo?.id || item.id,
+    cart_item_id: item.id,
+    name: item.combo?.nome || item.combo_info?.nome || item.name,
+    price: item.combo?.preco || item.combo_info?.preco || item.price,
+    image: buildMediaUrl(item.combo?.imagem_url || item.combo_info?.imagem_url),
+    quantity: item.quantity || item.quantidade,
+    isCombo: true
   });
 
   const buildOptimisticItem = (product, quantity) => ({
     id: product.id,
-    cart_item_id: product.id,
-    name: product.name,
-    price: product.price,
-    image: buildMediaUrl(product.image),
+    cart_item_id: `temp_${product.id}`,
+    name: product.name || product.nome,
+    price: product.price || product.preco,
+    image: buildMediaUrl(product.image || product.imagem_url),
     quantity
   });
 
-  const updateCartState = (nextCart) => {
-    setCart((prevCart) => {
-      const resolved = typeof nextCart === 'function' ? nextCart(prevCart) : nextCart;
-      writeCartCache(resolved);
-      return resolved;
-    });
-  };
+  const buildOptimisticCombo = (combo, quantity) => ({
+    id: combo.id,
+    cart_item_id: `temp_combo_${combo.id}`,
+    name: combo.nome || combo.name,
+    price: combo.preco || combo.price,
+    image: buildMediaUrl(combo.imagem_url || combo.image),
+    quantity,
+    isCombo: true
+  });
 
   const fetchCart = useCallback(async ({ force = false } = {}) => {
     if (!isAuthenticated) {
       clearCartCache();
       setCart([]);
+      setCombos([]);
       return null;
     }
 
     const cached = readCartCache();
     if (!force && cached) {
-      setCart(cached);
+      setCart(cached.products || []);
+      setCombos(cached.combos || []);
       return cached;
     }
 
-    if (cartFetchPromise) {
-      return cartFetchPromise;
-    }
+    if (cartFetchPromise) return cartFetchPromise;
 
     cartFetchPromise = (async () => {
       try {
-        // Updated endpoint for unified backend
-        const response = await api.get('/cart/list/');
-        const items = response.data.items || [];
+        // Try Pastita API first, fallback to legacy
+        let response;
+        try {
+          response = await api.get('/pastita/carrinho/');
+        } catch {
+          response = await api.get('/cart/list/');
+        }
 
-        const formattedCart = items.map((item) => ({
-          id: item.product.id,
-          cart_item_id: item.id,
-          name: item.product.name,
-          price: item.product.price,
-          image: buildMediaUrl(item.product.image),
-          quantity: item.quantity
-        }));
-
+        const data = response.data;
+        
+        // Handle Pastita API response format
+        if (data.itens !== undefined) {
+          const formattedProducts = (data.itens || []).map(normalizeCartItem);
+          const formattedCombos = (data.combos || []).map(normalizeComboItem);
+          
+          setCart(formattedProducts);
+          setCombos(formattedCombos);
+          writeCartCache({ products: formattedProducts, combos: formattedCombos });
+          return { products: formattedProducts, combos: formattedCombos };
+        }
+        
+        // Handle legacy API response format
+        const items = data.items || [];
+        const formattedCart = items.map(normalizeCartItem);
         setCart(formattedCart);
-        writeCartCache(formattedCart);
-        return formattedCart;
+        setCombos([]);
+        writeCartCache({ products: formattedCart, combos: [] });
+        return { products: formattedCart, combos: [] };
       } catch {
-        // Silently fail - cart will be empty
         return null;
       } finally {
         cartFetchPromise = null;
@@ -116,24 +138,25 @@ export const CartProvider = ({ children }) => {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchCart();
-    }
+    if (isAuthenticated) fetchCart();
   }, [fetchCart, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) {
       clearCartCache();
       setCart([]);
+      setCombos([]);
     }
   }, [isAuthenticated]);
 
   const toggleCart = () => setIsCartOpen(!isCartOpen);
 
+  // Add product to cart
   const addToCart = async (product) => {
     setIsLoading(true);
-    const previousCart = cartRef.current;
-    updateCartState((prevCart) => {
+    const previousCart = cartRef.current.products;
+    
+    setCart((prevCart) => {
       const existingIndex = prevCart.findIndex((item) => item.id === product.id);
       if (existingIndex >= 0) {
         const updated = [...prevCart];
@@ -148,45 +171,97 @@ export const CartProvider = ({ children }) => {
     setIsCartOpen(true);
 
     try {
-      const response = await api.post('/cart/add_item/', {
-        product_id: product.id,
-        quantity: 1
-      });
-
-      if (response.data?.item) {
-        const newItem = normalizeCartItem(response.data.item);
-        updateCartState((prevCart) => {
-          const existingIndex = prevCart.findIndex((item) => item.id === newItem.id);
-          if (existingIndex >= 0) {
-            const updated = [...prevCart];
-            updated[existingIndex] = { ...updated[existingIndex], quantity: newItem.quantity };
-            return updated;
-          }
-          return [...prevCart, newItem];
+      // Try Pastita API first
+      try {
+        await api.post('/pastita/carrinho/adicionar_produto/', {
+          produto_id: product.id,
+          quantidade: 1
         });
-      } else {
-        await fetchCart({ force: true });
+      } catch {
+        await api.post('/cart/add_item/', {
+          product_id: product.id,
+          quantity: 1
+        });
       }
+      await fetchCart({ force: true });
     } catch {
-      // Revert optimistic update on error
-      updateCartState(previousCart);
+      setCart(previousCart);
       alert('Erro ao adicionar ao carrinho. Verifique se está logado.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const removeFromCart = async (productId) => {
-    const previousCart = cartRef.current;
-    updateCartState((prevCart) => prevCart.filter((item) => item.id !== productId));
+  // Add combo to cart
+  const addComboToCart = async (combo) => {
+    setIsLoading(true);
+    const previousCombos = cartRef.current.combos;
+    
+    setCombos((prevCombos) => {
+      const existingIndex = prevCombos.findIndex((item) => item.id === combo.id);
+      if (existingIndex >= 0) {
+        const updated = [...prevCombos];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: updated[existingIndex].quantity + 1
+        };
+        return updated;
+      }
+      return [...prevCombos, buildOptimisticCombo(combo, 1)];
+    });
+    setIsCartOpen(true);
+
     try {
-      await api.post('/cart/remove_item/', { product_id: productId });
+      await api.post('/pastita/carrinho/adicionar_combo/', {
+        combo_id: combo.id,
+        quantidade: 1
+      });
+      await fetchCart({ force: true });
     } catch {
-      // Revert optimistic update on error
-      updateCartState(previousCart);
+      setCombos(previousCombos);
+      alert('Erro ao adicionar combo ao carrinho.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Remove product from cart
+  const removeFromCart = async (productId) => {
+    const previousCart = cartRef.current.products;
+    const item = cart.find((i) => i.id === productId);
+    
+    setCart((prevCart) => prevCart.filter((i) => i.id !== productId));
+    
+    try {
+      if (item?.cart_item_id) {
+        try {
+          await api.delete(`/pastita/carrinho/remover-produto/${item.cart_item_id}/`);
+        } catch {
+          await api.post('/cart/remove_item/', { product_id: productId });
+        }
+      }
+    } catch {
+      setCart(previousCart);
+    }
+  };
+
+  // Remove combo from cart
+  const removeComboFromCart = async (comboId) => {
+    const previousCombos = cartRef.current.combos;
+    const item = combos.find((i) => i.id === comboId);
+    
+    setCombos((prevCombos) => prevCombos.filter((i) => i.id !== comboId));
+    
+    try {
+      if (item?.cart_item_id) {
+        await api.delete(`/pastita/carrinho/remover-combo/${item.cart_item_id}/`);
+      }
+    } catch {
+      setCombos(previousCombos);
+    }
+  };
+
+  // Update product quantity
   const updateQuantity = async (productId, amount) => {
     const currentItem = cart.find((item) => item.id === productId);
     if (!currentItem) return;
@@ -194,55 +269,109 @@ export const CartProvider = ({ children }) => {
     const newQuantity = currentItem.quantity + amount;
     if (newQuantity < 1) return;
 
-    const previousCart = cartRef.current;
-    updateCartState((prevCart) => prevCart.map((item) =>
+    const previousCart = cartRef.current.products;
+    setCart((prevCart) => prevCart.map((item) =>
       item.id === productId ? { ...item, quantity: newQuantity } : item
     ));
 
     try {
-      const response = await api.post('/cart/update_item/', {
-        product_id: productId,
-        quantity: newQuantity
-      });
-      if (response.data?.item) {
-        const updatedItem = normalizeCartItem(response.data.item);
-        updateCartState((prevCart) => prevCart.map((item) =>
-          item.id === productId ? { ...item, quantity: updatedItem.quantity } : item
-        ));
-      } else {
-        await fetchCart({ force: true });
+      if (currentItem.cart_item_id) {
+        try {
+          await api.post(`/pastita/carrinho/atualizar-produto/${currentItem.cart_item_id}/`, {
+            quantidade: newQuantity
+          });
+        } catch {
+          await api.post('/cart/update_item/', {
+            product_id: productId,
+            quantity: newQuantity
+          });
+        }
       }
+      await fetchCart({ force: true });
     } catch {
-      // Revert optimistic update on error
-      updateCartState(previousCart);
+      setCart(previousCart);
     }
   };
 
+  // Update combo quantity
+  const updateComboQuantity = async (comboId, amount) => {
+    const currentItem = combos.find((item) => item.id === comboId);
+    if (!currentItem) return;
+
+    const newQuantity = currentItem.quantity + amount;
+    if (newQuantity < 1) return;
+
+    const previousCombos = cartRef.current.combos;
+    setCombos((prevCombos) => prevCombos.map((item) =>
+      item.id === comboId ? { ...item, quantity: newQuantity } : item
+    ));
+
+    try {
+      if (currentItem.cart_item_id) {
+        await api.post(`/pastita/carrinho/atualizar-combo/${currentItem.cart_item_id}/`, {
+          quantidade: newQuantity
+        });
+      }
+      await fetchCart({ force: true });
+    } catch {
+      setCombos(previousCombos);
+    }
+  };
+
+  // Clear entire cart
   const clearCart = async () => {
     try {
-      await api.post('/cart/clear/');
+      try {
+        await api.delete('/pastita/carrinho/limpar/');
+      } catch {
+        await api.post('/cart/clear/');
+      }
       setCart([]);
+      setCombos([]);
       clearCartCache();
     } catch {
-      // Silently fail - cart state may be inconsistent
+      // Silently fail
     }
   };
 
-  const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
-  const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
+  // Calculate totals
+  const productTotal = cart.reduce((total, item) => total + (Number(item.price) * item.quantity), 0);
+  const comboTotal = combos.reduce((total, item) => total + (Number(item.price) * item.quantity), 0);
+  const cartTotal = productTotal + comboTotal;
+  
+  const productCount = cart.reduce((count, item) => count + item.quantity, 0);
+  const comboCount = combos.reduce((count, item) => count + item.quantity, 0);
+  const cartCount = productCount + comboCount;
+
+  const hasItems = cart.length > 0 || combos.length > 0;
 
   return (
     <CartContext.Provider value={{
+      // Products
       cart,
-      cartCount,
-      cartTotal,
-      isCartOpen,
-      isLoading,
       addToCart,
       removeFromCart,
       updateQuantity,
+      
+      // Combos
+      combos,
+      addComboToCart,
+      removeComboFromCart,
+      updateComboQuantity,
+      
+      // Totals
+      cartCount,
+      cartTotal,
+      productTotal,
+      comboTotal,
+      hasItems,
+      
+      // UI State
+      isCartOpen,
+      isLoading,
       toggleCart,
-      clearCart
+      clearCart,
+      fetchCart,
     }}>
       {children}
     </CartContext.Provider>

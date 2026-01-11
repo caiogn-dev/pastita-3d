@@ -1,368 +1,356 @@
 /**
- * Geocoding Service - Address lookup, reverse geocoding, and routing.
+ * Geocoding Service - Production-ready address lookup, reverse geocoding, and routing.
  * 
- * Primary: Backend API + HERE Maps (for map display)
- * Fallback: Nominatim (geocoding) + OSRM (routing) - free, no API key required
- * Brazilian CEP: ViaCEP API
+ * Service hierarchy:
+ * 1. HERE Maps API (primary) - Professional geocoding with Brazilian address support
+ * 2. ViaCEP (Brazilian CEP) - Official Brazilian postal code lookup
  * 
- * Note: For map display and interactive features, use hereMapService.js and hereRoutingService.js
+ * Note: Nominatim/OSRM fallbacks have been removed in favor of HERE Maps reliability.
  */
-import api from './api';
 
-// Fallback services (free, no API key required)
-const NOMINATIM_URL = 'https://nominatim.openstreetmap.org';
-const OSRM_URL = 'https://router.project-osrm.org';
+const HERE_API_KEY = process.env.NEXT_PUBLIC_HERE_API_KEY || '';
+const HERE_GEOCODE_URL = 'https://geocode.search.hereapi.com/v1/geocode';
+const HERE_REVGEOCODE_URL = 'https://revgeocode.search.hereapi.com/v1/revgeocode';
+const HERE_AUTOSUGGEST_URL = 'https://autosuggest.search.hereapi.com/v1/autosuggest';
+const HERE_ROUTING_URL = 'https://router.hereapi.com/v8/routes';
+const VIACEP_URL = 'https://viacep.com.br/ws';
+
+const REQUEST_TIMEOUT = 10000;
 
 /**
- * Forward geocoding - convert address to coordinates.
- * @param {string} query - Address or place name to search
- * @param {Object} options - Search options
- * @param {string[]} options.countryCodes - Country codes to limit search (default: ['br'])
- * @param {number} options.limit - Maximum results (default: 5)
- * @returns {Promise<Array>} Array of location results
+ * Create a fetch request with timeout
  */
-export async function geocodeAddress(query, options = {}) {
-  const { countryCodes = ['br'], limit = 5 } = options;
-  
+async function fetchWithTimeout(url, options = {}, timeout = REQUEST_TIMEOUT) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
   try {
-    // Try backend API first
-    const response = await api.post('/geocoding/search/', {
-      query,
-      country_codes: countryCodes,
-      limit,
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
     });
-    return response.data.results || [];
-  } catch (error) {
-    console.warn('Backend geocoding failed, falling back to Nominatim:', error);
-    // Fallback to direct Nominatim
-    return geocodeAddressDirect(query, options);
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
 /**
- * Direct Nominatim geocoding (fallback).
+ * Check if HERE API key is configured
  */
-async function geocodeAddressDirect(query, options = {}) {
-  const { countryCodes = ['br'], limit = 5 } = options;
-  
+function isHEREConfigured() {
+  return Boolean(HERE_API_KEY && HERE_API_KEY.length > 10);
+}
+
+/**
+ * Validate coordinates
+ */
+function isValidCoordinate(lat, lng) {
+  return (
+    typeof lat === 'number' &&
+    typeof lng === 'number' &&
+    !isNaN(lat) &&
+    !isNaN(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
+  );
+}
+
+/**
+ * Build address string from HERE address components
+ */
+function buildAddressFromHERE(address) {
+  const parts = [];
+
+  if (address.street) {
+    let street = address.street;
+    if (address.houseNumber) {
+      street = `${street}, ${address.houseNumber}`;
+    }
+    parts.push(street);
+  }
+
+  if (address.district) {
+    parts.push(address.district);
+  }
+
+  return parts.join(' - ');
+}
+
+/**
+ * Forward geocoding - convert address to coordinates using HERE Maps.
+ * @param {string} query - Address or place name to search
+ * @param {Object} options - Search options
+ * @returns {Promise<Array>} Array of location results
+ */
+export async function geocodeAddress(query, options = {}) {
+  const { countryCodes = ['BRA'], limit = 5 } = options;
+
+  if (!query || query.trim().length < 3) {
+    return [];
+  }
+
+  if (!isHEREConfigured()) {
+    console.warn('HERE API key not configured. Geocoding unavailable.');
+    return [];
+  }
+
   try {
     const params = new URLSearchParams({
       q: query,
-      format: 'json',
-      addressdetails: '1',
+      in: `countryCode:${countryCodes.join(',')}`,
       limit: String(limit),
-      countrycodes: countryCodes.join(','),
+      apikey: HERE_API_KEY,
     });
-    
-    const response = await fetch(`${NOMINATIM_URL}/search?${params}`, {
-      headers: {
-        'User-Agent': 'pastita-platform/1.0',
-      },
-    });
-    
-    if (!response.ok) return [];
-    
+
+    const response = await fetchWithTimeout(`${HERE_GEOCODE_URL}?${params}`);
+
+    if (!response.ok) {
+      throw new Error(`HERE Geocode API error: ${response.status}`);
+    }
+
     const data = await response.json();
-    return data.map(item => ({
-      latitude: parseFloat(item.lat),
-      longitude: parseFloat(item.lon),
-      display_name: item.display_name,
-      address: buildAddressString(item.address),
-      city: item.address?.city || item.address?.town || item.address?.village || '',
-      state: item.address?.state || '',
-      country: item.address?.country || '',
-      zip_code: item.address?.postcode || '',
-      place_id: item.place_id,
-      importance: item.importance || 0,
-      bounding_box: item.boundingbox?.map(parseFloat) || null,
+
+    if (!data.items || data.items.length === 0) {
+      return [];
+    }
+
+    return data.items.map((item) => ({
+      latitude: item.position.lat,
+      longitude: item.position.lng,
+      display_name: item.address.label,
+      address: buildAddressFromHERE(item.address),
+      street: item.address.street || '',
+      number: item.address.houseNumber || '',
+      neighborhood: item.address.district || '',
+      city: item.address.city || '',
+      state: item.address.stateCode || item.address.state || '',
+      country: item.address.countryName || '',
+      zip_code: item.address.postalCode || '',
+      place_id: item.id,
+      confidence: item.scoring?.queryScore || 0,
     }));
   } catch (error) {
-    console.error('Direct geocoding failed:', error);
+    if (error.name === 'AbortError') {
+      console.error('Geocoding request timed out');
+    } else {
+      console.error('Geocoding error:', error);
+    }
     return [];
   }
 }
 
 /**
- * Reverse geocoding - convert coordinates to address.
+ * Reverse geocoding - convert coordinates to address using HERE Maps.
  * @param {number} latitude - Latitude coordinate
  * @param {number} longitude - Longitude coordinate
- * @param {number} zoom - Level of detail (0-18, default: 18)
  * @returns {Promise<Object|null>} Location object or null
  */
-export async function reverseGeocode(latitude, longitude, zoom = 18) {
-  try {
-    // Try backend API first
-    const response = await api.post('/geocoding/reverse/', {
-      latitude,
-      longitude,
-      zoom,
-    });
-    return response.data;
-  } catch (error) {
-    console.warn('Backend reverse geocoding failed, falling back to Nominatim:', error);
-    // Fallback to direct Nominatim
-    return reverseGeocodeDirect(latitude, longitude, zoom);
+export async function reverseGeocode(latitude, longitude) {
+  if (!isHEREConfigured()) {
+    console.warn('HERE API key not configured. Reverse geocoding unavailable.');
+    return null;
   }
-}
 
-/**
- * Direct Nominatim reverse geocoding (fallback).
- */
-async function reverseGeocodeDirect(latitude, longitude, zoom = 18) {
+  if (!isValidCoordinate(latitude, longitude)) {
+    console.error('Invalid coordinates provided');
+    return null;
+  }
+
   try {
     const params = new URLSearchParams({
-      lat: String(latitude),
-      lon: String(longitude),
-      format: 'json',
-      addressdetails: '1',
-      zoom: String(zoom),
+      at: `${latitude},${longitude}`,
+      lang: 'pt-BR',
+      apikey: HERE_API_KEY,
     });
-    
-    const response = await fetch(`${NOMINATIM_URL}/reverse?${params}`, {
-      headers: {
-        'User-Agent': 'pastita-platform/1.0',
-      },
-    });
-    
-    if (!response.ok) return null;
-    
+
+    const response = await fetchWithTimeout(`${HERE_REVGEOCODE_URL}?${params}`);
+
+    if (!response.ok) {
+      throw new Error(`HERE Reverse Geocode API error: ${response.status}`);
+    }
+
     const data = await response.json();
-    if (data.error) return null;
-    
+
+    if (!data.items || data.items.length === 0) {
+      return null;
+    }
+
+    const item = data.items[0];
+
     return {
-      latitude: parseFloat(data.lat),
-      longitude: parseFloat(data.lon),
-      display_name: data.display_name,
-      address: buildAddressString(data.address),
-      city: data.address?.city || data.address?.town || data.address?.village || '',
-      state: data.address?.state || '',
-      country: data.address?.country || '',
-      zip_code: data.address?.postcode || '',
-      place_id: data.place_id,
+      latitude: item.position.lat,
+      longitude: item.position.lng,
+      display_name: item.address.label,
+      address: buildAddressFromHERE(item.address),
+      street: item.address.street || '',
+      number: item.address.houseNumber || '',
+      neighborhood: item.address.district || '',
+      city: item.address.city || '',
+      state: item.address.stateCode || item.address.state || '',
+      country: item.address.countryName || '',
+      zip_code: item.address.postalCode || '',
+      place_id: item.id,
     };
   } catch (error) {
-    console.error('Direct reverse geocoding failed:', error);
+    if (error.name === 'AbortError') {
+      console.error('Reverse geocoding request timed out');
+    } else {
+      console.error('Reverse geocoding error:', error);
+    }
     return null;
   }
 }
 
 /**
- * Get address autocomplete suggestions.
+ * Get address autocomplete suggestions using HERE Autosuggest.
  * @param {string} query - Partial address or place name (min 3 chars)
  * @param {Object} options - Search options
  * @returns {Promise<Array>} Array of suggestions
  */
 export async function getAddressSuggestions(query, options = {}) {
-  if (!query || query.length < 3) return [];
-  
-  const { countryCodes = ['br'], limit = 10 } = options;
-  
+  const { countryCodes = ['BRA'], limit = 8 } = options;
+
+  if (!query || query.trim().length < 3) {
+    return [];
+  }
+
+  if (!isHEREConfigured()) {
+    console.warn('HERE API key not configured. Suggestions unavailable.');
+    return [];
+  }
+
   try {
-    // Try backend API first
     const params = new URLSearchParams({
       q: query,
-      country_codes: countryCodes.join(','),
+      in: `countryCode:${countryCodes.join(',')}`,
       limit: String(limit),
+      apikey: HERE_API_KEY,
     });
-    
-    const response = await api.get(`/geocoding/suggestions/?${params}`);
-    return response.data.suggestions || [];
+
+    const response = await fetchWithTimeout(`${HERE_AUTOSUGGEST_URL}?${params}`);
+
+    if (!response.ok) {
+      throw new Error(`HERE Autosuggest API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.items || data.items.length === 0) {
+      return [];
+    }
+
+    return data.items
+      .filter((item) => item.position)
+      .map((item) => ({
+        display_name: item.title,
+        latitude: item.position.lat,
+        longitude: item.position.lng,
+        place_id: item.id,
+        address_type: item.resultType,
+        confidence: 1,
+      }));
   } catch (error) {
-    console.warn('Backend suggestions failed, falling back to Nominatim:', error);
-    // Fallback to direct geocoding
-    const results = await geocodeAddressDirect(query, { countryCodes, limit });
-    return results.map(r => ({
-      display_name: r.display_name,
-      latitude: r.latitude,
-      longitude: r.longitude,
-      place_id: r.place_id,
-      address_type: '',
-      importance: r.importance,
-    }));
+    if (error.name === 'AbortError') {
+      console.error('Suggestions request timed out');
+    } else {
+      console.error('Suggestions error:', error);
+    }
+    return [];
   }
 }
 
 /**
- * Calculate route between two points.
+ * Calculate route between two points using HERE Routing API.
  * @param {Object} origin - Origin coordinates {latitude, longitude}
  * @param {Object} destination - Destination coordinates {latitude, longitude}
  * @param {Object} options - Route options
- * @param {string} options.profile - Routing profile ('driving', 'walking', 'cycling')
- * @param {boolean} options.steps - Include turn-by-turn directions
  * @returns {Promise<Object|null>} Route info or null
  */
 export async function calculateRoute(origin, destination, options = {}) {
-  const { profile = 'driving', steps = true } = options;
-  
-  try {
-    // Try backend API first
-    const response = await api.post('/geocoding/route/', {
-      origin,
-      destination,
-      profile,
-      steps,
-    });
-    return response.data;
-  } catch (error) {
-    console.warn('Backend routing failed, falling back to OSRM:', error);
-    // Fallback to direct OSRM
-    return calculateRouteDirect(origin, destination, options);
-  }
-}
+  const { transportMode = 'car', routingMode = 'fast' } = options;
 
-/**
- * Direct OSRM routing (fallback).
- */
-async function calculateRouteDirect(origin, destination, options = {}) {
-  const { profile = 'driving', steps = true } = options;
-  
-  const profileMap = {
-    driving: 'driving',
-    car: 'driving',
-    walking: 'foot',
-    foot: 'foot',
-    cycling: 'bike',
-    bike: 'bike',
-  };
-  
-  const osrmProfile = profileMap[profile] || 'driving';
-  const coords = `${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}`;
-  
+  if (!isHEREConfigured()) {
+    console.warn('HERE API key not configured. Routing unavailable.');
+    return null;
+  }
+
+  if (
+    !isValidCoordinate(origin.latitude, origin.longitude) ||
+    !isValidCoordinate(destination.latitude, destination.longitude)
+  ) {
+    console.error('Invalid coordinates provided for routing');
+    return null;
+  }
+
   try {
     const params = new URLSearchParams({
-      overview: 'full',
-      geometries: 'polyline6',
-      steps: steps ? 'true' : 'false',
+      origin: `${origin.latitude},${origin.longitude}`,
+      destination: `${destination.latitude},${destination.longitude}`,
+      transportMode,
+      routingMode,
+      return: 'summary,polyline',
+      apikey: HERE_API_KEY,
     });
-    
-    const response = await fetch(`${OSRM_URL}/route/v1/${osrmProfile}/${coords}?${params}`);
-    
-    if (!response.ok) return null;
-    
+
+    const response = await fetchWithTimeout(`${HERE_ROUTING_URL}?${params}`);
+
+    if (!response.ok) {
+      throw new Error(`HERE Routing API error: ${response.status}`);
+    }
+
     const data = await response.json();
-    if (data.code !== 'Ok' || !data.routes?.length) return null;
-    
+
+    if (!data.routes || data.routes.length === 0) {
+      return null;
+    }
+
     const route = data.routes[0];
+    const section = route.sections[0];
+
     return {
-      distance_km: (route.distance / 1000).toFixed(2),
-      duration_minutes: Math.round(route.duration / 60),
-      geometry: route.geometry,
-      summary: route.legs?.[0]?.summary || '',
-      steps: steps ? extractSteps(route) : null,
+      distance_km: parseFloat((section.summary.length / 1000).toFixed(2)),
+      duration_minutes: Math.round(section.summary.duration / 60),
+      polyline: section.polyline,
+      summary: `${(section.summary.length / 1000).toFixed(1)} km • ${Math.round(section.summary.duration / 60)} min`,
     };
   } catch (error) {
-    console.error('Direct routing failed:', error);
+    if (error.name === 'AbortError') {
+      console.error('Routing request timed out');
+    } else {
+      console.error('Routing error:', error);
+    }
     return null;
   }
 }
 
 /**
- * Extract steps from OSRM route.
- */
-function extractSteps(route) {
-  const steps = [];
-  for (const leg of route.legs || []) {
-    for (const step of leg.steps || []) {
-      const maneuver = step.maneuver || {};
-      steps.push({
-        instruction: getStepInstruction(step, maneuver),
-        distance: step.distance || 0,
-        duration: step.duration || 0,
-        name: step.name || '',
-        maneuver_type: maneuver.type || '',
-        maneuver_modifier: maneuver.modifier || '',
-      });
-    }
-  }
-  return steps;
-}
-
-/**
- * Generate human-readable instruction for a route step.
- */
-function getStepInstruction(step, maneuver) {
-  const type = maneuver.type || '';
-  const modifier = maneuver.modifier || '';
-  const name = step.name || '';
-  
-  const instructions = {
-    depart: `Siga em frente${name ? ' pela ' + name : ''}`,
-    arrive: `Você chegou ao destino${name ? ' em ' + name : ''}`,
-    turn: getTurnInstruction(modifier, name),
-    continue: `Continue${name ? ' pela ' + name : ''}`,
-    merge: `Entre na via${name ? ' ' + name : ''}`,
-    'on ramp': `Pegue a rampa${name ? ' para ' + name : ''}`,
-    'off ramp': `Saia pela rampa${name ? ' para ' + name : ''}`,
-    fork: `Mantenha-se à ${translateModifier(modifier)}${name ? ' para ' + name : ''}`,
-    'end of road': `No final da via, vire à ${translateModifier(modifier)}`,
-    roundabout: `Na rotatória, pegue a saída${name ? ' para ' + name : ''}`,
-    rotary: `Na rotatória, pegue a saída${name ? ' para ' + name : ''}`,
-  };
-  
-  return instructions[type] || `Continue${name ? ' pela ' + name : ''}`;
-}
-
-function getTurnInstruction(modifier, name) {
-  const turnTypes = {
-    left: 'Vire à esquerda',
-    right: 'Vire à direita',
-    'slight left': 'Vire levemente à esquerda',
-    'slight right': 'Vire levemente à direita',
-    'sharp left': 'Vire acentuadamente à esquerda',
-    'sharp right': 'Vire acentuadamente à direita',
-    uturn: 'Faça retorno',
-    straight: 'Continue em frente',
-  };
-  
-  let instruction = turnTypes[modifier] || 'Continue';
-  if (name) instruction += ` para ${name}`;
-  return instruction;
-}
-
-function translateModifier(modifier) {
-  const translations = {
-    left: 'esquerda',
-    right: 'direita',
-    'slight left': 'esquerda',
-    'slight right': 'direita',
-    'sharp left': 'esquerda',
-    'sharp right': 'direita',
-    straight: 'frente',
-  };
-  return translations[modifier] || modifier;
-}
-
-/**
- * Brazilian CEP (zip code) lookup.
+ * Brazilian CEP (zip code) lookup using ViaCEP.
  * @param {string} cep - Brazilian CEP (8 digits)
  * @returns {Promise<Object|null>} Address data or null
  */
 export async function lookupCEP(cep) {
   const cleanCep = cep.replace(/\D/g, '').slice(0, 8);
-  if (cleanCep.length !== 8) return null;
-  
-  try {
-    // Try backend API first
-    const response = await api.get(`/geocoding/cep/${cleanCep}/`);
-    return response.data;
-  } catch (error) {
-    console.warn('Backend CEP lookup failed, falling back to ViaCEP:', error);
-    // Fallback to direct ViaCEP
-    return lookupCEPDirect(cleanCep);
-  }
-}
 
-/**
- * Direct ViaCEP lookup (fallback).
- */
-async function lookupCEPDirect(cep) {
+  if (cleanCep.length !== 8) {
+    return null;
+  }
+
   try {
-    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-    if (!response.ok) return null;
-    
+    const response = await fetchWithTimeout(`${VIACEP_URL}/${cleanCep}/json/`);
+
+    if (!response.ok) {
+      throw new Error(`ViaCEP API error: ${response.status}`);
+    }
+
     const data = await response.json();
-    if (data.erro) return null;
-    
+
+    if (data.erro) {
+      return null;
+    }
+
     return {
       cep: data.cep || '',
       address: data.logradouro || '',
@@ -375,51 +363,63 @@ async function lookupCEPDirect(cep) {
       ddd: data.ddd || '',
     };
   } catch (error) {
-    console.error('Direct CEP lookup failed:', error);
+    if (error.name === 'AbortError') {
+      console.error('CEP lookup request timed out');
+    } else {
+      console.error('CEP lookup error:', error);
+    }
     return null;
   }
 }
 
 /**
- * Geocode a Brazilian address using CEP for better accuracy.
+ * Geocode a Brazilian address using CEP + HERE Maps for accuracy.
  * @param {string} cep - Brazilian CEP
  * @param {Object} addressData - Additional address data
  * @returns {Promise<Object|null>} Location object or null
  */
 export async function geocodeBrazilianAddress(cep, addressData = {}) {
-  try {
-    const response = await api.post('/geocoding/geocode-brazilian/', {
-      cep,
-      address: addressData.address || '',
-      city: addressData.city || '',
-      state: addressData.state || '',
-    });
-    return response.data;
-  } catch (error) {
-    console.warn('Backend Brazilian geocoding failed:', error);
-    
-    // Fallback: lookup CEP and geocode
-    const cepData = await lookupCEP(cep);
-    if (!cepData) return null;
-    
-    const query = [
-      addressData.address || cepData.address,
-      cepData.neighborhood,
-      addressData.city || cepData.city,
-      addressData.state || cepData.state,
-      'Brasil',
-    ].filter(Boolean).join(', ');
-    
-    const results = await geocodeAddress(query, { limit: 1 });
-    if (results.length > 0) {
-      return {
-        ...results[0],
-        zip_code: cepData.cep,
-      };
-    }
-    
-    return null;
+  const cepData = await lookupCEP(cep);
+
+  const queryParts = [];
+
+  if (addressData.address) {
+    queryParts.push(addressData.address);
+  } else if (cepData?.address) {
+    queryParts.push(cepData.address);
   }
+
+  if (addressData.number) {
+    queryParts.push(addressData.number);
+  }
+
+  if (cepData?.neighborhood) {
+    queryParts.push(cepData.neighborhood);
+  }
+
+  if (addressData.city || cepData?.city) {
+    queryParts.push(addressData.city || cepData?.city || '');
+  }
+
+  if (addressData.state || cepData?.state) {
+    queryParts.push(addressData.state || cepData?.state || '');
+  }
+
+  queryParts.push('Brasil');
+
+  const query = queryParts.filter(Boolean).join(', ');
+
+  const results = await geocodeAddress(query, { limit: 1 });
+
+  if (results.length > 0) {
+    return {
+      ...results[0],
+      zip_code: cepData?.cep || cep,
+      neighborhood: cepData?.neighborhood || results[0].neighborhood,
+    };
+  }
+
+  return null;
 }
 
 /**
@@ -429,18 +429,18 @@ export async function geocodeBrazilianAddress(cep, addressData = {}) {
  */
 export function getCurrentLocation(options = {}) {
   return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('Geolocation is not supported by this browser'));
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      reject(new Error('Geolocalização não suportada pelo navegador'));
       return;
     }
-    
+
     const defaultOptions = {
       enableHighAccuracy: true,
-      timeout: 10000,
+      timeout: 15000,
       maximumAge: 60000,
       ...options,
     };
-    
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         resolve({
@@ -450,19 +450,12 @@ export function getCurrentLocation(options = {}) {
         });
       },
       (error) => {
-        let message = 'Erro ao obter localização';
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            message = 'Permissão de localização negada';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            message = 'Localização indisponível';
-            break;
-          case error.TIMEOUT:
-            message = 'Tempo esgotado ao obter localização';
-            break;
-        }
-        reject(new Error(message));
+        const messages = {
+          1: 'Permissão de localização negada',
+          2: 'Localização indisponível',
+          3: 'Tempo esgotado ao obter localização',
+        };
+        reject(new Error(messages[error.code] || 'Erro ao obter localização'));
       },
       defaultOptions
     );
@@ -470,42 +463,38 @@ export function getCurrentLocation(options = {}) {
 }
 
 /**
- * Build address string from address components.
- */
-function buildAddressString(address) {
-  if (!address) return '';
-  
-  const parts = [];
-  if (address.road) {
-    let road = address.road;
-    if (address.house_number) {
-      road = `${road}, ${address.house_number}`;
-    }
-    parts.push(road);
-  }
-  if (address.suburb || address.neighbourhood) {
-    parts.push(address.suburb || address.neighbourhood);
-  }
-  return parts.join(', ');
-}
-
-/**
  * Calculate haversine distance between two points in km.
  */
 export function haversineDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
 function toRad(deg) {
   return deg * (Math.PI / 180);
+}
+
+/**
+ * Format CEP with mask (00000-000)
+ */
+export function formatCEP(cep) {
+  const clean = cep.replace(/\D/g, '').slice(0, 8);
+  if (clean.length <= 5) return clean;
+  return `${clean.slice(0, 5)}-${clean.slice(5)}`;
+}
+
+/**
+ * Validate CEP format
+ */
+export function isValidCEP(cep) {
+  const clean = cep.replace(/\D/g, '');
+  return clean.length === 8 && /^\d{8}$/.test(clean);
 }
 
 export default {
@@ -517,4 +506,6 @@ export default {
   geocodeBrazilianAddress,
   getCurrentLocation,
   haversineDistance,
+  formatCEP,
+  isValidCEP,
 };
