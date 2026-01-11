@@ -168,7 +168,7 @@ function decodeFlexiblePolyline(encoded) {
       });
       return points;
     } catch (e) {
-      console.warn('Failed to decode with HERE SDK, using fallback');
+      logger.warn('Failed to decode with HERE SDK, using fallback');
     }
   }
 

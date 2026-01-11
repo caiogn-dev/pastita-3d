@@ -220,7 +220,7 @@ export async function getAddressSuggestions(query, options = {}) {
   }
 
   if (!isHEREConfigured()) {
-    console.warn('HERE API key not configured. Suggestions unavailable.');
+    logger.warn('HERE API key not configured. Suggestions unavailable.');
     return [];
   }
 
@@ -275,7 +275,7 @@ export async function calculateRoute(origin, destination, options = {}) {
   const { transportMode = 'car', routingMode = 'fast' } = options;
 
   if (!isHEREConfigured()) {
-    console.warn('HERE API key not configured. Routing unavailable.');
+    logger.warn('HERE API key not configured. Routing unavailable.');
     return null;
   }
 

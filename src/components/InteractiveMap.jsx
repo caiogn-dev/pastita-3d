@@ -262,7 +262,7 @@ export default function InteractiveMap({
           };
         }
       } catch (e) {
-        console.warn('Reverse geocoding failed:', e);
+        logger.warn('Reverse geocoding failed', { error: e.message });
       }
 
       const location = {
