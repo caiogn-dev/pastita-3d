@@ -197,7 +197,9 @@ export const useGeolocation = () => {
     updateLocation,
     clearLocation,
     calculateRouteAndFee,
-    setDeliveryInfo
+    setDeliveryInfo,
+    setDetectedAddress,
+    setPosition
   };
 };
 

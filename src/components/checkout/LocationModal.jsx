@@ -6,7 +6,8 @@ import dynamic from 'next/dynamic';
 import styles from '../../styles/CheckoutModal.module.css';
 import { STORE_LOCATION } from './utils';
 
-const InteractiveMap = dynamic(() => import('../InteractiveMap'), {
+// Use the simplified map component
+const DeliveryMapSimple = dynamic(() => import('./DeliveryMapSimple'), {
   ssr: false,
   loading: () => <div className={styles.mapLoading}>Carregando mapa...</div>
 });
@@ -138,27 +139,23 @@ const LocationModal = ({
         {step === 'map' && (
           <div className={styles.mapStep}>
             <h2>Selecione seu endereço no mapa</h2>
-            <p>Clique no mapa ou use a busca para encontrar seu endereço</p>
+            <p>Clique no mapa, busque pelo CEP ou use sua localização</p>
 
             <div className={styles.mapContainer}>
-              <InteractiveMap
+              <DeliveryMapSimple
                 storeLocation={STORE_LOCATION}
                 customerLocation={geolocation.position}
                 routePolyline={geolocation.routeInfo?.polyline}
                 onLocationSelect={handleMapLocationSelect}
+                onAddressFound={(addr) => {
+                  if (addr) geolocation.setDetectedAddress?.(addr);
+                }}
                 enableSelection={true}
-                showStoreMarker={true}
-                showCustomerMarker={!!geolocation.position}
-                height="350px"
+                showSearch={true}
+                showGpsButton={true}
+                height="380px"
               />
             </div>
-
-            {geolocation.loading && (
-              <div className={styles.loadingOverlay}>
-                <div className={styles.spinner}></div>
-                <p>Buscando endereço...</p>
-              </div>
-            )}
           </div>
         )}
 
@@ -169,14 +166,14 @@ const LocationModal = ({
 
             {/* Map with route */}
             <div className={styles.mapContainer}>
-              <InteractiveMap
+              <DeliveryMapSimple
                 storeLocation={STORE_LOCATION}
                 customerLocation={geolocation.position}
                 routePolyline={geolocation.routeInfo?.polyline}
                 enableSelection={false}
-                showStoreMarker={true}
-                showCustomerMarker={true}
-                height="250px"
+                showSearch={false}
+                showGpsButton={false}
+                height="220px"
               />
             </div>
 

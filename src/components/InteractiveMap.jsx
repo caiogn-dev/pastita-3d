@@ -452,11 +452,15 @@ export default function InteractiveMap({
       return;
     }
 
-    // Search via HERE
+    // Search via HERE - requires 'at' parameter
     searchTimeoutRef.current = setTimeout(async () => {
       try {
+        // Use store location or default center for 'at' parameter (required by HERE API)
+        const centerLat = storeLocation?.latitude || DEFAULT_CENTER.lat;
+        const centerLng = storeLocation?.longitude || DEFAULT_CENTER.lng;
+        
         const response = await fetch(
-          `https://autosuggest.search.hereapi.com/v1/autosuggest?q=${encodeURIComponent(query)}&in=countryCode:BRA&limit=5&apikey=${process.env.NEXT_PUBLIC_HERE_API_KEY}`
+          `https://autosuggest.search.hereapi.com/v1/autosuggest?q=${encodeURIComponent(query)}&at=${centerLat},${centerLng}&in=countryCode:BRA&limit=5&apikey=${process.env.NEXT_PUBLIC_HERE_API_KEY}`
         );
         const data = await response.json();
         
@@ -480,7 +484,7 @@ export default function InteractiveMap({
         setShowSuggestions(false);
       }
     }, 300);
-  }, []);
+  }, [storeLocation]);
 
   // Handle suggestion selection
   const handleSuggestionSelect = useCallback(async (suggestion) => {

@@ -196,27 +196,65 @@ export function createMarker(coords, options = {}) {
 }
 
 /**
- * Create a store marker with custom icon
+ * Create a store marker with custom icon (Pastita logo style)
  */
 export function createStoreMarker(coords) {
   const svgIcon = `
-    <svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="18" fill="${PASTITA_COLORS.marsala}" stroke="white" stroke-width="2"/>
-      <text x="20" y="26" text-anchor="middle" fill="white" font-size="16" font-weight="bold">P</text>
+    <svg width="48" height="56" xmlns="http://www.w3.org/2000/svg">
+      <!-- Pin shape -->
+      <path d="M24 0C10.745 0 0 10.745 0 24c0 18 24 32 24 32s24-14 24-32C48 10.745 37.255 0 24 0z" 
+            fill="${PASTITA_COLORS.marsala}" stroke="white" stroke-width="3"/>
+      <!-- Store icon -->
+      <rect x="14" y="14" width="20" height="16" rx="2" fill="white"/>
+      <rect x="14" y="12" width="20" height="4" rx="1" fill="${PASTITA_COLORS.gold}"/>
+      <rect x="18" y="22" width="4" height="8" fill="${PASTITA_COLORS.marsala}"/>
+      <rect x="26" y="22" width="4" height="8" fill="${PASTITA_COLORS.marsala}"/>
+      <!-- P letter -->
+      <text x="24" y="20" text-anchor="middle" fill="${PASTITA_COLORS.marsala}" font-size="8" font-weight="bold">LOJA</text>
     </svg>
   `;
-  return createMarker(coords, { svgIcon, iconOptions: { size: { w: 40, h: 40 }, anchor: { x: 20, y: 20 } } });
+  return createMarker(coords, { 
+    svgIcon, 
+    iconOptions: { size: { w: 48, h: 56 }, anchor: { x: 24, y: 56 } },
+    data: { type: 'store' }
+  });
 }
 
 /**
- * Create a delivery marker
+ * Create a customer/delivery marker (user location)
  */
 export function createDeliveryMarker(coords, options = {}) {
   const color = options.color || PASTITA_COLORS.gold;
   const svgIcon = `
+    <svg width="40" height="48" xmlns="http://www.w3.org/2000/svg">
+      <!-- Pin shape -->
+      <path d="M20 0C8.954 0 0 8.954 0 20c0 15 20 28 20 28s20-13 20-28C40 8.954 31.046 0 20 0z" 
+            fill="${color}" stroke="white" stroke-width="2"/>
+      <!-- User icon -->
+      <circle cx="20" cy="15" r="6" fill="white"/>
+      <path d="M10 30c0-5.523 4.477-10 10-10s10 4.477 10 10" fill="white"/>
+      <!-- Pulse animation circle (visual indicator) -->
+      <circle cx="20" cy="20" r="8" fill="none" stroke="white" stroke-width="2" opacity="0.6"/>
+    </svg>
+  `;
+  return createMarker(coords, { 
+    svgIcon, 
+    iconOptions: { size: { w: 40, h: 48 }, anchor: { x: 20, y: 48 } },
+    draggable: options.draggable,
+    data: { type: 'customer', ...options.data }
+  });
+}
+
+/**
+ * Create a simple location pin marker
+ */
+export function createLocationPin(coords, options = {}) {
+  const color = options.color || '#E53935';
+  const svgIcon = `
     <svg width="32" height="40" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16 0C7.163 0 0 7.163 0 16c0 12 16 24 16 24s16-12 16-24c0-8.837-7.163-16-16-16z" fill="${color}" stroke="white" stroke-width="2"/>
-      <circle cx="16" cy="16" r="6" fill="white"/>
+      <path d="M16 0C7.163 0 0 7.163 0 16c0 12 16 24 16 24s16-12 16-24C32 7.163 24.837 0 16 0z" 
+            fill="${color}" stroke="white" stroke-width="2"/>
+      <circle cx="16" cy="14" r="5" fill="white"/>
     </svg>
   `;
   return createMarker(coords, { 
@@ -588,14 +626,21 @@ export async function reverseGeocode(latitude, longitude) {
  * Address autocomplete suggestions
  */
 export async function getAddressSuggestions(query, options = {}) {
-  const { countryCodes = ['BRA'], limit = 8 } = options;
+  const { countryCodes = ['BRA'], limit = 8, center = null } = options;
 
   if (!query || query.trim().length < 3) return [];
   if (!HERE_API_KEY) return [];
 
   try {
+    // HERE Autosuggest API requires 'at' parameter
+    // Use center if provided, otherwise use default (Palmas, TO)
+    const atParam = center 
+      ? `${center.lat || center.latitude},${center.lng || center.longitude}`
+      : `${DEFAULT_CENTER.lat},${DEFAULT_CENTER.lng}`;
+
     const params = new URLSearchParams({
       q: query,
+      at: atParam,
       in: `countryCode:${countryCodes.join(',')}`,
       limit: String(limit),
       apikey: HERE_API_KEY,
@@ -615,6 +660,7 @@ export async function getAddressSuggestions(query, options = {}) {
         longitude: item.position.lng,
         place_id: item.id,
         address_type: item.resultType,
+        address: item.address || {},
       }));
   } catch (error) {
     logger.error('Suggestions error', error);
