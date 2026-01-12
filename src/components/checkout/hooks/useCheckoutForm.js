@@ -194,17 +194,34 @@ export const useCheckoutForm = () => {
       ? `${formData.address}, ${formData.number}${formData.complement ? ` - ${formData.complement}` : ''}`
       : formData.address;
 
+    const isPickup = shippingMethod === 'pickup';
+    
+    // Build delivery_address object for the API
+    const deliveryAddress = isPickup ? {
+      street: STORE_ADDRESS.address,
+      city: STORE_ADDRESS.city,
+      state: STORE_ADDRESS.state,
+      zip_code: onlyDigits(STORE_ADDRESS.zip_code),
+    } : {
+      street: fullAddress,
+      neighborhood: formData.neighborhood || '',
+      city: formData.city,
+      state: formData.state,
+      zip_code: onlyDigits(formData.zip_code),
+    };
+
     return {
       customer_name: formData.name.trim(),
       customer_email: formData.email.trim(),
       customer_phone: onlyDigits(formData.phone),
       cpf: onlyDigits(formData.cpf),
-      shipping_address: shippingMethod === 'pickup' ? STORE_ADDRESS.address : fullAddress,
-      shipping_city: shippingMethod === 'pickup' ? STORE_ADDRESS.city : formData.city,
-      shipping_state: shippingMethod === 'pickup' ? STORE_ADDRESS.state : formData.state,
-      shipping_zip_code: shippingMethod === 'pickup'
-        ? onlyDigits(STORE_ADDRESS.zip_code)
-        : onlyDigits(formData.zip_code),
+      // Legacy fields for backwards compatibility
+      shipping_address: isPickup ? STORE_ADDRESS.address : fullAddress,
+      shipping_city: isPickup ? STORE_ADDRESS.city : formData.city,
+      shipping_state: isPickup ? STORE_ADDRESS.state : formData.state,
+      shipping_zip_code: isPickup ? onlyDigits(STORE_ADDRESS.zip_code) : onlyDigits(formData.zip_code),
+      // New delivery_address object for API
+      delivery_address: deliveryAddress,
       scheduled_date: enableScheduling && scheduledDate ? scheduledDate : null,
       scheduled_time_slot: enableScheduling && scheduledTimeSlot ? scheduledTimeSlot : null,
     };

@@ -90,16 +90,18 @@ export const useDelivery = () => {
     try {
       const data = await storeApi.validateDeliveryAddress(lat, lng);
       if (data) {
+        // API returns delivery_fee, not fee
+        const fee = Number(data.delivery_fee ?? data.fee ?? 0);
         const info = {
-          fee: Number(data.fee) || 0,
-          zone_name: data.zone_name || 'Área de entrega',
+          fee: fee,
+          zone_name: data.delivery_zone || data.zone_name || 'Área de entrega',
           estimated_days: data.estimated_days || 0,
           distance_km: data.distance_km,
           estimated_minutes: data.estimated_minutes,
           is_valid: data.is_valid !== false
         };
         setDeliveryInfo(info);
-        setShippingCost(info.fee);
+        setShippingCost(fee);
         setLoadingDelivery(false);
         return info;
       }

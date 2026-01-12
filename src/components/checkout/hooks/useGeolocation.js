@@ -64,12 +64,13 @@ export const useGeolocation = () => {
         });
       }
 
-      // Get delivery fee
+      // Get delivery fee - API returns delivery_fee, not fee
       const deliveryData = await storeApi.validateDeliveryAddress(lat, lng);
       if (deliveryData) {
+        const fee = Number(deliveryData.delivery_fee ?? deliveryData.fee ?? 0);
         setDeliveryInfo({
-          fee: Number(deliveryData.fee) || 0,
-          zone_name: deliveryData.zone_name || 'Área de entrega',
+          fee: fee,
+          zone_name: deliveryData.delivery_zone || deliveryData.zone_name || 'Área de entrega',
           estimated_days: deliveryData.estimated_days || 0,
           distance_km: deliveryData.distance_km,
           estimated_minutes: deliveryData.estimated_minutes,

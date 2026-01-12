@@ -1,15 +1,13 @@
 /**
  * Location Modal - Popup for GPS detection and address selection
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+'use client';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import styles from '../../styles/CheckoutModal.module.css';
 import { STORE_LOCATION } from './utils';
 
-const InteractiveMap = dynamic(() => import('../InteractiveMap'), {
-  ssr: false,
-  loading: () => <div className={styles.mapLoading}>Carregando mapa...</div>
-});
+// Import InteractiveMap directly - it already has 'use client' directive
+import InteractiveMap from '../InteractiveMap';
 
 const LocationModal = ({
   isOpen,
@@ -68,7 +66,8 @@ const LocationModal = ({
 
   const handleConfirmLocation = useCallback(() => {
     if (geolocation.detectedAddress) {
-      const deliveryData = delivery.deliveryInfo || geolocation.deliveryInfo || { fee: 0, zone_name: 'Área de entrega' };
+      // Prefer geolocation.deliveryInfo as it's the most recent from the API
+      const deliveryData = geolocation.deliveryInfo || delivery.deliveryInfo || { fee: 0, zone_name: 'Área de entrega' };
       onConfirm({
         address: geolocation.detectedAddress,
         position: geolocation.position,
@@ -197,18 +196,18 @@ const LocationModal = ({
                   <div className={styles.stat}>
                     <span className={styles.statIcon}>💰</span>
                     <span className={styles.statValue}>
-                      {delivery.deliveryInfo?.fee === 0 
+                      {(geolocation.deliveryInfo?.fee || delivery.deliveryInfo?.fee) === 0 
                         ? 'Grátis' 
-                        : `R$ ${delivery.deliveryInfo?.fee?.toFixed(2) || '0.00'}`}
+                        : `R$ ${(geolocation.deliveryInfo?.fee ?? delivery.deliveryInfo?.fee)?.toFixed(2) || '0.00'}`}
                     </span>
                     <span className={styles.statLabel}>taxa de entrega</span>
                   </div>
                 </div>
               )}
 
-              {delivery.deliveryInfo?.zone_name && (
+              {(geolocation.deliveryInfo?.zone_name || delivery.deliveryInfo?.zone_name) && (
                 <div className={styles.zoneTag}>
-                  Zona: {delivery.deliveryInfo.zone_name}
+                  Zona: {geolocation.deliveryInfo?.zone_name || delivery.deliveryInfo?.zone_name}
                 </div>
               )}
             </div>

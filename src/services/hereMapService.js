@@ -494,8 +494,16 @@ function buildAddressFromHERE(address) {
 /**
  * Forward geocoding - convert address to coordinates
  */
+// Palmas, TO bounding box (approximate)
+const PALMAS_BOUNDS = {
+  south: -10.35,
+  north: -10.10,
+  west: -48.45,
+  east: -48.25
+};
+
 export async function geocodeAddress(query, options = {}) {
-  const { countryCodes = ['BRA'], limit = 5 } = options;
+  const { countryCodes = ['BRA'], limit = 5, restrictToPalmas = true } = options;
 
   if (!query || query.trim().length < 3) {
     return [];
@@ -507,12 +515,24 @@ export async function geocodeAddress(query, options = {}) {
   }
 
   try {
+    // Add "Palmas TO" to query if not already present to improve results
+    let searchQuery = query;
+    const queryLower = query.toLowerCase();
+    if (restrictToPalmas && !queryLower.includes('palmas') && !queryLower.includes('tocantins')) {
+      searchQuery = `${query}, Palmas, TO`;
+    }
+
     const params = new URLSearchParams({
-      q: query,
+      q: searchQuery,
       in: `countryCode:${countryCodes.join(',')}`,
-      limit: String(limit),
+      limit: String(limit * 2), // Request more to filter
       apikey: HERE_API_KEY,
     });
+
+    // Add bounding box to restrict to Palmas area
+    if (restrictToPalmas) {
+      params.set('in', `bbox:${PALMAS_BOUNDS.west},${PALMAS_BOUNDS.south},${PALMAS_BOUNDS.east},${PALMAS_BOUNDS.north}`);
+    }
 
     const response = await fetchWithTimeout(`${HERE_GEOCODE_URL}?${params}`);
     if (!response.ok) throw new Error(`HERE Geocode API error: ${response.status}`);
@@ -520,7 +540,7 @@ export async function geocodeAddress(query, options = {}) {
     const data = await response.json();
     if (!data.items || data.items.length === 0) return [];
 
-    return data.items.map((item) => ({
+    let results = data.items.map((item) => ({
       latitude: item.position.lat,
       longitude: item.position.lng,
       display_name: item.address.label,
@@ -535,6 +555,18 @@ export async function geocodeAddress(query, options = {}) {
       place_id: item.id,
       confidence: item.scoring?.queryScore || 0,
     }));
+
+    // Filter to only Palmas, TO results
+    if (restrictToPalmas) {
+      results = results.filter(r => {
+        const cityLower = (r.city || '').toLowerCase();
+        const stateLower = (r.state || '').toLowerCase();
+        return (cityLower.includes('palmas') || cityLower === '') && 
+               (stateLower === 'to' || stateLower === 'tocantins' || stateLower === '');
+      });
+    }
+
+    return results.slice(0, limit);
   } catch (error) {
     logger.error('Geocoding error', error);
     return [];
@@ -693,9 +725,25 @@ export async function lookupCEP(cep) {
 
 /**
  * Geocode Brazilian address using CEP + HERE Maps
+ * Only accepts addresses in Palmas, TO
  */
 export async function geocodeBrazilianAddress(cep, addressData = {}) {
   const cepData = await lookupCEP(cep);
+
+  // Validate that the CEP is from Palmas, TO
+  if (cepData) {
+    const city = (cepData.city || '').toLowerCase();
+    const state = (cepData.state || '').toLowerCase();
+    if (!city.includes('palmas') || (state !== 'to' && state !== 'tocantins')) {
+      logger.warn('CEP is not from Palmas, TO:', cepData);
+      return {
+        error: true,
+        message: 'Desculpe, só entregamos em Palmas - TO',
+        city: cepData.city,
+        state: cepData.state
+      };
+    }
+  }
 
   const queryParts = [];
   if (addressData.address) {
@@ -705,12 +753,13 @@ export async function geocodeBrazilianAddress(cep, addressData = {}) {
   }
   if (addressData.number) queryParts.push(addressData.number);
   if (cepData?.neighborhood) queryParts.push(cepData.neighborhood);
-  if (addressData.city || cepData?.city) queryParts.push(addressData.city || cepData?.city || '');
-  if (addressData.state || cepData?.state) queryParts.push(addressData.state || cepData?.state || '');
+  // Always use Palmas, TO
+  queryParts.push('Palmas');
+  queryParts.push('TO');
   queryParts.push('Brasil');
 
   const query = queryParts.filter(Boolean).join(', ');
-  const results = await geocodeAddress(query, { limit: 1 });
+  const results = await geocodeAddress(query, { limit: 1, restrictToPalmas: true });
 
   if (results.length > 0) {
     return {

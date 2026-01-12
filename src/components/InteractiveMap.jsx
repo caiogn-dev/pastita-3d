@@ -365,10 +365,26 @@ export default function InteractiveMap({
       searchTimeoutRef.current = setTimeout(async () => {
         try {
           const cepData = await lookupCEP(cleanQuery);
-          if (cepData && !cepData.erro) {
+          if (cepData && cepData.city) {
+            // Only show CEPs from Palmas, TO
+            const city = (cepData.city || '').toLowerCase();
+            const state = (cepData.state || '').toLowerCase();
+            if (!city.includes('palmas') || (state !== 'to' && state !== 'tocantins')) {
+              setSuggestions([{
+                display_name: `CEP ${cleanQuery} não é de Palmas - TO. Só entregamos em Palmas.`,
+                error: true,
+                notDeliverable: true
+              }]);
+              setShowSuggestions(true);
+              return;
+            }
             setSuggestions([{
-              display_name: `${cepData.logradouro}, ${cepData.bairro}, ${cepData.localidade} - ${cepData.uf}`,
+              display_name: `${cepData.address}, ${cepData.neighborhood}, ${cepData.city} - ${cepData.state}`,
               cep: cleanQuery,
+              logradouro: cepData.address,
+              bairro: cepData.neighborhood,
+              localidade: cepData.city,
+              uf: cepData.state,
               ...cepData
             }]);
             setShowSuggestions(true);
@@ -412,6 +428,14 @@ export default function InteractiveMap({
 
   // Handle suggestion selection
   const handleSuggestionSelect = useCallback(async (suggestion) => {
+    // Don't select error suggestions
+    if (suggestion.error || suggestion.notDeliverable) {
+      setError(suggestion.display_name);
+      setShowSuggestions(false);
+      setSuggestions([]);
+      return;
+    }
+
     setSearchQuery(suggestion.display_name);
     setShowSuggestions(false);
     setSuggestions([]);
@@ -424,6 +448,10 @@ export default function InteractiveMap({
           city: suggestion.localidade,
           state: suggestion.uf
         });
+        if (geoData && geoData.error) {
+          setError(geoData.message);
+          return;
+        }
         if (geoData && geoData.latitude) {
           await selectLocation(geoData.latitude, geoData.longitude);
           return;
@@ -448,7 +476,9 @@ export default function InteractiveMap({
 
     try {
       const result = await geocodeBrazilianAddress(cep);
-      if (result) {
+      if (result && result.error) {
+        setError(result.message || 'Só entregamos em Palmas - TO');
+      } else if (result && result.latitude) {
         await selectLocation(result.latitude, result.longitude);
         setSearchQuery(result.display_name || '');
       } else {
@@ -555,12 +585,21 @@ export default function InteractiveMap({
                     <li
                       key={suggestion.place_id || index}
                       onClick={() => handleSuggestionSelect(suggestion)}
-                      className="suggestion-item"
+                      className={`suggestion-item ${suggestion.error ? 'suggestion-error' : ''}`}
+                      style={suggestion.error ? { color: '#dc3545', cursor: 'default', backgroundColor: '#fff5f5' } : {}}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                        <circle cx="12" cy="10" r="3"></circle>
-                      </svg>
+                      {suggestion.error ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc3545" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="15" y1="9" x2="9" y2="15"></line>
+                          <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                      )}
                       <span>{suggestion.display_name}</span>
                     </li>
                   ))}

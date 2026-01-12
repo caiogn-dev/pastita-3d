@@ -193,7 +193,7 @@ const Cardapio = () => {
       {/* Error State */}
       {error && !loading && (
         <div className="container">
-          <EmptyState.Error onAction={() => mutate()} />
+          <EmptyState.Error onAction={() => refreshCatalog()} />
         </div>
       )}
 
