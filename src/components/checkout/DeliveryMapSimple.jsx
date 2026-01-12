@@ -34,32 +34,21 @@ const COLORS = {
 };
 
 // Store marker SVG - Pin vermelho com "P" de Pastita
-const STORE_MARKER_SVG = `
-<svg width="50" height="60" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <filter id="shadow1" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
-    </filter>
-  </defs>
-  <path d="M25 0C11.2 0 0 11.2 0 25c0 20 25 35 25 35s25-15 25-35C50 11.2 38.8 0 25 0z" 
-        fill="#722F37" stroke="#fff" stroke-width="3" filter="url(#shadow1)"/>
-  <circle cx="25" cy="22" r="14" fill="#fff"/>
-  <text x="25" y="28" text-anchor="middle" fill="#722F37" font-size="16" font-weight="bold" font-family="Arial, sans-serif">P</text>
+const createStoreMarkerSVG = () => `
+<svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+  <path d="M20 0C9 0 0 9 0 20c0 15 20 30 20 30s20-15 20-30C40 9 31 0 20 0z" 
+        fill="#722F37" stroke="#fff" stroke-width="2"/>
+  <circle cx="20" cy="18" r="10" fill="#fff"/>
+  <text x="20" y="23" text-anchor="middle" fill="#722F37" font-size="14" font-weight="bold">P</text>
 </svg>
 `;
 
-// Customer marker SVG - Pin dourado com ícone de pessoa
-const CUSTOMER_MARKER_SVG = `
-<svg width="44" height="54" viewBox="0 0 44 54" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <filter id="shadow2" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
-    </filter>
-  </defs>
-  <path d="M22 0C9.85 0 0 9.85 0 22c0 17 22 32 22 32s22-15 22-32C44 9.85 34.15 0 22 0z" 
-        fill="#D4AF37" stroke="#fff" stroke-width="2" filter="url(#shadow2)"/>
-  <circle cx="22" cy="16" r="7" fill="#fff"/>
-  <path d="M12 32c0-5.5 4.5-10 10-10s10 4.5 10 10" fill="#fff" stroke="#fff" stroke-width="1"/>
+// Customer marker SVG - Pin dourado
+const createCustomerMarkerSVG = () => `
+<svg width="36" height="46" viewBox="0 0 36 46" xmlns="http://www.w3.org/2000/svg">
+  <path d="M18 0C8 0 0 8 0 18c0 14 18 28 18 28s18-14 18-28C36 8 28 0 18 0z" 
+        fill="#D4AF37" stroke="#fff" stroke-width="2"/>
+  <circle cx="18" cy="15" r="8" fill="#fff"/>
 </svg>
 `;
 
@@ -180,17 +169,16 @@ const DeliveryMapSimple = ({
         
         // Add store marker - always visible
         if (storeLocation && storeLocation.latitude && storeLocation.longitude) {
-          const storeIcon = new H.map.Icon(STORE_MARKER_SVG, { 
-            size: { w: 50, h: 60 }, 
-            anchor: { x: 25, y: 60 } 
+          const storeIcon = new H.map.Icon(createStoreMarkerSVG(), { 
+            size: { w: 40, h: 50 }, 
+            anchor: { x: 20, y: 50 } 
           });
           const storeMarker = new H.map.Marker(
             { lat: storeLocation.latitude, lng: storeLocation.longitude },
-            { icon: storeIcon, zIndex: 100 }
+            { icon: storeIcon }
           );
           map.addObject(storeMarker);
           storeMarkerRef.current = storeMarker;
-          console.log('Store marker added at:', storeLocation.latitude, storeLocation.longitude);
         }
         
         // Add click handler for selection
@@ -220,16 +208,10 @@ const DeliveryMapSimple = ({
 
   // Update customer marker when location changes
   useEffect(() => {
-    if (!isReady || !mapRef.current || !customerLocation) return;
+    if (!isReady || !mapRef.current) return;
     
     const H = window.H;
     const map = mapRef.current;
-    const lat = customerLocation.lat || customerLocation.latitude;
-    const lng = customerLocation.lng || customerLocation.longitude;
-    
-    if (!lat || !lng) return;
-    
-    console.log('Adding customer marker at:', lat, lng);
     
     // Remove existing marker
     if (customerMarkerRef.current) {
@@ -239,12 +221,20 @@ const DeliveryMapSimple = ({
       customerMarkerRef.current = null;
     }
     
+    // Only add marker if we have a valid customer location
+    if (!customerLocation) return;
+    
+    const lat = customerLocation.lat || customerLocation.latitude;
+    const lng = customerLocation.lng || customerLocation.longitude;
+    
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
+    
     // Create new marker with customer icon
-    const customerIcon = new H.map.Icon(CUSTOMER_MARKER_SVG, { 
-      size: { w: 44, h: 54 }, 
-      anchor: { x: 22, y: 54 } 
+    const customerIcon = new H.map.Icon(createCustomerMarkerSVG(), { 
+      size: { w: 36, h: 46 }, 
+      anchor: { x: 18, y: 46 } 
     });
-    const marker = new H.map.Marker({ lat, lng }, { icon: customerIcon, zIndex: 200 });
+    const marker = new H.map.Marker({ lat: Number(lat), lng: Number(lng) }, { icon: customerIcon });
     
     if (enableSelection) {
       marker.draggable = true;
@@ -255,14 +245,14 @@ const DeliveryMapSimple = ({
     
     // Center map to show both markers with padding
     if (storeLocation && storeLocation.latitude && storeLocation.longitude) {
-      fitMapToBounds(map, storeLocation, { lat, lng });
+      fitMapToBounds(map, storeLocation, { lat: Number(lat), lng: Number(lng) });
     } else {
-      map.setCenter({ lat, lng });
+      map.setCenter({ lat: Number(lat), lng: Number(lng) });
       map.setZoom(16);
     }
-  }, [customerLocation, isReady, enableSelection, storeLocation]);
+  }, [customerLocation, isReady, storeLocation]);
   
-  // Handle marker dragging separately
+  // Handle marker dragging
   useEffect(() => {
     if (!isReady || !mapRef.current || !enableSelection) return;
     
@@ -319,74 +309,52 @@ const DeliveryMapSimple = ({
     // Add new route if polyline provided
     if (routePolyline && typeof routePolyline === 'string') {
       try {
-        console.log('Drawing route polyline');
         const lineString = H.geo.LineString.fromFlexiblePolyline(routePolyline);
         const polyline = new H.map.Polyline(lineString, {
           style: {
             strokeColor: COLORS.route,
-            lineWidth: 6,
+            lineWidth: 5,
             lineCap: 'round',
-            lineJoin: 'round',
-            lineHeadCap: 'arrow-head',
-            lineTailCap: 'arrow-tail'
-          },
-          zIndex: 50
+            lineJoin: 'round'
+          }
         });
         map.addObject(polyline);
         routeLineRef.current = polyline;
-        
-        // Fit map to show entire route
-        const bounds = polyline.getBoundingBox();
-        if (bounds) {
-          map.getViewModel().setLookAtData({ bounds }, true);
-          setTimeout(() => {
-            const currentZoom = map.getZoom();
-            if (currentZoom > 14) map.setZoom(14);
-            if (currentZoom < 10) map.setZoom(10);
-          }, 200);
-        }
       } catch (err) {
         console.error('Error creating route line:', err);
       }
     }
   }, [routePolyline, isReady]);
 
-  // Fit map to show both store and customer with padding
+  // Fit map to show both store and customer
   const fitMapToBounds = (map, store, customer) => {
-    const H = window.H;
-    
-    const storeLat = store.latitude || store.lat;
-    const storeLng = store.longitude || store.lng;
-    const custLat = customer.lat;
-    const custLng = customer.lng;
-    
-    if (!storeLat || !storeLng || !custLat || !custLng) return;
-    
-    // Calculate bounds manually with padding
-    const minLat = Math.min(storeLat, custLat);
-    const maxLat = Math.max(storeLat, custLat);
-    const minLng = Math.min(storeLng, custLng);
-    const maxLng = Math.max(storeLng, custLng);
-    
-    // Add 20% padding
-    const latPadding = (maxLat - minLat) * 0.2 || 0.01;
-    const lngPadding = (maxLng - minLng) * 0.2 || 0.01;
-    
-    const bounds = new H.geo.Rect(
-      maxLat + latPadding,
-      minLng - lngPadding,
-      minLat - latPadding,
-      maxLng + lngPadding
-    );
-    
-    map.getViewModel().setLookAtData({ bounds }, true);
-    
-    // Ensure reasonable zoom level
-    setTimeout(() => {
-      const currentZoom = map.getZoom();
-      if (currentZoom > 15) map.setZoom(15);
-      if (currentZoom < 10) map.setZoom(10);
-    }, 200);
+    try {
+      const H = window.H;
+      
+      const storeLat = Number(store.latitude || store.lat);
+      const storeLng = Number(store.longitude || store.lng);
+      const custLat = Number(customer.lat);
+      const custLng = Number(customer.lng);
+      
+      if (isNaN(storeLat) || isNaN(storeLng) || isNaN(custLat) || isNaN(custLng)) return;
+      
+      // Create a group with both points to get bounds
+      const group = new H.map.Group();
+      group.addObject(new H.map.Marker({ lat: storeLat, lng: storeLng }));
+      group.addObject(new H.map.Marker({ lat: custLat, lng: custLng }));
+      
+      const bounds = group.getBoundingBox();
+      if (bounds) {
+        map.getViewModel().setLookAtData({ bounds }, true);
+        // Zoom out a bit for padding
+        setTimeout(() => {
+          const zoom = map.getZoom();
+          if (zoom > 14) map.setZoom(zoom - 1);
+        }, 100);
+      }
+    } catch (err) {
+      console.error('fitMapToBounds error:', err);
+    }
   };
 
   // Handle map tap
@@ -401,20 +369,43 @@ const DeliveryMapSimple = ({
     handleLocationSelected(coord.lat, coord.lng);
   }, [enableSelection]);
 
-  // Handle location selection
+  // Handle location selection - called when user clicks map, drags marker, or uses GPS
   const handleLocationSelected = async (lat, lng) => {
+    // Validate coordinates
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    
+    if (isNaN(latitude) || isNaN(longitude)) {
+      console.error('Invalid coordinates:', lat, lng);
+      setError('Coordenadas inválidas');
+      return;
+    }
+    
+    console.log('Location selected:', latitude, longitude);
+    
     setIsLoading(true);
     setError(null);
     
     try {
       // Reverse geocode to get address
-      const address = await reverseGeocodeHERE(lat, lng);
+      const address = await reverseGeocodeHERE(latitude, longitude);
       
-      onLocationSelect?.({ lat, lng, ...address });
+      // Call parent callbacks with validated coordinates
+      const locationData = { 
+        lat: latitude, 
+        lng: longitude,
+        latitude: latitude,
+        longitude: longitude,
+        ...address 
+      };
+      
+      console.log('Calling onLocationSelect with:', locationData);
+      onLocationSelect?.(locationData);
       onAddressFound?.(address);
     } catch (err) {
       console.error('Reverse geocode error:', err);
-      onLocationSelect?.({ lat, lng });
+      // Still call onLocationSelect even if geocoding fails
+      onLocationSelect?.({ lat: latitude, lng: longitude, latitude, longitude });
     } finally {
       setIsLoading(false);
     }
@@ -455,7 +446,7 @@ const DeliveryMapSimple = ({
   // Handle GPS button click
   const handleGetGPS = async () => {
     if (!navigator.geolocation) {
-      setError('Geolocalização não suportada');
+      setError('Geolocalização não suportada pelo navegador');
       return;
     }
     
@@ -466,18 +457,29 @@ const DeliveryMapSimple = ({
       const position = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 60000
+          timeout: 20000,
+          maximumAge: 0 // Force fresh location
         });
       });
       
-      const { latitude, longitude } = position.coords;
-      await handleLocationSelected(latitude, longitude);
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      
+      console.log('GPS coordinates obtained:', lat, lng);
+      
+      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+        setError('Coordenadas inválidas recebidas do GPS');
+        setIsLoading(false);
+        return;
+      }
+      
+      await handleLocationSelected(lat, lng);
     } catch (err) {
+      console.error('GPS error:', err);
       const messages = {
-        1: 'Permissão de localização negada',
-        2: 'Localização indisponível',
-        3: 'Tempo esgotado'
+        1: 'Permissão de localização negada. Habilite nas configurações do navegador.',
+        2: 'Localização indisponível. Verifique se o GPS está ativado.',
+        3: 'Tempo esgotado ao obter localização. Tente novamente.'
       };
       setError(messages[err.code] || 'Erro ao obter localização');
     } finally {
