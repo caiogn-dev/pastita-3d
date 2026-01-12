@@ -1,9 +1,11 @@
 /**
  * Hook for geolocation and address detection
+ * Includes caching for route calculations to improve performance
  */
 import { useState, useCallback } from 'react';
 import * as storeApi from '../../../services/storeApi';
-import { getStateCode } from '../utils';
+import { getStateCode, STORE_LOCATION } from '../utils';
+import { getCachedRoute, cacheRoute } from '../../../utils/routeCache';
 
 export const useGeolocation = () => {
   const [loading, setLoading] = useState(false);
@@ -50,30 +52,56 @@ export const useGeolocation = () => {
     }
   }, []);
 
-  // Calculate route and delivery fee
+  // Calculate route and delivery fee with caching
   const calculateRouteAndFee = useCallback(async (lat, lng) => {
     try {
-      // Get route info
-      const routeData = await storeApi.calculateRoute(lat, lng);
-      if (routeData) {
-        setRouteInfo({
-          distance_km: routeData.distance_km || routeData.distance,
-          duration_minutes: routeData.duration_minutes || routeData.duration,
-          polyline: routeData.polyline,
-          summary: routeData.summary
-        });
+      const storeLat = STORE_LOCATION?.latitude;
+      const storeLng = STORE_LOCATION?.longitude;
+      
+      // Check cache first for route
+      let routeData = null;
+      if (storeLat && storeLng) {
+        const cachedRoute = getCachedRoute(storeLat, storeLng, lat, lng);
+        if (cachedRoute) {
+          console.log('Route cache hit');
+          routeData = cachedRoute;
+          setRouteInfo({
+            distance_km: routeData.distance_km || routeData.distance,
+            duration_minutes: routeData.duration_minutes || routeData.duration,
+            polyline: routeData.polyline,
+            summary: routeData.summary
+          });
+        }
+      }
+      
+      // If not cached, fetch from API
+      if (!routeData) {
+        routeData = await storeApi.calculateRoute(lat, lng);
+        if (routeData) {
+          // Cache the route
+          if (storeLat && storeLng) {
+            cacheRoute(storeLat, storeLng, lat, lng, routeData);
+          }
+          setRouteInfo({
+            distance_km: routeData.distance_km || routeData.distance,
+            duration_minutes: routeData.duration_minutes || routeData.duration,
+            polyline: routeData.polyline,
+            summary: routeData.summary
+          });
+        }
       }
 
-      // Get delivery fee
+      // Get delivery fee (this also validates the address)
       const deliveryData = await storeApi.validateDeliveryAddress(lat, lng);
       if (deliveryData) {
         setDeliveryInfo({
-          fee: Number(deliveryData.fee) || 0,
-          zone_name: deliveryData.zone_name || 'Área de entrega',
+          fee: Number(deliveryData.delivery_fee || deliveryData.fee) || 0,
+          zone_name: deliveryData.delivery_zone || deliveryData.zone_name || 'Área de entrega',
           estimated_days: deliveryData.estimated_days || 0,
           distance_km: deliveryData.distance_km,
           estimated_minutes: deliveryData.estimated_minutes,
-          is_valid: deliveryData.is_valid !== false
+          is_valid: deliveryData.is_valid !== false,
+          polyline: deliveryData.polyline || routeData?.polyline
         });
       }
 
