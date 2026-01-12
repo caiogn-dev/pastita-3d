@@ -204,7 +204,7 @@ const PaymentPending = () => {
         )}
 
         {/* PIX Payment */}
-        {isPixPayment && (pixCode || pixQrCodeBase64) && (
+        {isPixPayment && (pixCode || pixQrCodeBase64) ? (
           <>
             <PixPayment
               pixCode={pixCode}
@@ -218,7 +218,12 @@ const PaymentPending = () => {
               </div>
             )}
           </>
-        )}
+        ) : isPixPayment && orderDetails && !loading ? (
+          <div className="status-info status-info-warning" style={{ marginTop: '1rem' }}>
+            <p>⏳ Aguardando dados do PIX...</p>
+            <p className="text-sm">Se o QR Code não aparecer, tente atualizar a página.</p>
+          </div>
+        ) : null}
 
         {/* Loading state */}
         {loading && !orderDetails && (
