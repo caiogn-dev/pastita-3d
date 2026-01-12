@@ -37,19 +37,19 @@ import logger from '../services/logger';
 export default function InteractiveMap({
   initialLocation = null,
   storeLocation = null,
-  customerLocation = null,  // Customer location for showing marker
-  routePolyline = null,     // Pre-calculated route polyline to display
+  customerLocation = null,  // New prop for customer marker
+  routePolyline = null,     // New prop for route polyline
   onLocationSelect,
   onAddressChange,
   height = '400px',
   showSearch = true,
   showGeolocation = true,
   showMarker = true,
-  showStoreMarker = true,
-  showCustomerMarker = true,
+  showStoreMarker = true,   // New prop to control store marker
+  showCustomerMarker = true, // New prop to control customer marker
   markerDraggable = true,
+  enableSelection = true,   // New prop to enable/disable click selection
   showRoute = false,
-  enableSelection = true,
   showZones = false,
   zones = [],
   className = '',
@@ -67,7 +67,7 @@ export default function InteractiveMap({
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState(initialLocation || customerLocation);
+  const [selectedLocation, setSelectedLocation] = useState(initialLocation);
   const [routeInfo, setRouteInfo] = useState(null);
   const [error, setError] = useState(null);
   
@@ -106,19 +106,21 @@ export default function InteractiveMap({
     if (!isLoaded || !mapContainerRef.current || mapInstanceRef.current) return;
 
     try {
-      const center = initialLocation 
-        ? { lat: initialLocation.latitude, lng: initialLocation.longitude }
+      // Determine center - prefer customer location, then store, then default
+      const customerPos = customerLocation || initialLocation;
+      const center = customerPos 
+        ? { lat: customerPos.lat || customerPos.latitude, lng: customerPos.lng || customerPos.longitude }
         : storeLocation
         ? { lat: storeLocation.latitude, lng: storeLocation.longitude }
         : DEFAULT_CENTER;
 
-      const zoom = initialLocation || storeLocation ? 15 : DEFAULT_ZOOM;
+      const zoom = customerPos || storeLocation ? 14 : DEFAULT_ZOOM;
 
       const instance = createMap(mapContainerRef.current, { center, zoom });
       mapInstanceRef.current = instance;
 
-      // Add store marker if provided
-      if (storeLocation) {
+      // Add store marker if provided and enabled
+      if (storeLocation && showStoreMarker) {
         const storeMarker = createStoreMarker({
           lat: storeLocation.latitude,
           lng: storeLocation.longitude
@@ -127,23 +129,44 @@ export default function InteractiveMap({
         storeMarkerRef.current = storeMarker;
       }
 
-      // Add delivery marker if initial location
-      if (initialLocation && showMarker) {
+      // Add customer/delivery marker if location provided
+      const deliveryPos = customerLocation || initialLocation;
+      if (deliveryPos && (showMarker || showCustomerMarker)) {
         const marker = createDeliveryMarker(
-          { lat: initialLocation.latitude, lng: initialLocation.longitude },
-          { draggable: markerDraggable }
+          { lat: deliveryPos.lat || deliveryPos.latitude, lng: deliveryPos.lng || deliveryPos.longitude },
+          { draggable: markerDraggable && enableSelection }
         );
         instance.map.addObject(marker);
         markerRef.current = marker;
       }
 
       // Enable dragging if needed
-      if (markerDraggable) {
+      if (markerDraggable && enableSelection) {
         enableObjectDragging(instance.map, instance.behavior, handleDragEnd);
       }
 
-      // Add click handler
-      instance.map.addEventListener('tap', handleMapClick);
+      // Add click handler only if selection is enabled
+      if (enableSelection) {
+        instance.map.addEventListener('tap', handleMapClick);
+      }
+
+      // Fit bounds to show both markers if both exist
+      if (storeLocation && deliveryPos && showStoreMarker) {
+        const bounds = new window.H.geo.Rect(
+          Math.max(storeLocation.latitude, deliveryPos.lat || deliveryPos.latitude),
+          Math.min(storeLocation.longitude, deliveryPos.lng || deliveryPos.longitude),
+          Math.min(storeLocation.latitude, deliveryPos.lat || deliveryPos.latitude),
+          Math.max(storeLocation.longitude, deliveryPos.lng || deliveryPos.longitude)
+        );
+        instance.map.getViewModel().setLookAtData({ bounds }, true);
+        // Add some padding
+        setTimeout(() => {
+          const currentZoom = instance.map.getZoom();
+          if (currentZoom > 15) {
+            instance.map.setZoom(15);
+          }
+        }, 100);
+      }
 
     } catch (err) {
       logger.error('Failed to create map', err);
@@ -162,12 +185,28 @@ export default function InteractiveMap({
     };
   }, [isLoaded]);
 
-  // Display pre-calculated route polyline
+  // Update customer marker when customerLocation changes
   useEffect(() => {
-    if (!mapInstanceRef.current || !routePolyline) return;
-
+    if (!mapInstanceRef.current || !customerLocation) return;
+    
     const map = mapInstanceRef.current.map;
+    const pos = { lat: customerLocation.lat || customerLocation.latitude, lng: customerLocation.lng || customerLocation.longitude };
+    
+    if (markerRef.current) {
+      markerRef.current.setGeometry(pos);
+    } else if (showCustomerMarker) {
+      const marker = createDeliveryMarker(pos, { draggable: markerDraggable && enableSelection });
+      map.addObject(marker);
+      markerRef.current = marker;
+    }
+  }, [customerLocation, showCustomerMarker]);
 
+  // Draw route polyline when provided
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    
+    const map = mapInstanceRef.current.map;
+    
     // Remove existing route
     if (routeLineRef.current) {
       try {
@@ -177,56 +216,21 @@ export default function InteractiveMap({
       }
       routeLineRef.current = null;
     }
-
-    // Create and add new route polyline
-    try {
-      const polyline = createPolyline(routePolyline, {
-        strokeColor: PASTITA_COLORS.routeColor,
-        lineWidth: 4
-      });
-      map.addObject(polyline);
-      routeLineRef.current = polyline;
-
-      // Fit map to show the entire route
-      if (storeLocation && customerLocation) {
-        const bounds = new H.geo.Rect(
-          Math.max(storeLocation.latitude, customerLocation.lat || customerLocation.latitude),
-          Math.min(storeLocation.longitude, customerLocation.lng || customerLocation.longitude),
-          Math.min(storeLocation.latitude, customerLocation.lat || customerLocation.latitude),
-          Math.max(storeLocation.longitude, customerLocation.lng || customerLocation.longitude)
-        );
-        map.getViewModel().setLookAtData({ bounds }, true);
+    
+    // Draw new route if polyline provided
+    if (routePolyline) {
+      try {
+        const polyline = createPolyline(routePolyline, {
+          strokeColor: PASTITA_COLORS.marsala,
+          lineWidth: 4
+        });
+        map.addObject(polyline);
+        routeLineRef.current = polyline;
+      } catch (err) {
+        logger.warn('Failed to draw route polyline', err);
       }
-    } catch (err) {
-      logger.error('Failed to display route polyline', err);
     }
-  }, [routePolyline, isLoaded, storeLocation, customerLocation]);
-
-  // Update customer marker when customerLocation changes
-  useEffect(() => {
-    if (!mapInstanceRef.current || !customerLocation || !showCustomerMarker) return;
-
-    const map = mapInstanceRef.current.map;
-    const lat = customerLocation.lat || customerLocation.latitude;
-    const lng = customerLocation.lng || customerLocation.longitude;
-
-    if (!lat || !lng) return;
-
-    // Update or create customer marker
-    if (markerRef.current) {
-      markerRef.current.setGeometry({ lat, lng });
-    } else {
-      const marker = createDeliveryMarker(
-        { lat, lng },
-        { draggable: markerDraggable && enableSelection }
-      );
-      map.addObject(marker);
-      markerRef.current = marker;
-    }
-
-    // Center map on customer location
-    setMapCenter(map, { lat, lng }, 15);
-  }, [customerLocation, showCustomerMarker, isLoaded, markerDraggable, enableSelection]);
+  }, [routePolyline]);
 
   // Display zones
   useEffect(() => {
@@ -271,7 +275,7 @@ export default function InteractiveMap({
 
   // Handle map click
   const handleMapClick = useCallback(async (evt) => {
-    if (!mapInstanceRef.current || !enableSelection) return;
+    if (!mapInstanceRef.current) return;
     
     const coord = mapInstanceRef.current.map.screenToGeo(
       evt.currentPointer.viewportX,
@@ -279,15 +283,14 @@ export default function InteractiveMap({
     );
     
     await selectLocation(coord.lat, coord.lng);
-  }, [enableSelection]);
+  }, []);
 
   // Handle marker drag end
   const handleDragEnd = useCallback(async (event) => {
-    if (!enableSelection) return;
     if (event.type === 'marker' && event.position) {
       await selectLocation(event.position.lat, event.position.lng, false);
     }
-  }, [enableSelection]);
+  }, []);
 
   // Select location and reverse geocode
   const selectLocation = useCallback(async (latitude, longitude, updateMarker = true) => {
@@ -468,15 +471,11 @@ export default function InteractiveMap({
       return;
     }
 
-    // Search via HERE - requires 'at' parameter
+    // Search via HERE
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        // Use store location or default center for 'at' parameter (required by HERE API)
-        const centerLat = storeLocation?.latitude || DEFAULT_CENTER.lat;
-        const centerLng = storeLocation?.longitude || DEFAULT_CENTER.lng;
-        
         const response = await fetch(
-          `https://autosuggest.search.hereapi.com/v1/autosuggest?q=${encodeURIComponent(query)}&at=${centerLat},${centerLng}&in=countryCode:BRA&limit=5&apikey=${process.env.NEXT_PUBLIC_HERE_API_KEY}`
+          `https://autosuggest.search.hereapi.com/v1/autosuggest?q=${encodeURIComponent(query)}&in=countryCode:BRA&limit=5&apikey=${process.env.NEXT_PUBLIC_HERE_API_KEY}`
         );
         const data = await response.json();
         
@@ -500,7 +499,7 @@ export default function InteractiveMap({
         setShowSuggestions(false);
       }
     }, 300);
-  }, [storeLocation]);
+  }, []);
 
   // Handle suggestion selection
   const handleSuggestionSelect = useCallback(async (suggestion) => {

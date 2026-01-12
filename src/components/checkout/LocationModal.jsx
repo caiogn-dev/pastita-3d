@@ -181,29 +181,39 @@ const LocationModal = ({
 
             {/* Delivery Info - Below Map */}
             <div className={styles.deliveryInfoCard}>
-              {geolocation.routeInfo && (
-                <div className={styles.routeStats}>
-                  <div className={styles.stat}>
-                    <span className={styles.statIcon}>📏</span>
-                    <span className={styles.statValue}>{formatDistance(geolocation.routeInfo.distance_km)}</span>
-                    <span className={styles.statLabel}>distância</span>
-                  </div>
-                  <div className={styles.stat}>
-                    <span className={styles.statIcon}>⏱️</span>
-                    <span className={styles.statValue}>{formatDuration(geolocation.routeInfo.duration_minutes)}</span>
-                    <span className={styles.statLabel}>tempo estimado</span>
-                  </div>
-                  <div className={styles.stat}>
-                    <span className={styles.statIcon}>💰</span>
-                    <span className={styles.statValue}>
-                      {(geolocation.deliveryInfo?.fee || delivery.deliveryInfo?.fee) === 0 
-                        ? 'Grátis' 
-                        : `R$ ${(geolocation.deliveryInfo?.fee ?? delivery.deliveryInfo?.fee)?.toFixed(2) || '0.00'}`}
-                    </span>
-                    <span className={styles.statLabel}>taxa de entrega</span>
-                  </div>
+              <div className={styles.routeStats}>
+                <div className={styles.stat}>
+                  <span className={styles.statIcon}>📏</span>
+                  <span className={styles.statValue}>
+                    {geolocation.routeInfo?.distance_km 
+                      ? formatDistance(geolocation.routeInfo.distance_km)
+                      : geolocation.deliveryInfo?.distance_km
+                      ? formatDistance(geolocation.deliveryInfo.distance_km)
+                      : '—'}
+                  </span>
+                  <span className={styles.statLabel}>distância</span>
                 </div>
-              )}
+                <div className={styles.stat}>
+                  <span className={styles.statIcon}>⏱️</span>
+                  <span className={styles.statValue}>
+                    {geolocation.routeInfo?.duration_minutes 
+                      ? formatDuration(geolocation.routeInfo.duration_minutes)
+                      : geolocation.deliveryInfo?.estimated_minutes
+                      ? formatDuration(geolocation.deliveryInfo.estimated_minutes)
+                      : '—'}
+                  </span>
+                  <span className={styles.statLabel}>tempo estimado</span>
+                </div>
+                <div className={styles.stat}>
+                  <span className={styles.statIcon}>💰</span>
+                  <span className={styles.statValue}>
+                    {(geolocation.deliveryInfo?.fee ?? delivery.deliveryInfo?.fee) === 0 
+                      ? 'Grátis' 
+                      : `R$ ${(geolocation.deliveryInfo?.fee ?? delivery.deliveryInfo?.fee ?? 0).toFixed(2)}`}
+                  </span>
+                  <span className={styles.statLabel}>taxa de entrega</span>
+                </div>
+              </div>
 
               {(geolocation.deliveryInfo?.zone_name || delivery.deliveryInfo?.zone_name) && (
                 <div className={styles.zoneTag}>
