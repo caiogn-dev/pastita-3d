@@ -13,42 +13,17 @@ const formatMoney = (value) => {
   return Number.isFinite(numeric) ? numeric.toFixed(2) : '0.00';
 };
 
-const normalizePayment = (payment) => {
-  if (!payment) return null;
-  // Busca profunda por dados da transação (comum em PIX no MP)
-  const poi = payment.point_of_interaction?.transaction_data || 
-              payment.transaction_data || 
-              payment.point_of_interaction || {};
-  
-  const paymentMethodId = payment.payment_method_id
-    || payment.payment_method?.id
-    || poi.payment_method_id;
-
-  const qrCode = payment.qr_code || poi.qr_code;
-  const qrCodeBase64 = payment.qr_code_base64 || poi.qr_code_base64;
-  const ticketUrl = payment.ticket_url || payment.transaction_details?.external_resource_url;
-
-  return {
-    ...payment,
-    payment_method_id: paymentMethodId,
-    payment_type_id: payment.payment_type_id || payment.payment_method?.type || poi.payment_type_id,
-    qr_code: qrCode,
-    qr_code_base64: qrCodeBase64,
-    ticket_url: ticketUrl
-  };
-};
-
 const PaymentPending = () => {
   const router = useRouter();
   const orderParam = router.isReady ? router.query.order : null;
   const orderNumber = Array.isArray(orderParam) ? orderParam[0] : orderParam;
   const [orderDetails, setOrderDetails] = useState(null);
   const [orderItems, setOrderItems] = useState([]);
-  const [paymentInfo, setPaymentInfo] = useState(null);
   const [checking, setChecking] = useState(false);
   const [pixCopied, setPixCopied] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [lastChecked, setLastChecked] = useState(null);
+  const [loading, setLoading] = useState(true);
   const startTimeRef = useRef(null);
   const intervalRef = useRef(null);
 
@@ -57,63 +32,28 @@ const PaymentPending = () => {
     startTimeRef.current = Date.now();
   }, []);
 
-  const cachedPayment = useMemo(() => {
-    if (typeof window === 'undefined' || !orderNumber) return null;
-    try {
-      const cached = sessionStorage.getItem(`mp_payment_${orderNumber}`);
-      return cached ? normalizePayment(JSON.parse(cached)) : null;
-    } catch {
-      // Cache read failed - will fetch from API
-      return null;
-    }
-  }, [orderNumber]);
-
-  const activePayment = useMemo(() => {
-    const apiP = normalizePayment(paymentInfo);
-    const cacheP = normalizePayment(cachedPayment);
-
-    // Se a API retornar o pagamento mas sem o QR Code (comum em checks rápidos),
-    // mescla com o QR Code que já tínhamos no cache
-    if (apiP && !apiP.qr_code && cacheP?.qr_code) {
-        return { ...apiP, qr_code: cacheP.qr_code, qr_code_base64: cacheP.qr_code_base64 };
-    }
-    return apiP || cacheP;
-  }, [paymentInfo, cachedPayment]);
-
-  const totalAmount = useMemo(() => {
-    if (orderDetails?.total_amount) return Number(orderDetails.total_amount);
-    if (orderDetails?.checkout?.total_amount) return Number(orderDetails.checkout.total_amount);
-    if (activePayment?.transaction_amount) return Number(activePayment.transaction_amount);
-    return null;
-  }, [orderDetails, activePayment]);
-
-  // Define status
-  const rawStatus = orderDetails?.payment_status || activePayment?.status;
-  const displayStatus = rawStatus || 'pending';
-  
-  const isPixPayment = activePayment?.payment_type_id === 'bank_transfer' 
-    || activePayment?.payment_method_id === 'pix'
-    || !!activePayment?.qr_code;
+  // Get PIX data from order details
+  const pixCode = orderDetails?.pix_code || orderDetails?.payment?.qr_code || '';
+  const pixQrCodeBase64 = orderDetails?.pix_qr_code || orderDetails?.payment?.qr_code_base64 || '';
+  const totalAmount = orderDetails?.total || orderDetails?.total_amount || 0;
+  const isPixPayment = orderDetails?.payment_method === 'pix' || !!pixCode;
+  const displayStatus = orderDetails?.payment_status || 'pending';
 
   const checkStatus = useCallback(async (isAutoRefresh = false) => {
     if (!orderNumber) return;
     if (!isAutoRefresh) setChecking(true);
     
     try {
-      // Use unified store API for order status
       const data = await storeApi.getOrderStatus(orderNumber);
       setOrderDetails(data);
       setLastChecked(new Date());
-      
-      if (data.payment) {
-        setPaymentInfo(data.payment);
-      }
+      setLoading(false);
       
       if (data.items) {
         setOrderItems(data.items);
       }
       
-      const currentStatus = data.payment_status || data.status || data.payment?.status;
+      const currentStatus = data.payment_status || data.status;
 
       if (currentStatus === 'completed' || currentStatus === 'approved' || currentStatus === 'paid') {
         setAutoRefreshEnabled(false);
@@ -123,7 +63,7 @@ const PaymentPending = () => {
         router.push(`/erro?order=${orderNumber}`);
       }
     } catch {
-      // Status check failed - will retry on next interval
+      setLoading(false);
     }
     
     if (!isAutoRefresh) setChecking(false);
@@ -142,16 +82,13 @@ const PaymentPending = () => {
         
         setOrderDetails(data);
         setLastChecked(new Date());
-        
-        if (data.payment) {
-          setPaymentInfo(data.payment);
-        }
+        setLoading(false);
         
         if (data.items) {
           setOrderItems(data.items);
         }
         
-        const currentStatus = data.payment_status || data.status || data.payment?.status;
+        const currentStatus = data.payment_status || data.status;
         if (currentStatus === 'completed' || currentStatus === 'approved' || currentStatus === 'paid') {
           setAutoRefreshEnabled(false);
           router.push(`/sucesso?order=${orderNumber}`);
@@ -160,7 +97,7 @@ const PaymentPending = () => {
           router.push(`/erro?order=${orderNumber}`);
         }
       } catch {
-        // Initial status fetch failed - will retry
+        setLoading(false);
       }
     };
     
@@ -215,16 +152,34 @@ const PaymentPending = () => {
         )}
 
         {/* Detalhes do Pedido (Total e Status) */}
-        {(orderDetails || totalAmount) && (
+        {orderDetails && (
           <div className="status-details">
             <div className="status-row">
               <span>Status:</span>
               <span className="status-badge">{displayStatus}</span>
             </div>
-            <div className="status-row">
-              <span>Total:</span>
+            {orderDetails.subtotal > 0 && (
+              <div className="status-row">
+                <span>Subtotal:</span>
+                <span>R$ {formatMoney(orderDetails.subtotal)}</span>
+              </div>
+            )}
+            {orderDetails.delivery_fee > 0 && (
+              <div className="status-row">
+                <span>Entrega:</span>
+                <span>R$ {formatMoney(orderDetails.delivery_fee)}</span>
+              </div>
+            )}
+            {orderDetails.discount > 0 && (
+              <div className="status-row">
+                <span>Desconto:</span>
+                <span className="text-green-600">-R$ {formatMoney(orderDetails.discount)}</span>
+              </div>
+            )}
+            <div className="status-row status-row-total">
+              <span><strong>Total:</strong></span>
               <span className="status-price">
-                R$ {formatMoney(totalAmount)}
+                <strong>R$ {formatMoney(totalAmount)}</strong>
               </span>
             </div>
           </div>
@@ -236,19 +191,12 @@ const PaymentPending = () => {
             <h3 className="status-items-title">Itens do Pedido</h3>
             {orderItems.map((item) => (
               <div key={item.id} className="status-item">
-                {item.product_image && (
-                  <img 
-                    src={item.product_image} 
-                    alt={item.product_name} 
-                    className="status-item-image"
-                  />
-                )}
                 <div className="status-item-info">
                   <div className="status-item-name">{item.product_name}</div>
                   <div className="status-item-qty">Qtd: {item.quantity}</div>
                 </div>
                 <div className="status-item-price">
-                  R$ {formatMoney(item.subtotal ?? item.price * item.quantity)}
+                  R$ {formatMoney(item.subtotal)}
                 </div>
               </div>
             ))}
@@ -256,11 +204,11 @@ const PaymentPending = () => {
         )}
 
         {/* PIX Payment */}
-        {activePayment && isPixPayment && (activePayment.qr_code || activePayment.qr_code_base64) && (
+        {isPixPayment && (pixCode || pixQrCodeBase64) && (
           <>
             <PixPayment
-              pixCode={activePayment.qr_code}
-              qrCodeBase64={activePayment.qr_code_base64}
+              pixCode={pixCode}
+              qrCodeBase64={pixQrCodeBase64}
               amount={totalAmount}
               onCopy={() => setPixCopied(true)}
             />
@@ -272,19 +220,11 @@ const PaymentPending = () => {
           </>
         )}
 
-        {/* Boleto Payment */}
-        {activePayment && activePayment.ticket_url && !isPixPayment && (
-          <div className="status-boleto">
-            <h3 className="status-boleto-title">Boleto Bancário</h3>
-            <p>Clique no botão abaixo para visualizar e pagar seu boleto.</p>
-            <a 
-              href={activePayment.ticket_url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="status-boleto-link"
-            >
-              Visualizar Boleto
-            </a>
+        {/* Loading state */}
+        {loading && !orderDetails && (
+          <div className="status-loading">
+            <div className="status-loading-spinner"></div>
+            <p>Carregando dados do pedido...</p>
           </div>
         )}
 
@@ -296,11 +236,6 @@ const PaymentPending = () => {
               <>
                 <li>Pagamentos via PIX são confirmados em minutos.</li>
                 <li>Escaneie o QR Code ou copie o código PIX acima.</li>
-              </>
-            ) : activePayment?.ticket_url ? (
-              <>
-                <li>Pagamentos via Boleto podem levar até 3 dias úteis.</li>
-                <li>Acesse o link acima para visualizar o boleto.</li>
               </>
             ) : (
               <li>Aguarde a confirmação do pagamento.</li>
