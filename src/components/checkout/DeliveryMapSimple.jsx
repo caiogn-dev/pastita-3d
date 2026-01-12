@@ -33,33 +33,33 @@ const COLORS = {
   route: '#722F37',
 };
 
-// Store marker SVG
+// Store marker SVG - Pin vermelho com "P" de Pastita
 const STORE_MARKER_SVG = `
-<svg width="48" height="56" xmlns="http://www.w3.org/2000/svg">
+<svg width="50" height="60" viewBox="0 0 50 60" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+    <filter id="shadow1" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
     </filter>
   </defs>
-  <path d="M24 0C10.745 0 0 10.745 0 24c0 18 24 32 24 32s24-14 24-32C48 10.745 37.255 0 24 0z" 
-        fill="${COLORS.marsala}" stroke="white" stroke-width="3" filter="url(#shadow)"/>
-  <circle cx="24" cy="20" r="12" fill="white"/>
-  <text x="24" y="25" text-anchor="middle" fill="${COLORS.marsala}" font-size="12" font-weight="bold">P</text>
+  <path d="M25 0C11.2 0 0 11.2 0 25c0 20 25 35 25 35s25-15 25-35C50 11.2 38.8 0 25 0z" 
+        fill="#722F37" stroke="#fff" stroke-width="3" filter="url(#shadow1)"/>
+  <circle cx="25" cy="22" r="14" fill="#fff"/>
+  <text x="25" y="28" text-anchor="middle" fill="#722F37" font-size="16" font-weight="bold" font-family="Arial, sans-serif">P</text>
 </svg>
 `;
 
-// Customer marker SVG
+// Customer marker SVG - Pin dourado com ícone de pessoa
 const CUSTOMER_MARKER_SVG = `
-<svg width="40" height="48" xmlns="http://www.w3.org/2000/svg">
+<svg width="44" height="54" viewBox="0 0 44 54" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <filter id="shadow2" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+    <filter id="shadow2" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/>
     </filter>
   </defs>
-  <path d="M20 0C8.954 0 0 8.954 0 20c0 15 20 28 20 28s20-13 20-28C40 8.954 31.046 0 20 0z" 
-        fill="${COLORS.gold}" stroke="white" stroke-width="2" filter="url(#shadow2)"/>
-  <circle cx="20" cy="14" r="6" fill="white"/>
-  <ellipse cx="20" cy="26" rx="8" ry="5" fill="white"/>
+  <path d="M22 0C9.85 0 0 9.85 0 22c0 17 22 32 22 32s22-15 22-32C44 9.85 34.15 0 22 0z" 
+        fill="#D4AF37" stroke="#fff" stroke-width="2" filter="url(#shadow2)"/>
+  <circle cx="22" cy="16" r="7" fill="#fff"/>
+  <path d="M12 32c0-5.5 4.5-10 10-10s10 4.5 10 10" fill="#fff" stroke="#fff" stroke-width="1"/>
 </svg>
 `;
 
@@ -178,18 +178,19 @@ const DeliveryMapSimple = ({
         const resizeHandler = () => map.getViewPort().resize();
         window.addEventListener('resize', resizeHandler);
         
-        // Add store marker
-        if (storeLocation) {
+        // Add store marker - always visible
+        if (storeLocation && storeLocation.latitude && storeLocation.longitude) {
           const storeIcon = new H.map.Icon(STORE_MARKER_SVG, { 
-            size: { w: 48, h: 56 }, 
-            anchor: { x: 24, y: 56 } 
+            size: { w: 50, h: 60 }, 
+            anchor: { x: 25, y: 60 } 
           });
           const storeMarker = new H.map.Marker(
             { lat: storeLocation.latitude, lng: storeLocation.longitude },
-            { icon: storeIcon }
+            { icon: storeIcon, zIndex: 100 }
           );
           map.addObject(storeMarker);
           storeMarkerRef.current = storeMarker;
+          console.log('Store marker added at:', storeLocation.latitude, storeLocation.longitude);
         }
         
         // Add click handler for selection
@@ -228,54 +229,77 @@ const DeliveryMapSimple = ({
     
     if (!lat || !lng) return;
     
+    console.log('Adding customer marker at:', lat, lng);
+    
     // Remove existing marker
     if (customerMarkerRef.current) {
       try {
         map.removeObject(customerMarkerRef.current);
       } catch (e) {}
+      customerMarkerRef.current = null;
     }
     
-    // Create new marker
+    // Create new marker with customer icon
     const customerIcon = new H.map.Icon(CUSTOMER_MARKER_SVG, { 
-      size: { w: 40, h: 48 }, 
-      anchor: { x: 20, y: 48 } 
+      size: { w: 44, h: 54 }, 
+      anchor: { x: 22, y: 54 } 
     });
-    const marker = new H.map.Marker({ lat, lng }, { icon: customerIcon });
+    const marker = new H.map.Marker({ lat, lng }, { icon: customerIcon, zIndex: 200 });
     
     if (enableSelection) {
       marker.draggable = true;
-      
-      // Handle drag
-      map.addEventListener('dragstart', (ev) => {
-        if (ev.target === marker) behaviorRef.current?.disable();
-      });
-      map.addEventListener('drag', (ev) => {
-        if (ev.target === marker) {
-          const pointer = ev.currentPointer;
-          const geoPoint = map.screenToGeo(pointer.viewportX, pointer.viewportY);
-          marker.setGeometry(geoPoint);
-        }
-      });
-      map.addEventListener('dragend', (ev) => {
-        behaviorRef.current?.enable();
-        if (ev.target === marker) {
-          const geo = marker.getGeometry();
-          handleLocationSelected(geo.lat, geo.lng);
-        }
-      });
     }
     
     map.addObject(marker);
     customerMarkerRef.current = marker;
     
-    // Center map to show both markers
-    if (storeLocation) {
+    // Center map to show both markers with padding
+    if (storeLocation && storeLocation.latitude && storeLocation.longitude) {
       fitMapToBounds(map, storeLocation, { lat, lng });
     } else {
       map.setCenter({ lat, lng });
-      map.setZoom(15);
+      map.setZoom(16);
     }
-  }, [customerLocation, isReady, enableSelection]);
+  }, [customerLocation, isReady, enableSelection, storeLocation]);
+  
+  // Handle marker dragging separately
+  useEffect(() => {
+    if (!isReady || !mapRef.current || !enableSelection) return;
+    
+    const map = mapRef.current;
+    
+    const onDragStart = (ev) => {
+      if (ev.target === customerMarkerRef.current) {
+        behaviorRef.current?.disable();
+      }
+    };
+    
+    const onDrag = (ev) => {
+      if (ev.target === customerMarkerRef.current) {
+        const pointer = ev.currentPointer;
+        const geoPoint = map.screenToGeo(pointer.viewportX, pointer.viewportY);
+        ev.target.setGeometry(geoPoint);
+      }
+    };
+    
+    const onDragEnd = (ev) => {
+      behaviorRef.current?.enable();
+      if (ev.target === customerMarkerRef.current) {
+        const geo = ev.target.getGeometry();
+        handleLocationSelected(geo.lat, geo.lng);
+      }
+    };
+    
+    map.addEventListener('dragstart', onDragStart);
+    map.addEventListener('drag', onDrag);
+    map.addEventListener('dragend', onDragEnd);
+    
+    return () => {
+      map.removeEventListener('dragstart', onDragStart);
+      map.removeEventListener('drag', onDrag);
+      map.removeEventListener('dragend', onDragEnd);
+    };
+  }, [isReady, enableSelection]);
 
   // Update route line when polyline changes
   useEffect(() => {
@@ -295,48 +319,74 @@ const DeliveryMapSimple = ({
     // Add new route if polyline provided
     if (routePolyline && typeof routePolyline === 'string') {
       try {
+        console.log('Drawing route polyline');
         const lineString = H.geo.LineString.fromFlexiblePolyline(routePolyline);
         const polyline = new H.map.Polyline(lineString, {
           style: {
             strokeColor: COLORS.route,
-            lineWidth: 5,
+            lineWidth: 6,
             lineCap: 'round',
-            lineJoin: 'round'
-          }
+            lineJoin: 'round',
+            lineHeadCap: 'arrow-head',
+            lineTailCap: 'arrow-tail'
+          },
+          zIndex: 50
         });
         map.addObject(polyline);
         routeLineRef.current = polyline;
+        
+        // Fit map to show entire route
+        const bounds = polyline.getBoundingBox();
+        if (bounds) {
+          map.getViewModel().setLookAtData({ bounds }, true);
+          setTimeout(() => {
+            const currentZoom = map.getZoom();
+            if (currentZoom > 14) map.setZoom(14);
+            if (currentZoom < 10) map.setZoom(10);
+          }, 200);
+        }
       } catch (err) {
         console.error('Error creating route line:', err);
       }
     }
   }, [routePolyline, isReady]);
 
-  // Fit map to show both store and customer
+  // Fit map to show both store and customer with padding
   const fitMapToBounds = (map, store, customer) => {
     const H = window.H;
-    const group = new H.map.Group();
     
-    const storeMarker = new H.map.Marker({ 
-      lat: store.latitude || store.lat, 
-      lng: store.longitude || store.lng 
-    });
-    const customerMarker = new H.map.Marker({ 
-      lat: customer.lat, 
-      lng: customer.lng 
-    });
+    const storeLat = store.latitude || store.lat;
+    const storeLng = store.longitude || store.lng;
+    const custLat = customer.lat;
+    const custLng = customer.lng;
     
-    group.addObjects([storeMarker, customerMarker]);
-    const bounds = group.getBoundingBox();
+    if (!storeLat || !storeLng || !custLat || !custLng) return;
     
-    if (bounds) {
-      map.getViewModel().setLookAtData({ bounds }, true);
-      // Add some padding
-      setTimeout(() => {
-        const currentZoom = map.getZoom();
-        if (currentZoom > 15) map.setZoom(15);
-      }, 100);
-    }
+    // Calculate bounds manually with padding
+    const minLat = Math.min(storeLat, custLat);
+    const maxLat = Math.max(storeLat, custLat);
+    const minLng = Math.min(storeLng, custLng);
+    const maxLng = Math.max(storeLng, custLng);
+    
+    // Add 20% padding
+    const latPadding = (maxLat - minLat) * 0.2 || 0.01;
+    const lngPadding = (maxLng - minLng) * 0.2 || 0.01;
+    
+    const bounds = new H.geo.Rect(
+      maxLat + latPadding,
+      minLng - lngPadding,
+      minLat - latPadding,
+      maxLng + lngPadding
+    );
+    
+    map.getViewModel().setLookAtData({ bounds }, true);
+    
+    // Ensure reasonable zoom level
+    setTimeout(() => {
+      const currentZoom = map.getZoom();
+      if (currentZoom > 15) map.setZoom(15);
+      if (currentZoom < 10) map.setZoom(10);
+    }, 200);
   };
 
   // Handle map tap
