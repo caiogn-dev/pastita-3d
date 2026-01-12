@@ -91,12 +91,13 @@ export const useGeolocation = () => {
         }
       }
 
-      // Get delivery fee (this also validates the address)
+      // Get delivery fee - API returns delivery_fee, not fee
       const deliveryData = await storeApi.validateDeliveryAddress(lat, lng);
       console.log('📦 Delivery validation response:', deliveryData);
       if (deliveryData) {
+        const fee = Number(deliveryData.delivery_fee ?? deliveryData.fee ?? 0);
         const deliveryInfoData = {
-          fee: Number(deliveryData.delivery_fee || deliveryData.fee) || 0,
+          fee: fee,
           zone_name: deliveryData.delivery_zone || deliveryData.zone_name || 'Área de entrega',
           estimated_days: deliveryData.estimated_days || 0,
           distance_km: deliveryData.distance_km,

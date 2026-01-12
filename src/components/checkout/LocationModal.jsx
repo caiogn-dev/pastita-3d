@@ -1,16 +1,13 @@
 /**
  * Location Modal - Popup for GPS detection and address selection
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+'use client';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import styles from '../../styles/CheckoutModal.module.css';
 import { STORE_LOCATION } from './utils';
 
-// Use the simplified map component
-const DeliveryMapSimple = dynamic(() => import('./DeliveryMapSimple'), {
-  ssr: false,
-  loading: () => <div className={styles.mapLoading}>Carregando mapa...</div>
-});
+// Import InteractiveMap directly - it already has 'use client' directive
+import InteractiveMap from '../InteractiveMap';
 
 const LocationModal = ({
   isOpen,
@@ -69,7 +66,8 @@ const LocationModal = ({
 
   const handleConfirmLocation = useCallback(() => {
     if (geolocation.detectedAddress) {
-      const deliveryData = delivery.deliveryInfo || geolocation.deliveryInfo || { fee: 0, zone_name: 'Área de entrega' };
+      // Prefer geolocation.deliveryInfo as it's the most recent from the API
+      const deliveryData = geolocation.deliveryInfo || delivery.deliveryInfo || { fee: 0, zone_name: 'Área de entrega' };
       onConfirm({
         address: geolocation.detectedAddress,
         position: geolocation.position,
@@ -139,23 +137,27 @@ const LocationModal = ({
         {step === 'map' && (
           <div className={styles.mapStep}>
             <h2>Selecione seu endereço no mapa</h2>
-            <p>Clique no mapa, busque pelo CEP ou use sua localização</p>
+            <p>Clique no mapa ou use a busca para encontrar seu endereço</p>
 
             <div className={styles.mapContainer}>
-              <DeliveryMapSimple
+              <InteractiveMap
                 storeLocation={STORE_LOCATION}
                 customerLocation={geolocation.position}
                 routePolyline={geolocation.routeInfo?.polyline}
                 onLocationSelect={handleMapLocationSelect}
-                onAddressFound={(addr) => {
-                  if (addr) geolocation.setDetectedAddress?.(addr);
-                }}
                 enableSelection={true}
-                showSearch={true}
-                showGpsButton={true}
-                height="380px"
+                showStoreMarker={true}
+                showCustomerMarker={!!geolocation.position}
+                height="350px"
               />
             </div>
+
+            {geolocation.loading && (
+              <div className={styles.loadingOverlay}>
+                <div className={styles.spinner}></div>
+                <p>Buscando endereço...</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -166,14 +168,14 @@ const LocationModal = ({
 
             {/* Map with route */}
             <div className={styles.mapContainer}>
-              <DeliveryMapSimple
+              <InteractiveMap
                 storeLocation={STORE_LOCATION}
                 customerLocation={geolocation.position}
                 routePolyline={geolocation.routeInfo?.polyline}
                 enableSelection={false}
-                showSearch={false}
-                showGpsButton={false}
-                height="220px"
+                showStoreMarker={true}
+                showCustomerMarker={true}
+                height="250px"
               />
             </div>
 
@@ -194,18 +196,18 @@ const LocationModal = ({
                   <div className={styles.stat}>
                     <span className={styles.statIcon}>💰</span>
                     <span className={styles.statValue}>
-                      {delivery.deliveryInfo?.fee === 0 
+                      {(geolocation.deliveryInfo?.fee || delivery.deliveryInfo?.fee) === 0 
                         ? 'Grátis' 
-                        : `R$ ${delivery.deliveryInfo?.fee?.toFixed(2) || '0.00'}`}
+                        : `R$ ${(geolocation.deliveryInfo?.fee ?? delivery.deliveryInfo?.fee)?.toFixed(2) || '0.00'}`}
                     </span>
                     <span className={styles.statLabel}>taxa de entrega</span>
                   </div>
                 </div>
               )}
 
-              {delivery.deliveryInfo?.zone_name && (
+              {(geolocation.deliveryInfo?.zone_name || delivery.deliveryInfo?.zone_name) && (
                 <div className={styles.zoneTag}>
-                  Zona: {delivery.deliveryInfo.zone_name}
+                  Zona: {geolocation.deliveryInfo?.zone_name || delivery.deliveryInfo?.zone_name}
                 </div>
               )}
             </div>
