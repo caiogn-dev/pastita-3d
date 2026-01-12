@@ -58,42 +58,47 @@ export const useGeolocation = () => {
       const storeLat = STORE_LOCATION?.latitude;
       const storeLng = STORE_LOCATION?.longitude;
       
+      console.log('🗺️ calculateRouteAndFee called:', { lat, lng, storeLat, storeLng });
+      
       // Check cache first for route
       let routeData = null;
       if (storeLat && storeLng) {
         const cachedRoute = getCachedRoute(storeLat, storeLng, lat, lng);
         if (cachedRoute) {
-          console.log('Route cache hit');
+          console.log('🗺️ Route cache hit');
           routeData = cachedRoute;
-          setRouteInfo({
-            distance_km: routeData.distance_km || routeData.distance,
-            duration_minutes: routeData.duration_minutes || routeData.duration,
-            polyline: routeData.polyline,
-            summary: routeData.summary
-          });
         }
       }
       
       // If not cached, fetch from API
       if (!routeData) {
+        console.log('🗺️ Fetching route from API...');
         routeData = await storeApi.calculateRoute(lat, lng);
-        if (routeData) {
-          // Cache the route
-          if (storeLat && storeLng) {
-            cacheRoute(storeLat, storeLng, lat, lng, routeData);
-          }
-          setRouteInfo({
-            distance_km: routeData.distance_km || routeData.distance,
-            duration_minutes: routeData.duration_minutes || routeData.duration,
-            polyline: routeData.polyline,
-            summary: routeData.summary
-          });
+        console.log('🗺️ Route API response:', routeData);
+        if (routeData && storeLat && storeLng) {
+          cacheRoute(storeLat, storeLng, lat, lng, routeData);
         }
       }
 
       // Get delivery fee - API returns delivery_fee, not fee
+      console.log('🗺️ Fetching delivery validation...');
       const deliveryData = await storeApi.validateDeliveryAddress(lat, lng);
       console.log('📦 Delivery validation response:', deliveryData);
+      
+      // Use polyline from deliveryData (validate-delivery returns it) or routeData
+      const polyline = deliveryData?.polyline || routeData?.polyline;
+      console.log('🗺️ Polyline available:', !!polyline, polyline?.length);
+      
+      // Set route info with polyline
+      const routeInfoData = {
+        distance_km: deliveryData?.distance_km || routeData?.distance_km,
+        duration_minutes: deliveryData?.duration_minutes || routeData?.duration_minutes,
+        polyline: polyline,
+        summary: routeData?.summary
+      };
+      console.log('🗺️ Setting routeInfo:', routeInfoData);
+      setRouteInfo(routeInfoData);
+      
       if (deliveryData) {
         const fee = Number(deliveryData.delivery_fee ?? deliveryData.fee ?? 0);
         const deliveryInfoData = {
@@ -104,19 +109,10 @@ export const useGeolocation = () => {
           duration_minutes: deliveryData.duration_minutes,
           estimated_minutes: deliveryData.estimated_minutes || deliveryData.duration_minutes,
           is_valid: deliveryData.is_valid !== false,
-          polyline: deliveryData.polyline || routeData?.polyline
+          polyline: polyline
         };
+        console.log('📦 Setting deliveryInfo:', deliveryInfoData);
         setDeliveryInfo(deliveryInfoData);
-        
-        // Also update routeInfo with polyline from delivery response if not already set
-        if (deliveryData.polyline && !routeData?.polyline) {
-          setRouteInfo(prev => ({
-            ...prev,
-            distance_km: deliveryData.distance_km,
-            duration_minutes: deliveryData.duration_minutes,
-            polyline: deliveryData.polyline
-          }));
-        }
       }
 
       return { routeData, deliveryData };
