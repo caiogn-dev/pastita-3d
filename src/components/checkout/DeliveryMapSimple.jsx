@@ -164,7 +164,7 @@ const DeliveryMapSimple = ({
         const defaultLayers = platform.createDefaultLayers();
         const center = storeLocation 
           ? { lat: storeLocation.latitude, lng: storeLocation.longitude }
-          : { lat: -10.1847, lng: -48.3336 };
+          : { lat: -10.1854332, lng: -48.3038653 };
         
         const map = new H.Map(
           mapContainerRef.current,
@@ -611,7 +611,7 @@ const DeliveryMapSimple = ({
       // Use store location as center for better results
       const center = storeLocation 
         ? `${storeLocation.latitude},${storeLocation.longitude}`
-        : '-10.1847,-48.3336';
+        : '-10.1854332,-48.3038653';
       
       const response = await fetch(
         `https://autosuggest.search.hereapi.com/v1/autosuggest?q=${encodeURIComponent(query)}&at=${center}&in=countryCode:BRA&limit=5&apikey=${HERE_API_KEY}`
