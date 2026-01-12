@@ -2,19 +2,21 @@ import { useEffect } from 'react';
 import Head from 'next/head';
 import Script from 'next/script';
 
+// Global styles
 import '../src/index.css';
 import '../src/styles/forms.css';
 import '../src/styles/status-pages.css';
+
+// Component styles
 import '../src/components/Navbar.css';
 import '../src/components/CartSidebar.css';
 import '../src/components/LoginModal.css';
 import '../src/components/Toast.css';
-import '../src/components/EmptyState.css';
 import '../src/components/FavoriteButton.css';
-import '../src/components/OrderTimeline.css';
 import '../src/components/ProductFilters.css';
-import '../src/components/Skeleton.css';
 import '../src/components/StockBadge.css';
+
+// UI component styles
 import '../src/components/ui/Button.css';
 import '../src/components/ui/Badge.css';
 import '../src/components/ui/Card.css';
@@ -25,6 +27,8 @@ import '../src/components/ui/OrderTimeline.css';
 import '../src/components/ui/PixPayment.css';
 import '../src/components/ui/Skeleton.css';
 import '../src/components/ui/ProductCard.css';
+
+// Page styles
 import '../src/pages/LandingPage.css';
 import '../src/pages/Cardapio.css';
 import '../src/pages/Auth.css';
