@@ -166,6 +166,10 @@ const LocationModal = ({
           <div className={styles.confirmStep}>
             <h2>Confirme seu endereço</h2>
 
+            {/* Debug log */}
+            {console.log('🗺️ LocationModal confirm step - routeInfo:', geolocation.routeInfo)}
+            {console.log('🗺️ LocationModal confirm step - polyline:', geolocation.routeInfo?.polyline?.substring(0, 50))}
+
             {/* Map with route */}
             <div className={styles.mapContainer}>
               <InteractiveMap

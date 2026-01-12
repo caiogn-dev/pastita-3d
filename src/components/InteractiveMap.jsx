@@ -234,7 +234,16 @@ export default function InteractiveMap({
 
   // Draw route polyline when provided
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    console.log('🛣️ Polyline useEffect triggered', { 
+      hasMap: !!mapInstanceRef.current, 
+      hasPolyline: !!routePolyline,
+      polylineLength: routePolyline?.length 
+    });
+    
+    if (!mapInstanceRef.current) {
+      console.log('🛣️ Map not ready yet, skipping polyline draw');
+      return;
+    }
     
     const map = mapInstanceRef.current.map;
     
@@ -242,25 +251,37 @@ export default function InteractiveMap({
     if (routeLineRef.current) {
       try {
         map.removeObject(routeLineRef.current);
+        console.log('🛣️ Removed existing route line');
       } catch (e) {
-        // Object might already be removed
+        console.log('🛣️ Could not remove existing route:', e.message);
       }
       routeLineRef.current = null;
     }
     
     // Draw new route if polyline provided
     if (routePolyline) {
-      logger.info('InteractiveMap: Drawing route polyline', { polylineLength: routePolyline?.length });
+      console.log('🛣️ Drawing route polyline...', { polylineLength: routePolyline.length });
       try {
         const polyline = createPolyline(routePolyline, {
           strokeColor: PASTITA_COLORS.marsala,
-          lineWidth: 4
+          lineWidth: 5
         });
         map.addObject(polyline);
         routeLineRef.current = polyline;
-        logger.info('InteractiveMap: Route polyline added successfully');
+        console.log('🛣️ Route polyline added successfully!');
+        
+        // Optionally fit bounds to show the entire route
+        try {
+          const bounds = polyline.getBoundingBox();
+          if (bounds) {
+            map.getViewModel().setLookAtData({ bounds }, true);
+            console.log('🛣️ Map view adjusted to show route');
+          }
+        } catch (boundsErr) {
+          console.log('🛣️ Could not adjust bounds:', boundsErr.message);
+        }
       } catch (err) {
-        logger.error('Failed to draw route polyline', err);
+        console.error('🛣️ Failed to draw route polyline:', err);
       }
     }
   }, [routePolyline]);
