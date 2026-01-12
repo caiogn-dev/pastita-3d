@@ -33,24 +33,32 @@ const COLORS = {
   route: '#722F37',
 };
 
-// Store marker SVG - Pin vermelho com "P" de Pastita
-const createStoreMarkerSVG = () => `
-<svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-  <path d="M20 0C9 0 0 9 0 20c0 15 20 30 20 30s20-15 20-30C40 9 31 0 20 0z" 
-        fill="#722F37" stroke="#fff" stroke-width="2"/>
-  <circle cx="20" cy="18" r="10" fill="#fff"/>
-  <text x="20" y="23" text-anchor="middle" fill="#722F37" font-size="14" font-weight="bold">P</text>
-</svg>
-`;
+// Create store marker icon using default HERE marker with custom color
+const createStoreIcon = (H) => {
+  // Use a simple colored circle marker
+  const svgMarkup = `<svg width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="16" cy="16" r="14" fill="#722F37" stroke="white" stroke-width="3"/>
+    <text x="16" y="21" text-anchor="middle" fill="white" font-size="12" font-weight="bold">P</text>
+  </svg>`;
+  
+  return new H.map.Icon(svgMarkup, {
+    size: { w: 32, h: 32 },
+    anchor: { x: 16, y: 16 }
+  });
+};
 
-// Customer marker SVG - Pin dourado
-const createCustomerMarkerSVG = () => `
-<svg width="36" height="46" viewBox="0 0 36 46" xmlns="http://www.w3.org/2000/svg">
-  <path d="M18 0C8 0 0 8 0 18c0 14 18 28 18 28s18-14 18-28C36 8 28 0 18 0z" 
-        fill="#D4AF37" stroke="#fff" stroke-width="2"/>
-  <circle cx="18" cy="15" r="8" fill="#fff"/>
-</svg>
-`;
+// Create customer marker icon
+const createCustomerIcon = (H) => {
+  const svgMarkup = `<svg width="28" height="28" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="14" cy="14" r="12" fill="#D4AF37" stroke="white" stroke-width="3"/>
+    <circle cx="14" cy="14" r="5" fill="white"/>
+  </svg>`;
+  
+  return new H.map.Icon(svgMarkup, {
+    size: { w: 28, h: 28 },
+    anchor: { x: 14, y: 14 }
+  });
+};
 
 // Load script helper
 const loadScript = (src) => {
@@ -169,16 +177,16 @@ const DeliveryMapSimple = ({
         
         // Add store marker - always visible
         if (storeLocation && storeLocation.latitude && storeLocation.longitude) {
-          const storeIcon = new H.map.Icon(createStoreMarkerSVG(), { 
-            size: { w: 40, h: 50 }, 
-            anchor: { x: 20, y: 50 } 
-          });
+          const storeIcon = createStoreIcon(H);
           const storeMarker = new H.map.Marker(
-            { lat: storeLocation.latitude, lng: storeLocation.longitude },
+            { lat: Number(storeLocation.latitude), lng: Number(storeLocation.longitude) },
             { icon: storeIcon }
           );
           map.addObject(storeMarker);
           storeMarkerRef.current = storeMarker;
+          console.log('✅ Store marker added:', storeLocation.latitude, storeLocation.longitude);
+        } else {
+          console.log('❌ No store location provided');
         }
         
         // Add click handler for selection
@@ -222,19 +230,27 @@ const DeliveryMapSimple = ({
     }
     
     // Only add marker if we have a valid customer location
-    if (!customerLocation) return;
+    if (!customerLocation) {
+      console.log('❌ No customer location');
+      return;
+    }
     
     const lat = customerLocation.lat || customerLocation.latitude;
     const lng = customerLocation.lng || customerLocation.longitude;
     
-    if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
+    if (!lat || !lng || isNaN(Number(lat)) || isNaN(Number(lng))) {
+      console.log('❌ Invalid customer coordinates:', lat, lng);
+      return;
+    }
+    
+    const latNum = Number(lat);
+    const lngNum = Number(lng);
+    
+    console.log('✅ Adding customer marker at:', latNum, lngNum);
     
     // Create new marker with customer icon
-    const customerIcon = new H.map.Icon(createCustomerMarkerSVG(), { 
-      size: { w: 36, h: 46 }, 
-      anchor: { x: 18, y: 46 } 
-    });
-    const marker = new H.map.Marker({ lat: Number(lat), lng: Number(lng) }, { icon: customerIcon });
+    const customerIcon = createCustomerIcon(H);
+    const marker = new H.map.Marker({ lat: latNum, lng: lngNum }, { icon: customerIcon });
     
     if (enableSelection) {
       marker.draggable = true;
@@ -245,9 +261,9 @@ const DeliveryMapSimple = ({
     
     // Center map to show both markers with padding
     if (storeLocation && storeLocation.latitude && storeLocation.longitude) {
-      fitMapToBounds(map, storeLocation, { lat: Number(lat), lng: Number(lng) });
+      fitMapToBounds(map, storeLocation, { lat: latNum, lng: lngNum });
     } else {
-      map.setCenter({ lat: Number(lat), lng: Number(lng) });
+      map.setCenter({ lat: latNum, lng: lngNum });
       map.setZoom(16);
     }
   }, [customerLocation, isReady, storeLocation]);
