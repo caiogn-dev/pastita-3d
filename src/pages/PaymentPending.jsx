@@ -173,10 +173,10 @@ const PaymentPending = () => {
             {orderDetails.discount > 0 && (
               <div className="status-row">
                 <span>Desconto:</span>
-                <span className="text-green-600">-R$ {formatMoney(orderDetails.discount)}</span>
+                <span style={{ color: '#16a34a' }}>-R$ {formatMoney(orderDetails.discount)}</span>
               </div>
             )}
-            <div className="status-row status-row-total">
+            <div className="status-row status-row-total" style={{ borderTop: '1px solid #e5e7eb', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
               <span><strong>Total:</strong></span>
               <span className="status-price">
                 <strong>R$ {formatMoney(totalAmount)}</strong>
