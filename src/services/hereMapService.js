@@ -199,50 +199,44 @@ export function createMarker(coords, options = {}) {
  * Create a store marker with custom icon (Pastita logo style)
  */
 export function createStoreMarker(coords) {
-  const svgIcon = `
-    <svg width="48" height="56" xmlns="http://www.w3.org/2000/svg">
-      <!-- Pin shape -->
-      <path d="M24 0C10.745 0 0 10.745 0 24c0 18 24 32 24 32s24-14 24-32C48 10.745 37.255 0 24 0z" 
-            fill="${PASTITA_COLORS.marsala}" stroke="white" stroke-width="3"/>
-      <!-- Store icon -->
-      <rect x="14" y="14" width="20" height="16" rx="2" fill="white"/>
-      <rect x="14" y="12" width="20" height="4" rx="1" fill="${PASTITA_COLORS.gold}"/>
-      <rect x="18" y="22" width="4" height="8" fill="${PASTITA_COLORS.marsala}"/>
-      <rect x="26" y="22" width="4" height="8" fill="${PASTITA_COLORS.marsala}"/>
-      <!-- P letter -->
-      <text x="24" y="20" text-anchor="middle" fill="${PASTITA_COLORS.marsala}" font-size="8" font-weight="bold">LOJA</text>
-    </svg>
-  `;
-  return createMarker(coords, { 
-    svgIcon, 
-    iconOptions: { size: { w: 48, h: 56 }, anchor: { x: 24, y: 56 } },
-    data: { type: 'store' }
-  });
+  logger.info('createStoreMarker called with coords:', coords);
+  const svgIcon = `<svg width="48" height="56" xmlns="http://www.w3.org/2000/svg"><path d="M24 0C10.745 0 0 10.745 0 24c0 18 24 32 24 32s24-14 24-32C48 10.745 37.255 0 24 0z" fill="#722F37" stroke="white" stroke-width="3"/><circle cx="24" cy="20" r="12" fill="white"/><text x="24" y="25" text-anchor="middle" fill="#722F37" font-size="12" font-weight="bold">P</text></svg>`;
+  
+  try {
+    const marker = createMarker(coords, { 
+      svgIcon, 
+      iconOptions: { size: { w: 48, h: 56 }, anchor: { x: 24, y: 56 } },
+      data: { type: 'store' }
+    });
+    logger.info('Store marker created successfully');
+    return marker;
+  } catch (error) {
+    logger.error('Failed to create store marker:', error);
+    // Fallback to default marker
+    return createMarker(coords, { data: { type: 'store' } });
+  }
 }
 
 /**
  * Create a customer/delivery marker (user location)
  */
 export function createDeliveryMarker(coords, options = {}) {
-  const color = options.color || PASTITA_COLORS.gold;
-  const svgIcon = `
-    <svg width="40" height="48" xmlns="http://www.w3.org/2000/svg">
-      <!-- Pin shape -->
-      <path d="M20 0C8.954 0 0 8.954 0 20c0 15 20 28 20 28s20-13 20-28C40 8.954 31.046 0 20 0z" 
-            fill="${color}" stroke="white" stroke-width="2"/>
-      <!-- User icon -->
-      <circle cx="20" cy="15" r="6" fill="white"/>
-      <path d="M10 30c0-5.523 4.477-10 10-10s10 4.477 10 10" fill="white"/>
-      <!-- Pulse animation circle (visual indicator) -->
-      <circle cx="20" cy="20" r="8" fill="none" stroke="white" stroke-width="2" opacity="0.6"/>
-    </svg>
-  `;
-  return createMarker(coords, { 
-    svgIcon, 
-    iconOptions: { size: { w: 40, h: 48 }, anchor: { x: 20, y: 48 } },
-    draggable: options.draggable,
-    data: { type: 'customer', ...options.data }
-  });
+  logger.info('createDeliveryMarker called with coords:', coords);
+  const svgIcon = `<svg width="40" height="48" xmlns="http://www.w3.org/2000/svg"><path d="M20 0C8.954 0 0 8.954 0 20c0 15 20 28 20 28s20-13 20-28C40 8.954 31.046 0 20 0z" fill="#D4AF37" stroke="white" stroke-width="2"/><circle cx="20" cy="16" r="8" fill="white"/></svg>`;
+  
+  try {
+    const marker = createMarker(coords, { 
+      svgIcon, 
+      iconOptions: { size: { w: 40, h: 48 }, anchor: { x: 20, y: 48 } },
+      draggable: options.draggable,
+      data: { type: 'customer', ...options.data }
+    });
+    logger.info('Delivery marker created successfully');
+    return marker;
+  } catch (error) {
+    logger.error('Failed to create delivery marker:', error);
+    return createMarker(coords, { draggable: options.draggable, data: { type: 'customer' } });
+  }
 }
 
 /**
@@ -319,27 +313,41 @@ export function createPolygon(coordinates, options = {}) {
  */
 export function createPolyline(coordinates, options = {}) {
   const H = window.H;
-  
-  let lineString;
-  if (typeof coordinates === 'string') {
-    // Flexible polyline encoded string
-    lineString = H.geo.LineString.fromFlexiblePolyline(coordinates);
-  } else {
-    // Array of coordinates
-    lineString = new H.geo.LineString();
-    coordinates.forEach(coord => {
-      lineString.pushPoint({ lat: coord.lat || coord[0], lng: coord.lng || coord[1] });
-    });
-  }
-
-  return new H.map.Polyline(lineString, {
-    style: {
-      strokeColor: options.strokeColor || PASTITA_COLORS.routeColor,
-      lineWidth: options.lineWidth || 4,
-      lineCap: 'round',
-      lineJoin: 'round'
-    }
+  logger.info('createPolyline called', { 
+    type: typeof coordinates, 
+    isString: typeof coordinates === 'string',
+    length: typeof coordinates === 'string' ? coordinates.length : coordinates?.length 
   });
+  
+  try {
+    let lineString;
+    if (typeof coordinates === 'string') {
+      // Flexible polyline encoded string
+      lineString = H.geo.LineString.fromFlexiblePolyline(coordinates);
+      logger.info('Polyline decoded from flexible polyline string');
+    } else {
+      // Array of coordinates
+      lineString = new H.geo.LineString();
+      coordinates.forEach(coord => {
+        lineString.pushPoint({ lat: coord.lat || coord[0], lng: coord.lng || coord[1] });
+      });
+      logger.info('Polyline created from coordinate array');
+    }
+
+    const polyline = new H.map.Polyline(lineString, {
+      style: {
+        strokeColor: options.strokeColor || PASTITA_COLORS.routeColor,
+        lineWidth: options.lineWidth || 4,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }
+    });
+    logger.info('Polyline object created successfully');
+    return polyline;
+  } catch (error) {
+    logger.error('Failed to create polyline:', error);
+    throw error;
+  }
 }
 
 /**
