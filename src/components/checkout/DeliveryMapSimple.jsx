@@ -132,6 +132,16 @@ const DeliveryMapSimple = ({
   
   const searchTimeoutRef = useRef(null);
   const resultsRef = useRef(null);
+  
+  // Debug props
+  useEffect(() => {
+    console.log('🗺️ DeliveryMapSimple props:', {
+      storeLocation,
+      customerLocation,
+      routePolyline: routePolyline ? 'present' : 'null',
+      enableSelection
+    });
+  }, [storeLocation, customerLocation, routePolyline, enableSelection]);
 
   // Initialize map
   useEffect(() => {
@@ -325,6 +335,7 @@ const DeliveryMapSimple = ({
     // Add new route if polyline provided
     if (routePolyline && typeof routePolyline === 'string') {
       try {
+        console.log('🛣️ Drawing route polyline');
         const lineString = H.geo.LineString.fromFlexiblePolyline(routePolyline);
         const polyline = new H.map.Polyline(lineString, {
           style: {
@@ -336,9 +347,18 @@ const DeliveryMapSimple = ({
         });
         map.addObject(polyline);
         routeLineRef.current = polyline;
+        console.log('✅ Route drawn successfully');
+        
+        // Fit map to show the route
+        const bounds = polyline.getBoundingBox();
+        if (bounds) {
+          map.getViewModel().setLookAtData({ bounds }, true);
+        }
       } catch (err) {
-        console.error('Error creating route line:', err);
+        console.error('❌ Error creating route line:', err);
       }
+    } else {
+      console.log('ℹ️ No route polyline to draw');
     }
   }, [routePolyline, isReady]);
 

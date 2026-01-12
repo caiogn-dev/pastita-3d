@@ -89,21 +89,25 @@ export const useDelivery = () => {
     setLoadingDelivery(true);
     try {
       const data = await storeApi.validateDeliveryAddress(lat, lng);
+      console.log('📦 Delivery validation response:', data);
       if (data) {
         const info = {
-          fee: Number(data.fee) || 0,
-          zone_name: data.zone_name || 'Área de entrega',
+          fee: Number(data.delivery_fee || data.fee) || 0,
+          zone_name: data.delivery_zone || data.zone_name || 'Área de entrega',
           estimated_days: data.estimated_days || 0,
           distance_km: data.distance_km,
-          estimated_minutes: data.estimated_minutes,
-          is_valid: data.is_valid !== false
+          duration_minutes: data.duration_minutes,
+          estimated_minutes: data.estimated_minutes || data.duration_minutes,
+          is_valid: data.is_valid !== false,
+          polyline: data.polyline
         };
         setDeliveryInfo(info);
         setShippingCost(info.fee);
         setLoadingDelivery(false);
         return info;
       }
-    } catch {
+    } catch (err) {
+      console.error('❌ Delivery validation error:', err);
       setShippingCost(null);
       setDeliveryInfo(null);
     }

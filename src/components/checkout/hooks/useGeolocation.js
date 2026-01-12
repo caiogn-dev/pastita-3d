@@ -93,16 +93,29 @@ export const useGeolocation = () => {
 
       // Get delivery fee (this also validates the address)
       const deliveryData = await storeApi.validateDeliveryAddress(lat, lng);
+      console.log('📦 Delivery validation response:', deliveryData);
       if (deliveryData) {
-        setDeliveryInfo({
+        const deliveryInfoData = {
           fee: Number(deliveryData.delivery_fee || deliveryData.fee) || 0,
           zone_name: deliveryData.delivery_zone || deliveryData.zone_name || 'Área de entrega',
           estimated_days: deliveryData.estimated_days || 0,
           distance_km: deliveryData.distance_km,
-          estimated_minutes: deliveryData.estimated_minutes,
+          duration_minutes: deliveryData.duration_minutes,
+          estimated_minutes: deliveryData.estimated_minutes || deliveryData.duration_minutes,
           is_valid: deliveryData.is_valid !== false,
           polyline: deliveryData.polyline || routeData?.polyline
-        });
+        };
+        setDeliveryInfo(deliveryInfoData);
+        
+        // Also update routeInfo with polyline from delivery response if not already set
+        if (deliveryData.polyline && !routeData?.polyline) {
+          setRouteInfo(prev => ({
+            ...prev,
+            distance_km: deliveryData.distance_km,
+            duration_minutes: deliveryData.duration_minutes,
+            polyline: deliveryData.polyline
+          }));
+        }
       }
 
       return { routeData, deliveryData };
