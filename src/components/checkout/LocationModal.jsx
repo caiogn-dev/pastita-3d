@@ -137,7 +137,12 @@ const LocationModal = ({
         {step === 'map' && (
           <div className={styles.mapStep}>
             <h2>Selecione seu endereço no mapa</h2>
-            <p>Clique no mapa ou use a busca para encontrar seu endereço</p>
+            <p style={{ marginBottom: '0.5rem' }}>
+              📍 <strong>Clique no mapa</strong> para marcar sua localização exata
+            </p>
+            <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>
+              Se o GPS não encontrou o local correto, ajuste clicando no mapa ou buscando o endereço
+            </p>
 
             <div className={styles.mapContainer}>
               <InteractiveMap
