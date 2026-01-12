@@ -1,0 +1,860 @@
+/* Checkout Modal and Flow Styles */
+
+/* ============================================
+   Modal Overlay
+   ============================================ */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.modalContent {
+  background: white;
+  border-radius: 20px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.closeButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #f5f5f5;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.closeButton:hover {
+  background: #e5e5e5;
+  color: #333;
+}
+
+/* ============================================
+   GPS Detection Step
+   ============================================ */
+.detectingStep {
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.gpsAnimation {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 2rem;
+}
+
+.pulseRing {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border: 3px solid #722F37;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+  }
+}
+
+.gpsIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3rem;
+  animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translate(-50%, -50%); }
+  50% { transform: translate(-50%, -60%); }
+}
+
+.detectingStep h2 {
+  font-size: 1.3rem;
+  color: #333;
+  margin: 0 0 0.5rem 0;
+}
+
+.detectingStep p {
+  color: #666;
+  margin: 0 0 2rem 0;
+}
+
+.errorBox {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.errorBox p {
+  color: #dc2626;
+  margin: 0 0 1rem 0;
+}
+
+.errorActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.retryBtn {
+  padding: 0.75rem 1.5rem;
+  background: #722F37;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.retryBtn:hover {
+  background: #5a252c;
+}
+
+.skipBtn {
+  padding: 0.75rem 1.5rem;
+  background: white;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.skipBtn:hover {
+  background: #f5f5f5;
+}
+
+.skipLink {
+  background: none;
+  border: none;
+  color: #666;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.skipLink:hover {
+  color: #722F37;
+}
+
+/* ============================================
+   Map Step
+   ============================================ */
+.mapStep {
+  padding: 1.5rem;
+}
+
+.mapStep h2 {
+  font-size: 1.2rem;
+  color: #333;
+  margin: 0 0 0.25rem 0;
+  text-align: center;
+}
+
+.mapStep p {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+  text-align: center;
+}
+
+.mapContainer {
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.mapLoading {
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  color: #666;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e5e5;
+  border-top-color: #722F37;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   Confirm Step
+   ============================================ */
+.confirmStep {
+  padding: 1.5rem;
+}
+
+.confirmStep h2 {
+  font-size: 1.2rem;
+  color: #333;
+  margin: 0 0 1rem 0;
+  text-align: center;
+}
+
+.deliveryInfoCard {
+  background: linear-gradient(135deg, #722F37 0%, #8B3A44 100%);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin: 1rem 0;
+  color: white;
+}
+
+.routeStats {
+  display: flex;
+  justify-content: space-around;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.statIcon {
+  font-size: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.statValue {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.zoneTag {
+  text-align: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.addressCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.addressIcon {
+  font-size: 1.5rem;
+}
+
+.addressDetails {
+  flex: 1;
+}
+
+.streetName {
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 0.25rem 0;
+}
+
+.neighborhood {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.cityState {
+  color: #888;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.confirmActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.confirmBtn {
+  padding: 1rem;
+  background: #722F37;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirmBtn:hover {
+  background: #5a252c;
+}
+
+.editBtn {
+  padding: 0.75rem;
+  background: white;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.editBtn:hover {
+  background: #f5f5f5;
+}
+
+/* ============================================
+   Order Confirmation
+   ============================================ */
+.orderConfirmation {
+  padding: 1.5rem;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  color: #333;
+  margin: 0 0 1rem 0;
+}
+
+.sectionIcon {
+  font-size: 1.25rem;
+}
+
+.cartSection {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.cartItems {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.cartItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f9f9f9;
+  border-radius: 10px;
+}
+
+.itemImage {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.itemImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.itemPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e5e5e5;
+  font-size: 1.5rem;
+}
+
+.itemDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemDetails h4 {
+  font-size: 0.95rem;
+  color: #333;
+  margin: 0 0 0.25rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemQty {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0;
+}
+
+.itemOptions {
+  font-size: 0.8rem;
+  color: #888;
+  margin: 0.25rem 0 0 0;
+}
+
+.itemPrice {
+  font-weight: 600;
+  color: #722F37;
+  white-space: nowrap;
+}
+
+.cartSubtotal {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 500;
+  color: #333;
+}
+
+/* ============================================
+   Delivery Section
+   ============================================ */
+.deliverySection {
+  margin-bottom: 1.5rem;
+}
+
+.deliveryOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.deliveryOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px solid #e5e5e5;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.deliveryOption:hover {
+  border-color: #722F37;
+}
+
+.deliveryOption.selected {
+  border-color: #722F37;
+  background: #fdf6f0;
+}
+
+.optionRadio {
+  padding-top: 0.25rem;
+}
+
+.optionRadio input {
+  width: 18px;
+  height: 18px;
+  accent-color: #722F37;
+}
+
+.optionIcon {
+  font-size: 1.75rem;
+}
+
+.optionContent {
+  flex: 1;
+}
+
+.optionContent h3 {
+  font-size: 1rem;
+  color: #333;
+  margin: 0 0 0.25rem 0;
+}
+
+.optionContent p {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0;
+}
+
+.deliveryFee {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #722F37;
+  font-weight: 500;
+}
+
+.freeDelivery {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.zoneBadge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  background: #722F37;
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.pickupBenefit {
+  margin-top: 0.5rem;
+}
+
+.freeTag {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #dcfce7;
+  color: #16a34a;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.optionAction {
+  flex-shrink: 0;
+}
+
+.selectAddressBtn {
+  padding: 0.5rem 1rem;
+  background: #722F37;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.selectAddressBtn:hover {
+  background: #5a252c;
+}
+
+.changeAddressBtn {
+  padding: 0.5rem 1rem;
+  background: white;
+  color: #722F37;
+  border: 1px solid #722F37;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.changeAddressBtn:hover {
+  background: #fdf6f0;
+}
+
+/* Confirmed Address */
+.confirmedAddress {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  margin-top: -0.5rem;
+  margin-left: 2.5rem;
+}
+
+.addressPin {
+  font-size: 1.25rem;
+}
+
+.addressText {
+  flex: 1;
+}
+
+.addressStreet {
+  font-weight: 500;
+  color: #333;
+  margin: 0 0 0.25rem 0;
+}
+
+.addressCity {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0;
+}
+
+/* ============================================
+   Order Total
+   ============================================ */
+.orderTotal {
+  background: #f9f9f9;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  font-size: 0.95rem;
+}
+
+.totalRow.grandTotal {
+  border-top: 2px solid #722F37;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #722F37;
+}
+
+.freeText {
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.pendingText {
+  color: #888;
+  font-style: italic;
+}
+
+.proceedButton {
+  width: 100%;
+  padding: 1rem;
+  background: #722F37;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.proceedButton:hover:not(:disabled) {
+  background: #5a252c;
+}
+
+.proceedButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   Payment Step
+   ============================================ */
+.paymentStep {
+  padding: 1.5rem;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: #722F37;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+.backButton:hover {
+  text-decoration: underline;
+}
+
+.stepSection {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.stepSection:last-of-type {
+  border-bottom: none;
+}
+
+.cardPaymentContainer {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 10px;
+}
+
+.paymentSummary {
+  background: #f9f9f9;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+}
+
+.summaryRow.discountRow {
+  color: #16a34a;
+}
+
+.summaryRow.totalRow {
+  border-top: 2px solid #722F37;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  font-weight: 700;
+  color: #722F37;
+}
+
+.errorMessage {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid #fecaca;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 1rem;
+  background: #722F37;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #5a252c;
+}
+
+.submitButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.securePayment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 480px) {
+  .modalContent {
+    max-height: 95vh;
+    border-radius: 16px 16px 0 0;
+    margin-top: auto;
+  }
+
+  .detectingStep,
+  .mapStep,
+  .confirmStep,
+  .orderConfirmation,
+  .paymentStep {
+    padding: 1rem;
+  }
+
+  .routeStats {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .stat {
+    flex: 1;
+    min-width: 80px;
+  }
+
+  .deliveryOption {
+    flex-wrap: wrap;
+  }
+
+  .optionAction {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .selectAddressBtn,
+  .changeAddressBtn {
+    width: 100%;
+  }
+
+  .confirmedAddress {
+    margin-left: 0;
+  }
+}

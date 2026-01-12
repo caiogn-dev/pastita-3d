@@ -1,0 +1,191 @@
+/* Checkout Flow Styles */
+
+/* ============================================
+   Page Layout
+   ============================================ */
+.checkoutPage {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fdf6f0 0%, #fff5eb 100%);
+  padding: 1rem;
+}
+
+.checkoutContainer {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   Header
+   ============================================ */
+.checkoutHeader {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.backLink {
+  display: inline-block;
+  color: #722F37;
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+.checkoutHeader h1 {
+  font-size: 1.75rem;
+  color: #722F37;
+  margin: 0 0 1.5rem 0;
+}
+
+/* ============================================
+   Progress Steps
+   ============================================ */
+.progressSteps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stepNumber {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e5e5e5;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s;
+}
+
+.step.active .stepNumber {
+  background: #722F37;
+  color: white;
+}
+
+.step.completed .stepNumber {
+  background: #16a34a;
+  color: white;
+}
+
+.step.completed .stepNumber::after {
+  content: '✓';
+}
+
+.stepLabel {
+  font-size: 0.85rem;
+  color: #888;
+  font-weight: 500;
+}
+
+.step.active .stepLabel {
+  color: #722F37;
+}
+
+.step.completed .stepLabel {
+  color: #16a34a;
+}
+
+.stepLine {
+  width: 60px;
+  height: 3px;
+  background: #e5e5e5;
+  margin: 0 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ============================================
+   Content Card
+   ============================================ */
+.checkoutContent {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* ============================================
+   Empty Cart
+   ============================================ */
+.emptyCart {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fdf6f0 0%, #fff5eb 100%);
+  padding: 2rem;
+}
+
+.emptyCartContent {
+  text-align: center;
+  background: white;
+  padding: 3rem 2rem;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  max-width: 400px;
+}
+
+.emptyCartIcon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.emptyCartContent h2 {
+  color: #333;
+  margin: 0 0 0.5rem 0;
+}
+
+.emptyCartContent p {
+  color: #666;
+  margin: 0 0 1.5rem 0;
+}
+
+.backButton {
+  display: inline-block;
+  padding: 0.875rem 2rem;
+  background: #722F37;
+  color: white;
+  text-decoration: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.backButton:hover {
+  background: #5a252c;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 480px) {
+  .checkoutPage {
+    padding: 0.5rem;
+  }
+
+  .checkoutHeader h1 {
+    font-size: 1.5rem;
+  }
+
+  .stepLine {
+    width: 40px;
+  }
+
+  .checkoutContent {
+    border-radius: 16px;
+  }
+}
