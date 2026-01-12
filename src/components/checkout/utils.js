@@ -97,8 +97,8 @@ export const STORE_ADDRESS = {
 };
 
 export const STORE_LOCATION = {
-  latitude: parseFloat(process.env.NEXT_PUBLIC_STORE_LAT) || -10.186776,
-  longitude: parseFloat(process.env.NEXT_PUBLIC_STORE_LNG) || -48.306753
+  latitude: parseFloat(process.env.NEXT_PUBLIC_STORE_LAT) || -10.1854332,
+  longitude: parseFloat(process.env.NEXT_PUBLIC_STORE_LNG) || -48.3038653
 };
 
 export const TIME_SLOTS = [
