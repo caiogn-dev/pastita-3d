@@ -20,6 +20,7 @@ import {
   reverseGeocode
 } from '../services/hereMapService';
 import { calculateRouteWithPolyline, getRouteSummary } from '../services/hereRoutingService';
+import { STORE_LOCATION } from './checkout/utils';
 import logger from '../services/logger';
 
 /**
@@ -524,11 +525,12 @@ export default function InteractiveMap({
       return;
     }
 
-    // Search via HERE
+    // Search via HERE - use store location as center for better results
+    const storeAt = `${STORE_LOCATION.latitude},${STORE_LOCATION.longitude}`;
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         const response = await fetch(
-          `https://autosuggest.search.hereapi.com/v1/autosuggest?q=${encodeURIComponent(query)}&in=countryCode:BRA&limit=5&apikey=${process.env.NEXT_PUBLIC_HERE_API_KEY}`
+          `https://autosuggest.search.hereapi.com/v1/autosuggest?q=${encodeURIComponent(query)}&at=${storeAt}&in=countryCode:BRA&limit=5&apikey=${process.env.NEXT_PUBLIC_HERE_API_KEY}`
         );
         const data = await response.json();
         

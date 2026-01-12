@@ -17,8 +17,8 @@ const HERE_EVENTS_JS = `https://js.api.here.com/v3/${HERE_API_VERSION}/mapsjs-ma
 const HERE_CLUSTERING_JS = `https://js.api.here.com/v3/${HERE_API_VERSION}/mapsjs-clustering.js`;
 const HERE_UI_CSS = `https://js.api.here.com/v3/${HERE_API_VERSION}/mapsjs-ui.css`;
 
-// Default map center (Tocantins, Brazil)
-const DEFAULT_CENTER = { lat: -10.1847, lng: -48.3336 };
+// Default map center - Ivoneth Banqueteria/Pastita (Palmas, TO)
+const DEFAULT_CENTER = { lat: -10.1854332, lng: -48.3038653 };
 const DEFAULT_ZOOM = 13;
 
 // Pastita brand colors
