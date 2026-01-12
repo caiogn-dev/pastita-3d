@@ -232,16 +232,10 @@ export default function InteractiveMap({
     }
   }, [customerLocation, showCustomerMarker]);
 
-  // Draw route polyline when provided
+  // Draw route polyline when provided - depends on both isLoaded and routePolyline
   useEffect(() => {
-    console.log('🛣️ Polyline useEffect triggered', { 
-      hasMap: !!mapInstanceRef.current, 
-      hasPolyline: !!routePolyline,
-      polylineLength: routePolyline?.length 
-    });
-    
-    if (!mapInstanceRef.current) {
-      console.log('🛣️ Map not ready yet, skipping polyline draw');
+    // Wait for map to be ready
+    if (!isLoaded || !mapInstanceRef.current) {
       return;
     }
     
@@ -251,40 +245,45 @@ export default function InteractiveMap({
     if (routeLineRef.current) {
       try {
         map.removeObject(routeLineRef.current);
-        console.log('🛣️ Removed existing route line');
       } catch (e) {
-        console.log('🛣️ Could not remove existing route:', e.message);
+        // Object might already be removed
       }
       routeLineRef.current = null;
     }
     
     // Draw new route if polyline provided
-    if (routePolyline) {
-      console.log('🛣️ Drawing route polyline...', { polylineLength: routePolyline.length });
+    if (routePolyline && typeof routePolyline === 'string' && routePolyline.length > 0) {
       try {
         const polyline = createPolyline(routePolyline, {
           strokeColor: PASTITA_COLORS.marsala,
-          lineWidth: 5
+          lineWidth: 6
         });
         map.addObject(polyline);
         routeLineRef.current = polyline;
-        console.log('🛣️ Route polyline added successfully!');
         
-        // Optionally fit bounds to show the entire route
+        // Fit bounds to show the entire route with padding
         try {
           const bounds = polyline.getBoundingBox();
           if (bounds) {
             map.getViewModel().setLookAtData({ bounds }, true);
-            console.log('🛣️ Map view adjusted to show route');
+            // Add slight delay to ensure bounds are applied, then adjust zoom
+            setTimeout(() => {
+              const currentZoom = map.getZoom();
+              if (currentZoom > 15) {
+                map.setZoom(15);
+              } else if (currentZoom < 12) {
+                map.setZoom(12);
+              }
+            }, 150);
           }
         } catch (boundsErr) {
-          console.log('🛣️ Could not adjust bounds:', boundsErr.message);
+          logger.warn('Could not adjust bounds for polyline', boundsErr);
         }
       } catch (err) {
-        console.error('🛣️ Failed to draw route polyline:', err);
+        logger.error('Failed to draw route polyline:', err);
       }
     }
-  }, [routePolyline]);
+  }, [isLoaded, routePolyline]);
 
   // Display zones
   useEffect(() => {
