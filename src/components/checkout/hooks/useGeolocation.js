@@ -136,12 +136,21 @@ export const useGeolocation = () => {
       const pos = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 60000
+          timeout: 20000,
+          maximumAge: 0 // Always get fresh location, no cache
         });
       });
 
-      const { latitude, longitude } = pos.coords;
+      const { latitude, longitude, accuracy } = pos.coords;
+      
+      // Log accuracy for debugging
+      console.log(`📍 GPS Location: ${latitude}, ${longitude} (accuracy: ${accuracy}m)`);
+      
+      // Warn if accuracy is poor (> 100m)
+      if (accuracy > 100) {
+        console.warn(`⚠️ GPS accuracy is low: ${accuracy}m`);
+      }
+      
       setPosition({ lat: latitude, lng: longitude });
 
       // Reverse geocode
@@ -154,16 +163,16 @@ export const useGeolocation = () => {
       await calculateRouteAndFee(latitude, longitude);
 
       setLoading(false);
-      return { lat: latitude, lng: longitude, address };
+      return { lat: latitude, lng: longitude, address, accuracy };
     } catch (err) {
       setLoading(false);
       
       if (err.code === 1) {
-        setError('Permissão de localização negada');
+        setError('Permissão de localização negada. Por favor, permita o acesso à localização nas configurações do navegador.');
       } else if (err.code === 2) {
-        setError('Localização indisponível');
+        setError('Não foi possível obter sua localização. Verifique se o GPS está ativado.');
       } else if (err.code === 3) {
-        setError('Tempo esgotado ao obter localização');
+        setError('Tempo esgotado ao obter localização. Tente novamente.');
       } else {
         setError('Erro ao obter localização');
       }

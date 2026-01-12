@@ -827,6 +827,7 @@ export async function geocodeBrazilianAddress(cep, addressData = {}) {
 
 /**
  * Get user's current location using browser geolocation
+ * Always requests fresh location (no cache) for accuracy
  */
 export function getCurrentLocation(options = {}) {
   return new Promise((resolve, reject) => {
@@ -837,24 +838,27 @@ export function getCurrentLocation(options = {}) {
 
     const defaultOptions = {
       enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 60000,
+      timeout: 20000,
+      maximumAge: 0, // Always get fresh location
       ...options,
     };
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        console.log(`📍 GPS: ${latitude}, ${longitude} (accuracy: ${Math.round(accuracy)}m)`);
+        
         resolve({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
+          latitude,
+          longitude,
+          accuracy,
         });
       },
       (error) => {
         const messages = {
-          1: 'Permissão de localização negada',
-          2: 'Localização indisponível',
-          3: 'Tempo esgotado ao obter localização',
+          1: 'Permissão de localização negada. Permita o acesso nas configurações do navegador.',
+          2: 'Não foi possível obter sua localização. Verifique se o GPS está ativado.',
+          3: 'Tempo esgotado ao obter localização. Tente novamente.',
         };
         reject(new Error(messages[error.code] || 'Erro ao obter localização'));
       },
