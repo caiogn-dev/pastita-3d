@@ -143,15 +143,17 @@ const CheckoutPage = () => {
 
       const payment = response.payment;
       const orderNumber = response.order_number;
+      const accessToken = response.access_token;
 
-      // Cache payment data
-      if (payment && orderNumber) {
+      // Cache payment data with access token
+      if (orderNumber) {
         try {
           sessionStorage.setItem(
             `mp_payment_${orderNumber}`,
             JSON.stringify({ 
               ...payment, 
               order_number: orderNumber,
+              access_token: accessToken,
               total_amount: response.total_amount
             })
           );
@@ -175,41 +177,43 @@ const CheckoutPage = () => {
       // Clear cart
       clearCart();
 
-      // Navigate based on payment status
+      // Navigate based on payment status - use access_token for secure access
+      const tokenParam = accessToken ? `token=${accessToken}` : `order=${orderNumber}`;
+      
       if (payment) {
         const paymentStatus = payment.status;
         const paymentMethod = payment.payment_method || checkoutData.payment_method;
 
         // Cash payment goes directly to success
         if (paymentMethod === 'cash') {
-          router.push(`/sucesso?order=${orderNumber}&method=cash`);
+          router.push(`/sucesso?${tokenParam}&method=cash`);
           return;
         }
 
         if (paymentStatus === 'approved') {
-          router.push(`/sucesso?order=${orderNumber}`);
+          router.push(`/sucesso?${tokenParam}`);
           return;
         }
 
         if (paymentStatus === 'rejected') {
           const errorCode = payment.status_detail || '';
-          router.push(`/erro?order=${orderNumber}&error=${errorCode}`);
+          router.push(`/erro?${tokenParam}&error=${errorCode}`);
           return;
         }
 
-        router.push(`/pendente?order=${orderNumber}`);
+        router.push(`/pendente?${tokenParam}`);
         return;
       }
 
-      // Fallback
-      const paymentLink = response.payment_link || response.init_point || response.sandbox_init_point;
+      // Fallback - use pix_ticket_url if available (Mercado Pago payment page)
+      const paymentLink = response.pix_ticket_url || response.payment_link || response.init_point || response.sandbox_init_point;
       if (paymentLink) {
         window.location.href = paymentLink;
         return;
       }
 
       if (orderNumber) {
-        router.push(`/pendente?order=${orderNumber}`);
+        router.push(`/pendente?${tokenParam}`);
       }
     } catch (error) {
       setPaymentError(error.message || 'Erro ao processar pedido');
