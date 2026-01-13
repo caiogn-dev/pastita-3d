@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import * as storeApi from '../services/storeApi';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import './Profile.css';
+// CSS is imported globally in _app.js
 
 const BRAZILIAN_STATES = [
   { value: 'AC', label: 'Acre' }, { value: 'AL', label: 'Alagoas' },
