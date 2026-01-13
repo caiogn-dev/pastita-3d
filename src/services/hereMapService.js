@@ -311,12 +311,15 @@ export function createPolygon(coordinates, options = {}) {
 /**
  * Decode flexible polyline format from HERE API
  * Based on HERE's flexible polyline encoding specification
+ * Reference: https://github.com/heremaps/flexible-polyline
  */
 function decodeFlexiblePolyline(encoded) {
   if (!encoded || typeof encoded !== 'string') {
+    logger.warn('decodeFlexiblePolyline: Invalid input', { encoded });
     return [];
   }
 
+  // Decoding table for base64-like encoding
   const DECODING_TABLE = [
     62, -1, -1, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1, -1,
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
@@ -324,43 +327,51 @@ function decodeFlexiblePolyline(encoded) {
     36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
   ];
 
-  try {
-    const result = [];
-    let index = 0;
-
-    // Decode header - version
-    let version = 0;
+  const decodeUnsignedValue = (encoded, index) => {
+    let result = 0;
     let shift = 0;
     let byte;
-
+    
     do {
-      byte = DECODING_TABLE[encoded.charCodeAt(index++) - 45];
-      version |= (byte & 0x1F) << shift;
+      const charCode = encoded.charCodeAt(index.value++) - 45;
+      if (charCode < 0 || charCode >= DECODING_TABLE.length) {
+        throw new Error(`Invalid character at position ${index.value - 1}`);
+      }
+      byte = DECODING_TABLE[charCode];
+      if (byte === -1) {
+        throw new Error(`Invalid character at position ${index.value - 1}`);
+      }
+      result |= (byte & 0x1F) << shift;
       shift += 5;
     } while (byte >= 0x20);
+    
+    return result;
+  };
 
-    // Decode precision
-    let precision = 0;
-    shift = 0;
-    do {
-      byte = DECODING_TABLE[encoded.charCodeAt(index++) - 45];
-      precision |= (byte & 0x1F) << shift;
-      shift += 5;
-    } while (byte >= 0x20);
+  const decodeSignedValue = (encoded, index) => {
+    const unsigned = decodeUnsignedValue(encoded, index);
+    return (unsigned & 1) ? ~(unsigned >> 1) : (unsigned >> 1);
+  };
 
-    // Decode third dimension type and precision (if present)
+  try {
+    const result = [];
+    const index = { value: 0 };
+
+    // Decode header
+    const header = decodeUnsignedValue(encoded, index);
+    const version = header;
+    
+    // Decode precision (typically 5 for lat/lng)
+    const precision = decodeUnsignedValue(encoded, index);
+    
+    // For version 1, decode third dimension info
     let thirdDimPrecision = 0;
     let thirdDimType = 0;
+    
     if (version === 1) {
-      shift = 0;
-      do {
-        byte = DECODING_TABLE[encoded.charCodeAt(index++) - 45];
-        thirdDimType |= (byte & 0x1F) << shift;
-        shift += 5;
-      } while (byte >= 0x20);
-
-      thirdDimPrecision = thirdDimType & 0x0F;
-      thirdDimType = (thirdDimType >> 4) & 0x07;
+      const thirdDimHeader = decodeUnsignedValue(encoded, index);
+      thirdDimPrecision = thirdDimHeader & 0x0F;
+      thirdDimType = (thirdDimHeader >> 4) & 0x07;
     }
 
     const factor = Math.pow(10, precision);
@@ -370,52 +381,48 @@ function decodeFlexiblePolyline(encoded) {
     let lng = 0;
     let alt = 0;
 
-    while (index < encoded.length) {
-      // Decode latitude
-      let deltaLat = 0;
-      shift = 0;
-      do {
-        byte = DECODING_TABLE[encoded.charCodeAt(index++) - 45];
-        deltaLat |= (byte & 0x1F) << shift;
-        shift += 5;
-      } while (byte >= 0x20);
-      deltaLat = (deltaLat & 1) ? ~(deltaLat >> 1) : (deltaLat >> 1);
+    while (index.value < encoded.length) {
+      // Decode latitude delta
+      const deltaLat = decodeSignedValue(encoded, index);
       lat += deltaLat;
 
-      // Decode longitude
-      let deltaLng = 0;
-      shift = 0;
-      do {
-        byte = DECODING_TABLE[encoded.charCodeAt(index++) - 45];
-        deltaLng |= (byte & 0x1F) << shift;
-        shift += 5;
-      } while (byte >= 0x20);
-      deltaLng = (deltaLng & 1) ? ~(deltaLng >> 1) : (deltaLng >> 1);
+      // Decode longitude delta
+      const deltaLng = decodeSignedValue(encoded, index);
       lng += deltaLng;
 
       // Decode altitude if present
-      if (thirdDimType !== 0 && index < encoded.length) {
-        let deltaAlt = 0;
-        shift = 0;
-        do {
-          byte = DECODING_TABLE[encoded.charCodeAt(index++) - 45];
-          deltaAlt |= (byte & 0x1F) << shift;
-          shift += 5;
-        } while (byte >= 0x20);
-        deltaAlt = (deltaAlt & 1) ? ~(deltaAlt >> 1) : (deltaAlt >> 1);
+      if (thirdDimType !== 0 && index.value < encoded.length) {
+        const deltaAlt = decodeSignedValue(encoded, index);
         alt += deltaAlt;
       }
 
-      result.push({
+      const point = {
         lat: lat / factor,
-        lng: lng / factor,
-        alt: thirdDimType !== 0 ? alt / thirdFactor : undefined
-      });
+        lng: lng / factor
+      };
+      
+      // Validate coordinates are in valid range
+      if (point.lat >= -90 && point.lat <= 90 && point.lng >= -180 && point.lng <= 180) {
+        if (thirdDimType !== 0) {
+          point.alt = alt / thirdFactor;
+        }
+        result.push(point);
+      } else {
+        logger.warn('decodeFlexiblePolyline: Invalid coordinate skipped', point);
+      }
     }
+
+    logger.info('decodeFlexiblePolyline: Decoded successfully', {
+      points: result.length,
+      firstPoint: result[0],
+      lastPoint: result[result.length - 1]
+    });
 
     return result;
   } catch (e) {
-    logger.error('Failed to decode flexible polyline:', e);
+    logger.error('Failed to decode flexible polyline:', e, { 
+      encodedPreview: encoded.substring(0, 100) 
+    });
     return [];
   }
 }
@@ -425,35 +432,67 @@ function decodeFlexiblePolyline(encoded) {
  */
 export function createPolyline(coordinates, options = {}) {
   const H = window.H;
+  
   logger.info('createPolyline called', {
     type: typeof coordinates,
     isString: typeof coordinates === 'string',
-    length: typeof coordinates === 'string' ? coordinates.length : coordinates?.length
+    length: typeof coordinates === 'string' ? coordinates.length : coordinates?.length,
+    preview: typeof coordinates === 'string' ? coordinates.substring(0, 50) : null
   });
 
   try {
     let lineString = new H.geo.LineString();
+    let pointCount = 0;
 
     if (typeof coordinates === 'string') {
-      // Flexible polyline encoded string - decode it manually
+      // Flexible polyline encoded string - decode it
       const decoded = decodeFlexiblePolyline(coordinates);
-      logger.info('Polyline decoded from flexible polyline string, points:', decoded.length);
-
+      
       if (decoded.length === 0) {
-        throw new Error('Failed to decode polyline - no points');
+        throw new Error('Failed to decode polyline - no valid points');
       }
 
-      decoded.forEach(coord => {
-        lineString.pushPoint({ lat: coord.lat, lng: coord.lng });
+      // Add points to linestring, validating each one
+      decoded.forEach((coord, idx) => {
+        if (typeof coord.lat === 'number' && typeof coord.lng === 'number' &&
+            !isNaN(coord.lat) && !isNaN(coord.lng)) {
+          lineString.pushPoint({ lat: coord.lat, lng: coord.lng });
+          pointCount++;
+        } else {
+          logger.warn(`Invalid point at index ${idx}:`, coord);
+        }
       });
+      
+      logger.info('Polyline decoded from flexible polyline', { 
+        decodedPoints: decoded.length,
+        validPoints: pointCount 
+      });
+      
     } else if (Array.isArray(coordinates)) {
       // Array of coordinates
-      coordinates.forEach(coord => {
-        lineString.pushPoint({ lat: coord.lat || coord[0], lng: coord.lng || coord[1] });
+      coordinates.forEach((coord, idx) => {
+        const lat = coord.lat ?? coord.latitude ?? coord[0];
+        const lng = coord.lng ?? coord.longitude ?? coord[1];
+        
+        if (typeof lat === 'number' && typeof lng === 'number' &&
+            !isNaN(lat) && !isNaN(lng)) {
+          lineString.pushPoint({ lat, lng });
+          pointCount++;
+        } else {
+          logger.warn(`Invalid point at index ${idx}:`, coord);
+        }
       });
-      logger.info('Polyline created from coordinate array');
+      
+      logger.info('Polyline created from coordinate array', { 
+        inputPoints: coordinates.length,
+        validPoints: pointCount 
+      });
     } else {
       throw new Error('Invalid coordinates format');
+    }
+
+    if (pointCount < 2) {
+      throw new Error(`Not enough valid points for polyline: ${pointCount}`);
     }
 
     const polyline = new H.map.Polyline(lineString, {
@@ -464,7 +503,8 @@ export function createPolyline(coordinates, options = {}) {
         lineJoin: 'round'
       }
     });
-    logger.info('Polyline object created successfully');
+    
+    logger.info('Polyline object created successfully', { pointCount });
     return polyline;
   } catch (error) {
     logger.error('Failed to create polyline:', error);
