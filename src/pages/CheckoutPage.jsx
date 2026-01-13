@@ -6,7 +6,7 @@
  * 2. If Delivery - Location Modal popup for GPS/address selection
  * 3. Payment Step - Customer info and payment
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { initMercadoPago } from '@mercadopago/sdk-react';
@@ -20,6 +20,7 @@ import {
   LocationModal,
   OrderConfirmation,
   PaymentStep,
+  CheckoutProgress,
   useCheckoutForm,
   useGeolocation,
   useDelivery,
@@ -238,6 +239,16 @@ const CheckoutPage = () => {
     );
   }
 
+  // Map step names to indices for CheckoutProgress
+  const stepIndex = useMemo(() => {
+    return currentStep === 'order' ? 0 : 1;
+  }, [currentStep]);
+
+  const completedSteps = useMemo(() => {
+    if (currentStep === 'payment') return [0];
+    return [];
+  }, [currentStep]);
+
   return (
     <div className={styles.checkoutPage}>
       <div className={styles.checkoutContainer}>
@@ -248,18 +259,12 @@ const CheckoutPage = () => {
           </Link>
           <h1>Finalizar Pedido</h1>
           
-          {/* Progress Steps */}
-          <div className={styles.progressSteps}>
-            <div className={`${styles.step} ${currentStep === 'order' ? styles.active : styles.completed}`}>
-              <span className={styles.stepNumber}>1</span>
-              <span className={styles.stepLabel}>Pedido</span>
-            </div>
-            <div className={styles.stepLine}></div>
-            <div className={`${styles.step} ${currentStep === 'payment' ? styles.active : ''}`}>
-              <span className={styles.stepNumber}>2</span>
-              <span className={styles.stepLabel}>Pagamento</span>
-            </div>
-          </div>
+          {/* Progress Steps - Using CheckoutProgress component */}
+          <CheckoutProgress
+            steps={['Pedido', 'Pagamento']}
+            currentStep={stepIndex}
+            completedSteps={completedSteps}
+          />
         </div>
 
         {/* Main Content */}
