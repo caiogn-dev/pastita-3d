@@ -12,6 +12,7 @@ export { default as GpsLoadingState } from './GpsLoadingState';
 export { default as LocationModal } from './LocationModal';
 export { default as OrderConfirmation } from './OrderConfirmation';
 export { default as PaymentStep } from './PaymentStep';
+export { default as CheckoutProgress } from './CheckoutProgress';
 
 // Hooks
 export * from './hooks';
