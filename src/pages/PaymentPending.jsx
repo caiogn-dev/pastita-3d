@@ -15,7 +15,12 @@ const formatMoney = (value) => {
 
 const PaymentPending = () => {
   const router = useRouter();
+  
+  // Support both token-based (secure) and legacy order-based access
+  const tokenParam = router.isReady ? router.query.token : null;
   const orderParam = router.isReady ? router.query.order : null;
+  
+  const accessToken = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam;
   const orderNumber = Array.isArray(orderParam) ? orderParam[0] : orderParam;
   const [orderDetails, setOrderDetails] = useState(null);
   const [orderItems, setOrderItems] = useState([]);
@@ -38,13 +43,40 @@ const PaymentPending = () => {
   const totalAmount = orderDetails?.total || orderDetails?.total_amount || 0;
   const isPixPayment = orderDetails?.payment_method === 'pix' || !!pixCode;
   const displayStatus = orderDetails?.payment_status || 'pending';
+  const displayOrderNumber = orderDetails?.order_number || orderNumber;
+
+  // Fetch order data - prefer token-based access for security
+  const fetchOrderData = useCallback(async () => {
+    try {
+      let data;
+      if (accessToken) {
+        // SECURE: Use token-based access
+        data = await storeApi.getOrderByToken(accessToken);
+      } else if (orderNumber) {
+        // Legacy: Use order number (will require token in query params on backend)
+        data = await storeApi.getOrderStatus(orderNumber);
+      } else {
+        return null;
+      }
+      return data;
+    } catch (error) {
+      console.error('Error fetching order:', error);
+      return null;
+    }
+  }, [accessToken, orderNumber]);
 
   const checkStatus = useCallback(async (isAutoRefresh = false) => {
-    if (!orderNumber) return;
+    if (!accessToken && !orderNumber) return;
     if (!isAutoRefresh) setChecking(true);
     
     try {
-      const data = await storeApi.getOrderStatus(orderNumber);
+      const data = await fetchOrderData();
+      if (!data) {
+        setLoading(false);
+        if (!isAutoRefresh) setChecking(false);
+        return;
+      }
+      
       setOrderDetails(data);
       setLastChecked(new Date());
       setLoading(false);
@@ -54,31 +86,42 @@ const PaymentPending = () => {
       }
       
       const currentStatus = data.payment_status || data.status;
+      const orderNum = data.order_number || orderNumber;
 
       if (currentStatus === 'completed' || currentStatus === 'approved' || currentStatus === 'paid') {
         setAutoRefreshEnabled(false);
-        router.push(`/sucesso?order=${orderNumber}`);
+        // Redirect with token if available for security
+        const redirectUrl = accessToken 
+          ? `/sucesso?token=${accessToken}` 
+          : `/sucesso?order=${orderNum}`;
+        router.push(redirectUrl);
       } else if (currentStatus === 'failed' || currentStatus === 'rejected' || currentStatus === 'cancelled') {
         setAutoRefreshEnabled(false);
-        router.push(`/erro?order=${orderNumber}`);
+        const redirectUrl = accessToken 
+          ? `/erro?token=${accessToken}` 
+          : `/erro?order=${orderNum}`;
+        router.push(redirectUrl);
       }
     } catch {
       setLoading(false);
     }
     
     if (!isAutoRefresh) setChecking(false);
-  }, [orderNumber, router]);
+  }, [accessToken, orderNumber, fetchOrderData, router]);
 
   // Initial fetch
   useEffect(() => {
-    if (!orderNumber) return;
+    if (!accessToken && !orderNumber) return;
     
     let isMounted = true;
     
     const fetchInitialStatus = async () => {
       try {
-        const data = await storeApi.getOrderStatus(orderNumber);
-        if (!isMounted) return;
+        const data = await fetchOrderData();
+        if (!isMounted || !data) {
+          setLoading(false);
+          return;
+        }
         
         setOrderDetails(data);
         setLastChecked(new Date());
@@ -89,12 +132,20 @@ const PaymentPending = () => {
         }
         
         const currentStatus = data.payment_status || data.status;
+        const orderNum = data.order_number || orderNumber;
+        
         if (currentStatus === 'completed' || currentStatus === 'approved' || currentStatus === 'paid') {
           setAutoRefreshEnabled(false);
-          router.push(`/sucesso?order=${orderNumber}`);
+          const redirectUrl = accessToken 
+            ? `/sucesso?token=${accessToken}` 
+            : `/sucesso?order=${orderNum}`;
+          router.push(redirectUrl);
         } else if (currentStatus === 'failed' || currentStatus === 'rejected') {
           setAutoRefreshEnabled(false);
-          router.push(`/erro?order=${orderNumber}`);
+          const redirectUrl = accessToken 
+            ? `/erro?token=${accessToken}` 
+            : `/erro?order=${orderNum}`;
+          router.push(redirectUrl);
         }
       } catch {
         setLoading(false);
@@ -106,11 +157,11 @@ const PaymentPending = () => {
     return () => {
       isMounted = false;
     };
-  }, [orderNumber, router]);
+  }, [accessToken, orderNumber, fetchOrderData, router]);
 
   // Auto-refresh effect
   useEffect(() => {
-    if (!autoRefreshEnabled || !orderNumber) return;
+    if (!autoRefreshEnabled || (!accessToken && !orderNumber)) return;
 
     intervalRef.current = setInterval(() => {
       // Stop auto-refresh after max time
@@ -126,7 +177,7 @@ const PaymentPending = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [autoRefreshEnabled, orderNumber, checkStatus]);
+  }, [autoRefreshEnabled, accessToken, orderNumber, checkStatus]);
 
 
   return (
@@ -144,10 +195,10 @@ const PaymentPending = () => {
           Seu pagamento está sendo processado e será confirmado em breve.
         </p>
 
-        {orderNumber && (
+        {displayOrderNumber && (
           <div className="status-order">
             <span className="status-label">Número do Pedido:</span>
-            <span className="status-value">{orderNumber}</span>
+            <span className="status-value">{displayOrderNumber}</span>
           </div>
         )}
 

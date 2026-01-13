@@ -398,10 +398,29 @@ export const reverseGeocode = async (lat, lng) => {
 // =============================================================================
 
 /**
- * Get order status
+ * Get order status by access token (SECURE - public endpoint)
+ * This is the preferred method for payment status pages
+ * @param {string} accessToken - The secure access token for the order
  */
-export const getOrderStatus = async (orderId) => {
-  const response = await axios.get(`${STORES_API_URL}/orders/${orderId}/payment-status/`);
+export const getOrderByToken = async (accessToken) => {
+  const response = await axios.get(`${STORES_API_URL}/orders/by-token/${accessToken}/`);
+  return response.data;
+};
+
+/**
+ * Get order status (requires token for security)
+ * @param {string} orderIdOrNumber - Order ID or order number
+ * @param {string} token - Access token for the order (required for public access)
+ */
+export const getOrderStatus = async (orderIdOrNumber, token = null) => {
+  const params = token ? { token } : {};
+  const authToken = getAuthToken();
+  const headers = authToken ? { Authorization: `Token ${authToken}` } : {};
+  
+  const response = await axios.get(`${STORES_API_URL}/orders/${orderIdOrNumber}/payment-status/`, {
+    params,
+    headers,
+  });
   return response.data;
 };
 

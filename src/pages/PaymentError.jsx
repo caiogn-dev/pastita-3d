@@ -1,13 +1,47 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import * as storeApi from '../services/storeApi';
 
 const PaymentError = () => {
   const router = useRouter();
+  
+  // Support both token-based (secure) and legacy order-based access
+  const tokenParam = router.query.token;
   const orderParam = router.query.order;
   const errorParam = router.query.error;
+  
+  const accessToken = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam;
   const orderNumber = Array.isArray(orderParam) ? orderParam[0] : orderParam;
   const errorCode = Array.isArray(errorParam) ? errorParam[0] : errorParam;
+  
+  const [orderDetails, setOrderDetails] = useState(null);
+
+  useEffect(() => {
+    const fetchOrderDetails = async () => {
+      try {
+        let orderData = null;
+        
+        if (accessToken) {
+          orderData = await storeApi.getOrderByToken(accessToken);
+        } else if (orderNumber) {
+          orderData = await storeApi.getOrder(orderNumber);
+        }
+        
+        if (orderData) {
+          setOrderDetails(orderData);
+        }
+      } catch {
+        // Order details fetch failed
+      }
+    };
+
+    if (router.isReady && (accessToken || orderNumber)) {
+      fetchOrderDetails();
+    }
+  }, [router.isReady, accessToken, orderNumber]);
+
+  const displayOrderNumber = orderDetails?.order_number || orderNumber;
 
   const getErrorMessage = (code) => {
     const errorMessages = {
@@ -42,10 +76,10 @@ const PaymentError = () => {
         <h1 className="status-title">Pagamento não aprovado</h1>
         <p className="status-subtitle">{getErrorMessage(errorCode)}</p>
 
-        {orderNumber && (
+        {displayOrderNumber && (
           <div className="status-order">
             <span className="status-label">Pedido:</span>
-            <span className="status-value">{orderNumber}</span>
+            <span className="status-value">{displayOrderNumber}</span>
           </div>
         )}
 

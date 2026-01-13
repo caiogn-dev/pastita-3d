@@ -106,6 +106,21 @@ const OrderDetailModal = ({ order, onClose, onReorder }) => {
   const paymentConfig = PAYMENT_STATUS_CONFIG[order.payment_status] || PAYMENT_STATUS_CONFIG.pending;
   const items = orderDetails?.items || order.items || [];
   const createdAt = order.created_at ? new Date(order.created_at) : null;
+  
+  // Check if payment is pending and has access_token for payment link
+  const isPendingPayment = order.payment_status === 'pending' || orderDetails?.payment_status === 'pending';
+  const accessToken = orderDetails?.access_token || order.access_token;
+  const hasPixCode = orderDetails?.pix_code || order.pix_code;
+  
+  // Generate payment link using secure access_token
+  const getPaymentLink = () => {
+    if (accessToken) {
+      return `https://pastita.com.br/pendente?token=${accessToken}`;
+    }
+    return null;
+  };
+  
+  const paymentLink = getPaymentLink();
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -148,14 +163,15 @@ const OrderDetailModal = ({ order, onClose, onReorder }) => {
                   <span>{paymentConfig.icon}</span>
                   <span>{paymentConfig.label}</span>
                 </div>
-                {order.payment_status === 'pending' && orderDetails?.payment_link && (
+                {/* Show payment link button ONLY if payment is pending */}
+                {isPendingPayment && paymentLink && (
                   <a 
-                    href={orderDetails.payment_link} 
+                    href={paymentLink} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="btn-payment-link"
                   >
-                    Pagar agora →
+                    {hasPixCode ? '📱 Ver QR Code PIX' : '💳 Pagar agora'} →
                   </a>
                 )}
               </div>
@@ -226,6 +242,26 @@ const OrderDetailModal = ({ order, onClose, onReorder }) => {
               <button className="btn-secondary" onClick={onClose}>
                 Fechar
               </button>
+              {/* Show payment link button ONLY if payment is pending */}
+              {isPendingPayment && paymentLink && (
+                <a 
+                  href={paymentLink}
+                  className="btn-warning"
+                  style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem',
+                    backgroundColor: '#f59e0b',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '0.5rem',
+                    textDecoration: 'none',
+                    fontWeight: '600'
+                  }}
+                >
+                  💳 Link de Pagamento
+                </a>
+              )}
               <button className="btn-primary" onClick={() => onReorder(order)}>
                 🔄 Pedir novamente
               </button>

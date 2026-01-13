@@ -7,43 +7,64 @@ const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '556399295793
 
 const PaymentSuccess = () => {
   const router = useRouter();
+  
+  // Support both token-based (secure) and legacy order-based access
+  const tokenParam = router.query.token;
   const orderParam = router.query.order || router.query.external_reference;
+  
+  const accessToken = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam;
   const orderNumber = Array.isArray(orderParam) ? orderParam[0] : orderParam;
+  
   const [orderDetails, setOrderDetails] = useState(null);
   const [whatsappUrl, setWhatsappUrl] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
-      if (orderNumber) {
-        try {
-          // Use unified store API
-          const orderData = await storeApi.getOrder(orderNumber);
+      try {
+        let orderData = null;
+        
+        // Prefer token-based access for security
+        if (accessToken) {
+          orderData = await storeApi.getOrderByToken(accessToken);
+        } else if (orderNumber) {
+          orderData = await storeApi.getOrder(orderNumber);
+        }
+        
+        if (orderData) {
           setOrderDetails(orderData);
           
-          // Get WhatsApp URL
-          try {
-            const whatsappData = await storeApi.getOrderWhatsApp(orderNumber);
-            setWhatsappUrl(whatsappData.whatsapp_url);
-          } catch {
-            // WhatsApp URL not available - will use generated URL
+          // Get WhatsApp URL using order ID
+          const orderId = orderData.order_id || orderData.id;
+          if (orderId) {
+            try {
+              const whatsappData = await storeApi.getOrderWhatsApp(orderId);
+              setWhatsappUrl(whatsappData.whatsapp_url);
+            } catch {
+              // WhatsApp URL not available - will use generated URL
+            }
           }
-        } catch {
-          // Order details fetch failed - page will show without details
         }
+      } catch {
+        // Order details fetch failed - page will show without details
       }
       setLoading(false);
     };
 
-    fetchOrderDetails();
-  }, [orderNumber]);
+    if (router.isReady) {
+      fetchOrderDetails();
+    }
+  }, [router.isReady, accessToken, orderNumber]);
+
+  // Get display order number
+  const displayOrderNumber = orderDetails?.order_number || orderNumber;
 
   // Generate WhatsApp message if no API URL
   const generateWhatsAppUrl = () => {
     if (whatsappUrl) return whatsappUrl;
     
-    const message = orderNumber 
-      ? `Olá! Gostaria de confirmar meu pedido #${orderNumber}.`
+    const message = displayOrderNumber 
+      ? `Olá! Gostaria de confirmar meu pedido #${displayOrderNumber}.`
       : 'Olá! Acabei de fazer um pedido e gostaria de confirmar.';
     
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
