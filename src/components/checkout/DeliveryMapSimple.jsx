@@ -327,16 +327,54 @@ const DeliveryMapSimple = ({
     // Remove existing route
     if (routeLineRef.current) {
       try {
-        map.removeObject(routeLineRef.current);
+        if (Array.isArray(routeLineRef.current)) {
+          routeLineRef.current.forEach(obj => map.removeObject(obj));
+        } else {
+          map.removeObject(routeLineRef.current);
+        }
       } catch (e) {}
       routeLineRef.current = null;
     }
     
     // Add new route if polyline provided
-    if (routePolyline && typeof routePolyline === 'string') {
+    if (routePolyline && typeof routePolyline === 'string' && storeLocation) {
       try {
         console.log('🛣️ Drawing route polyline');
         const lineString = H.geo.LineString.fromFlexiblePolyline(routePolyline);
+        
+        // Get the first point of the polyline
+        const firstPoint = lineString.extractPoint(0);
+        const storeLat = Number(storeLocation.latitude);
+        const storeLng = Number(storeLocation.longitude);
+        
+        // Create a group to hold all route objects
+        const routeObjects = [];
+        
+        // Add connector line from store pin to route start (if they differ)
+        const distance = Math.sqrt(
+          Math.pow(firstPoint.lat - storeLat, 2) + 
+          Math.pow(firstPoint.lng - storeLng, 2)
+        );
+        
+        if (distance > 0.0001) { // Only add connector if points are different
+          const connectorLine = new H.geo.LineString();
+          connectorLine.pushPoint({ lat: storeLat, lng: storeLng });
+          connectorLine.pushPoint(firstPoint);
+          
+          const connector = new H.map.Polyline(connectorLine, {
+            style: {
+              strokeColor: COLORS.route,
+              lineWidth: 5,
+              lineCap: 'round',
+              lineJoin: 'round',
+              lineDash: [2, 4] // Dashed line for connector
+            }
+          });
+          map.addObject(connector);
+          routeObjects.push(connector);
+        }
+        
+        // Add main route polyline
         const polyline = new H.map.Polyline(lineString, {
           style: {
             strokeColor: COLORS.route,
@@ -346,7 +384,9 @@ const DeliveryMapSimple = ({
           }
         });
         map.addObject(polyline);
-        routeLineRef.current = polyline;
+        routeObjects.push(polyline);
+        
+        routeLineRef.current = routeObjects;
         console.log('✅ Route drawn successfully');
         
         // Fit map to show the route
@@ -360,7 +400,7 @@ const DeliveryMapSimple = ({
     } else {
       console.log('ℹ️ No route polyline to draw');
     }
-  }, [routePolyline, isReady]);
+  }, [routePolyline, isReady, storeLocation]);
 
   // Fit map to show both store and customer
   const fitMapToBounds = (map, store, customer) => {

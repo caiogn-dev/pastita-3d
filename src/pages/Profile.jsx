@@ -1,24 +1,45 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import * as storeApi from '../services/storeApi';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import './Profile.css';
 
 const BRAZILIAN_STATES = [
   { value: 'AC', label: 'Acre' }, { value: 'AL', label: 'Alagoas' },
-  { value: 'AP', label: 'Amapa' }, { value: 'AM', label: 'Amazonas' },
-  { value: 'BA', label: 'Bahia' }, { value: 'CE', label: 'Ceara' },
-  { value: 'DF', label: 'Distrito Federal' }, { value: 'ES', label: 'Espirito Santo' },
-  { value: 'GO', label: 'Goias' }, { value: 'MA', label: 'Maranhao' },
+  { value: 'AP', label: 'Amapá' }, { value: 'AM', label: 'Amazonas' },
+  { value: 'BA', label: 'Bahia' }, { value: 'CE', label: 'Ceará' },
+  { value: 'DF', label: 'Distrito Federal' }, { value: 'ES', label: 'Espírito Santo' },
+  { value: 'GO', label: 'Goiás' }, { value: 'MA', label: 'Maranhão' },
   { value: 'MT', label: 'Mato Grosso' }, { value: 'MS', label: 'Mato Grosso do Sul' },
-  { value: 'MG', label: 'Minas Gerais' }, { value: 'PA', label: 'Para' },
-  { value: 'PB', label: 'Paraiba' }, { value: 'PR', label: 'Parana' },
-  { value: 'PE', label: 'Pernambuco' }, { value: 'PI', label: 'Piaui' },
+  { value: 'MG', label: 'Minas Gerais' }, { value: 'PA', label: 'Pará' },
+  { value: 'PB', label: 'Paraíba' }, { value: 'PR', label: 'Paraná' },
+  { value: 'PE', label: 'Pernambuco' }, { value: 'PI', label: 'Piauí' },
   { value: 'RJ', label: 'Rio de Janeiro' }, { value: 'RN', label: 'Rio Grande do Norte' },
-  { value: 'RS', label: 'Rio Grande do Sul' }, { value: 'RO', label: 'Rondonia' },
+  { value: 'RS', label: 'Rio Grande do Sul' }, { value: 'RO', label: 'Rondônia' },
   { value: 'RR', label: 'Roraima' }, { value: 'SC', label: 'Santa Catarina' },
-  { value: 'SP', label: 'Sao Paulo' }, { value: 'SE', label: 'Sergipe' },
+  { value: 'SP', label: 'São Paulo' }, { value: 'SE', label: 'Sergipe' },
   { value: 'TO', label: 'Tocantins' }
 ];
+
+const STATUS_CONFIG = {
+  pending: { label: 'Pendente', color: '#f59e0b', bg: '#fef3c7', icon: '⏳' },
+  confirmed: { label: 'Confirmado', color: '#3b82f6', bg: '#dbeafe', icon: '✓' },
+  preparing: { label: 'Preparando', color: '#8b5cf6', bg: '#ede9fe', icon: '👨‍🍳' },
+  ready: { label: 'Pronto', color: '#10b981', bg: '#d1fae5', icon: '✅' },
+  delivering: { label: 'Em entrega', color: '#06b6d4', bg: '#cffafe', icon: '🚗' },
+  delivered: { label: 'Entregue', color: '#22c55e', bg: '#dcfce7', icon: '📦' },
+  cancelled: { label: 'Cancelado', color: '#ef4444', bg: '#fee2e2', icon: '✕' },
+  paid: { label: 'Pago', color: '#22c55e', bg: '#dcfce7', icon: '💰' },
+};
+
+const PAYMENT_STATUS_CONFIG = {
+  pending: { label: 'Aguardando pagamento', color: '#f59e0b', icon: '⏳' },
+  paid: { label: 'Pago', color: '#22c55e', icon: '✓' },
+  failed: { label: 'Falhou', color: '#ef4444', icon: '✕' },
+  refunded: { label: 'Reembolsado', color: '#6b7280', icon: '↩' },
+};
 
 const formatCPF = (value) => {
   const numbers = value.replace(/\D/g, '').slice(0, 11);
@@ -58,8 +79,168 @@ const buildFormData = (profile) => ({
   zip_code: profile?.zip_code ? formatCEP(profile.zip_code) : ''
 });
 
+// Order Detail Modal Component
+const OrderDetailModal = ({ order, onClose, onReorder }) => {
+  const [loading, setLoading] = useState(false);
+  const [orderDetails, setOrderDetails] = useState(null);
+  
+  useEffect(() => {
+    const fetchDetails = async () => {
+      if (!order?.id) return;
+      setLoading(true);
+      try {
+        const details = await storeApi.getOrder(order.id);
+        setOrderDetails(details);
+      } catch (err) {
+        console.error('Error fetching order details:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDetails();
+  }, [order?.id]);
+
+  if (!order) return null;
+
+  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+  const paymentConfig = PAYMENT_STATUS_CONFIG[order.payment_status] || PAYMENT_STATUS_CONFIG.pending;
+  const items = orderDetails?.items || order.items || [];
+  const createdAt = order.created_at ? new Date(order.created_at) : null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content order-modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="Fechar">×</button>
+        
+        <div className="order-modal-header">
+          <div>
+            <h2>Pedido {order.order_number}</h2>
+            {createdAt && (
+              <p className="order-modal-date">
+                {createdAt.toLocaleDateString('pt-BR', { 
+                  day: '2-digit', month: 'long', year: 'numeric', 
+                  hour: '2-digit', minute: '2-digit' 
+                })}
+              </p>
+            )}
+          </div>
+          <div 
+            className="order-status-badge"
+            style={{ backgroundColor: statusConfig.bg, color: statusConfig.color }}
+          >
+            <span>{statusConfig.icon}</span>
+            <span>{statusConfig.label}</span>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="order-modal-loading">
+            <div className="spinner"></div>
+            <p>Carregando detalhes...</p>
+          </div>
+        ) : (
+          <>
+            {/* Payment Status */}
+            <div className="order-modal-section">
+              <h3>💳 Pagamento</h3>
+              <div className="order-payment-info">
+                <div className="payment-status" style={{ color: paymentConfig.color }}>
+                  <span>{paymentConfig.icon}</span>
+                  <span>{paymentConfig.label}</span>
+                </div>
+                {order.payment_status === 'pending' && orderDetails?.payment_link && (
+                  <a 
+                    href={orderDetails.payment_link} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="btn-payment-link"
+                  >
+                    Pagar agora →
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Order Items */}
+            <div className="order-modal-section">
+              <h3>🛒 Itens do pedido</h3>
+              <div className="order-items-list">
+                {items.length > 0 ? items.map((item, idx) => (
+                  <div key={item.id || idx} className="order-item-row">
+                    <div className="order-item-info">
+                      <span className="order-item-qty">{item.quantity}x</span>
+                      <span className="order-item-name">{item.product_name}</span>
+                      {item.variant_name && (
+                        <span className="order-item-variant">({item.variant_name})</span>
+                      )}
+                    </div>
+                    <span className="order-item-price">
+                      R$ {formatMoney(item.subtotal || (item.unit_price * item.quantity))}
+                    </span>
+                  </div>
+                )) : (
+                  <p className="order-items-empty">Nenhum item encontrado</p>
+                )}
+              </div>
+            </div>
+
+            {/* Order Summary */}
+            <div className="order-modal-section order-summary">
+              <div className="order-summary-row">
+                <span>Subtotal</span>
+                <span>R$ {formatMoney(orderDetails?.subtotal || order.subtotal || 0)}</span>
+              </div>
+              {(orderDetails?.delivery_fee || order.delivery_fee) > 0 && (
+                <div className="order-summary-row">
+                  <span>Entrega</span>
+                  <span>R$ {formatMoney(orderDetails?.delivery_fee || order.delivery_fee)}</span>
+                </div>
+              )}
+              {(orderDetails?.discount || order.discount) > 0 && (
+                <div className="order-summary-row discount">
+                  <span>Desconto</span>
+                  <span>-R$ {formatMoney(orderDetails?.discount || order.discount)}</span>
+                </div>
+              )}
+              <div className="order-summary-row total">
+                <span>Total</span>
+                <span>R$ {formatMoney(orderDetails?.total || order.total || order.total_amount || 0)}</span>
+              </div>
+            </div>
+
+            {/* Delivery Info */}
+            {(orderDetails?.delivery_method === 'delivery' || order.delivery_method === 'delivery') && (
+              <div className="order-modal-section">
+                <h3>📍 Entrega</h3>
+                <p className="order-delivery-address">
+                  {orderDetails?.delivery_address?.label || 
+                   orderDetails?.delivery_address?.street ||
+                   order.shipping_address || 
+                   'Endereço não informado'}
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="order-modal-actions">
+              <button className="btn-secondary" onClick={onClose}>
+                Fechar
+              </button>
+              <button className="btn-primary" onClick={() => onReorder(order)}>
+                🔄 Pedir novamente
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Profile = () => {
+  const navigate = useNavigate();
   const { profile, updateProfile } = useAuth();
+  const { addItem } = useCart();
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(() => buildFormData(profile));
@@ -72,6 +253,9 @@ const Profile = () => {
   const [ordersLoaded, setOrdersLoaded] = useState(false);
   const [orders, setOrders] = useState([]);
   const [orderStats, setOrderStats] = useState({ total_orders: 0, total_spent: 0 });
+  
+  // Modal state
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   useEffect(() => {
     setFormData(buildFormData(profile));
@@ -87,10 +271,16 @@ const Profile = () => {
       setOrdersError('');
       try {
         const data = await storeApi.getUserOrders();
-        // Handle both paginated and non-paginated responses
         const ordersList = data.results || data.recent_orders || data || [];
-        setOrders(Array.isArray(ordersList) ? ordersList : []);
-        setOrderStats(data.statistics || { total_orders: ordersList.length, total_spent: 0 });
+        const ordersArray = Array.isArray(ordersList) ? ordersList : [];
+        setOrders(ordersArray);
+        
+        // Calculate stats
+        const totalSpent = ordersArray.reduce((sum, o) => sum + (o.total || o.total_amount || 0), 0);
+        setOrderStats({ 
+          total_orders: ordersArray.length, 
+          total_spent: totalSpent 
+        });
         setOrdersLoaded(true);
       } catch {
         setOrdersError('Não foi possível carregar seus pedidos.');
@@ -109,8 +299,7 @@ const Profile = () => {
       profile.city,
       profile.state,
       profile.zip_code ? formatCEP(profile.zip_code) : null
-    ]
-      .filter(Boolean);
+    ].filter(Boolean);
     return parts.length ? parts.join(', ') : 'Não informado';
   }, [profile]);
 
@@ -150,7 +339,7 @@ const Profile = () => {
         state: formData.state,
         zip_code: formData.zip_code.replace(/\D/g, '')
       });
-      setSaveSuccess('Perfil atualizado com sucesso.');
+      setSaveSuccess('Perfil atualizado com sucesso!');
       setIsEditing(false);
     } catch {
       setSaveError('Não foi possível atualizar o perfil. Tente novamente.');
@@ -158,6 +347,26 @@ const Profile = () => {
       setSaving(false);
     }
   };
+
+  const handleReorder = useCallback(async (order) => {
+    try {
+      // Fetch full order details if needed
+      const details = await storeApi.getOrder(order.id);
+      const items = details?.items || [];
+      
+      // Add items to cart
+      for (const item of items) {
+        // We need product data to add to cart - redirect to menu for now
+        // In a full implementation, we'd fetch product details and add directly
+      }
+      
+      // Navigate to menu with a message
+      navigate('/cardapio');
+    } catch (err) {
+      console.error('Error reordering:', err);
+      navigate('/cardapio');
+    }
+  }, [navigate]);
 
   return (
     <div className="profile-page">
@@ -403,34 +612,65 @@ const Profile = () => {
             {!ordersLoading && orders.length > 0 && (
               <div className="orders-list">
                 {orders.map((order) => {
-                  const itemCount = (order.items || []).reduce((sum, item) => sum + (item.quantity || 0), 0);
-                  const createdAt = order.created_at
-                    ? new Date(order.created_at).toLocaleDateString('pt-BR')
-                    : '';
+                  const itemCount = order.items_count || (order.items || []).reduce((sum, item) => sum + (item.quantity || 0), 0);
+                  const createdAt = order.created_at ? new Date(order.created_at) : null;
+                  const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+                  const paymentConfig = PAYMENT_STATUS_CONFIG[order.payment_status] || PAYMENT_STATUS_CONFIG.pending;
+                  
                   return (
-                    <div key={order.id} className="order-card">
+                    <div 
+                      key={order.id} 
+                      className="order-card"
+                      onClick={() => setSelectedOrder(order)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && setSelectedOrder(order)}
+                    >
                       <div className="order-header">
-                        <div>
+                        <div className="order-header-left">
                           <span className="order-number">{order.order_number}</span>
-                          {createdAt && <span className="order-date">{createdAt}</span>}
+                          {createdAt && (
+                            <span className="order-date">
+                              {createdAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                            </span>
+                          )}
                         </div>
-                        <span className="order-status">{order.status}</span>
+                        <div 
+                          className="order-status-pill"
+                          style={{ backgroundColor: statusConfig.bg, color: statusConfig.color }}
+                        >
+                          {statusConfig.icon} {statusConfig.label}
+                        </div>
                       </div>
+                      
                       <div className="order-body">
-                        <div className="order-detail">
-                          <span>Itens</span>
-                          <strong>{itemCount}</strong>
+                        <div className="order-info-row">
+                          <div className="order-detail">
+                            <span className="order-detail-label">Itens</span>
+                            <span className="order-detail-value">{itemCount}</span>
+                          </div>
+                          <div className="order-detail">
+                            <span className="order-detail-label">Total</span>
+                            <span className="order-detail-value order-total">
+                              R$ {formatMoney(order.total || order.total_amount)}
+                            </span>
+                          </div>
+                          <div className="order-detail">
+                            <span className="order-detail-label">Pagamento</span>
+                            <span 
+                              className="order-detail-value"
+                              style={{ color: paymentConfig.color }}
+                            >
+                              {paymentConfig.icon} {paymentConfig.label}
+                            </span>
+                          </div>
                         </div>
-                        <div className="order-detail">
-                          <span>Total</span>
-                          <strong>R$ {formatMoney(order.total_amount)}</strong>
-                        </div>
-                        <div className="order-detail order-address">
-                          <span>Entrega</span>
-                          <strong>
-                            {order.shipping_address || 'Endereço não informado'}
-                          </strong>
-                        </div>
+                      </div>
+                      
+                      <div className="order-footer">
+                        <span className="order-view-details">
+                          Ver detalhes →
+                        </span>
                       </div>
                     </div>
                   );
@@ -440,6 +680,15 @@ const Profile = () => {
           </div>
         )}
       </div>
+
+      {/* Order Detail Modal */}
+      {selectedOrder && (
+        <OrderDetailModal
+          order={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+          onReorder={handleReorder}
+        />
+      )}
     </div>
   );
 };
