@@ -11,6 +11,7 @@ import Input from '../components/ui/Input';
 import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import ProductCard from '../components/ui/ProductCard';
+import PageTransition, { StaggeredList, AnimatedCard } from '../components/ui/PageTransition';
 
 const CATEGORY_PRIORITY = ['rondelli', 'rondellis', 'molho', 'molhos'];
 const WEIGHTED_CATEGORIES = new Set(['rondelli', 'rondellis', 'molho', 'molhos']);
@@ -176,12 +177,14 @@ const Cardapio = () => {
         onSuccess={handleLoginSuccess}
       />
 
-      {/* Header */}
-      <div className="cardapio-header">
-        <span className="cardapio-subtitle">Artesanal</span>
-        <h1 className="cardapio-title">Nosso Cardápio</h1>
-        <div className="cardapio-divider"></div>
-      </div>
+      {/* Header with animation */}
+      <PageTransition animation="fadeUp" delay={0}>
+        <div className="cardapio-header">
+          <span className="cardapio-subtitle">Artesanal</span>
+          <h1 className="cardapio-title">Nosso Cardápio</h1>
+          <div className="cardapio-divider"></div>
+        </div>
+      </PageTransition>
 
       {/* Loading State */}
       {loading && (
@@ -192,90 +195,101 @@ const Cardapio = () => {
 
       {/* Error State */}
       {error && !loading && (
-        <div className="container">
-          <EmptyState.Error onAction={() => refreshCatalog()} />
-        </div>
+        <PageTransition animation="fadeIn" delay={100}>
+          <div className="container">
+            <EmptyState.Error onAction={() => refreshCatalog()} />
+          </div>
+        </PageTransition>
       )}
 
       {/* Empty State */}
       {!loading && !error && products.length === 0 && (
-        <div className="container">
-          <EmptyState.Products onAction={() => window.location.href = '/'} />
-        </div>
+        <PageTransition animation="fadeIn" delay={100}>
+          <div className="container">
+            <EmptyState.Products onAction={() => window.location.href = '/'} />
+          </div>
+        </PageTransition>
       )}
 
       {/* Grid de Produtos */}
       {!loading && !error && products.length > 0 && (
         <div className="container">
-          <div className="cardapio-filters">
-            <div className="cardapio-search">
-              <Input
-                type="text"
-                placeholder="Buscar por nome ou descrição"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                fullWidth
-                leftIcon={
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="M21 21l-4.35-4.35" />
-                  </svg>
-                }
-              />
-            </div>
-            <div className="cardapio-category-buttons" role="tablist" aria-label="Categorias">
-              <button
-                type="button"
-                className={`category-chip ${categoryFilter === 'all' && !showFavoritesOnly ? 'active' : ''}`}
-                onClick={() => { setCategoryFilter('all'); setShowFavoritesOnly(false); }}
-                role="tab"
-                aria-selected={categoryFilter === 'all' && !showFavoritesOnly}
-              >
-                Todas
-              </button>
-              {categories.map((category) => (
+          <PageTransition animation="fadeUp" delay={100}>
+            <div className="cardapio-filters">
+              <div className="cardapio-search">
+                <Input
+                  type="text"
+                  placeholder="Buscar por nome ou descrição"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  fullWidth
+                  leftIcon={
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="M21 21l-4.35-4.35" />
+                    </svg>
+                  }
+                />
+              </div>
+              <div className="cardapio-category-buttons" role="tablist" aria-label="Categorias">
                 <button
-                  key={category}
                   type="button"
-                  className={`category-chip ${categoryFilter === category && !showFavoritesOnly ? 'active' : ''}`}
-                  onClick={() => { setCategoryFilter(category); setShowFavoritesOnly(false); }}
+                  className={`category-chip ${categoryFilter === 'all' && !showFavoritesOnly ? 'active' : ''}`}
+                  onClick={() => { setCategoryFilter('all'); setShowFavoritesOnly(false); }}
                   role="tab"
-                  aria-selected={categoryFilter === category && !showFavoritesOnly}
+                  aria-selected={categoryFilter === 'all' && !showFavoritesOnly}
                 >
-                  {category}
+                  Todas
                 </button>
-              ))}
-              <button
-                type="button"
-                className={`category-chip favorites-chip ${showFavoritesOnly ? 'active' : ''}`}
-                onClick={handleToggleFavorites}
-                role="tab"
-                aria-selected={showFavoritesOnly}
-              >
-                ❤️ Favoritos
-              </button>
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    className={`category-chip ${categoryFilter === category && !showFavoritesOnly ? 'active' : ''}`}
+                    onClick={() => { setCategoryFilter(category); setShowFavoritesOnly(false); }}
+                    role="tab"
+                    aria-selected={categoryFilter === category && !showFavoritesOnly}
+                  >
+                    {category}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className={`category-chip favorites-chip ${showFavoritesOnly ? 'active' : ''}`}
+                  onClick={handleToggleFavorites}
+                  role="tab"
+                  aria-selected={showFavoritesOnly}
+                >
+                  ❤️ Favoritos
+                </button>
+              </div>
             </div>
-          </div>
+          </PageTransition>
 
           {/* No results for search */}
           {filteredProducts.length === 0 && (query || categoryFilter !== 'all') && (
-            <EmptyState.Search query={query} onAction={handleClearSearch} />
+            <PageTransition animation="fadeIn" delay={150}>
+              <EmptyState.Search query={query} onAction={handleClearSearch} />
+            </PageTransition>
           )}
 
-          {/* Products Grid */}
+          {/* Products Grid with staggered animation */}
           {filteredProducts.length > 0 && (
             <div className="products-grid">
-              {filteredProducts.map((p, index) => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  index={index}
-                  onAddToCart={handleAddToCart}
-                  weightLabel={getProductWeightLabel(p)}
-                  favoriteButton={<FavoriteButton productId={p.id} size="small" />}
-                  stockBadge={<StockBadge quantity={p.stock_quantity} />}
-                />
-              ))}
+              <StaggeredList staggerDelay={50} animation="fadeUp">
+                {filteredProducts.map((p, index) => (
+                  <AnimatedCard key={p.id} hover={true}>
+                    <ProductCard
+                      product={p}
+                      index={index}
+                      onAddToCart={handleAddToCart}
+                      weightLabel={getProductWeightLabel(p)}
+                      favoriteButton={<FavoriteButton productId={p.id} size="small" />}
+                      stockBadge={<StockBadge quantity={p.stock_quantity} />}
+                    />
+                  </AnimatedCard>
+                ))}
+              </StaggeredList>
             </div>
           )}
         </div>
