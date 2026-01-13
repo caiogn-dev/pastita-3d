@@ -117,19 +117,44 @@ export default function InteractiveMap({
         showCustomerMarker
       });
       
-      const center = customerPos 
-        ? { lat: customerPos.lat || customerPos.latitude, lng: customerPos.lng || customerPos.longitude }
-        : storeLocation
-        ? { lat: storeLocation.latitude, lng: storeLocation.longitude }
-        : DEFAULT_CENTER;
-
-      const zoom = customerPos || storeLocation ? 14 : DEFAULT_ZOOM;
+      // Validate store location
+      const hasValidStoreLocation = storeLocation && 
+        typeof storeLocation.latitude === 'number' && 
+        typeof storeLocation.longitude === 'number' &&
+        !isNaN(storeLocation.latitude) && 
+        !isNaN(storeLocation.longitude);
+      
+      // Validate customer position
+      const hasValidCustomerPos = customerPos && (
+        (typeof customerPos.lat === 'number' && typeof customerPos.lng === 'number' && !isNaN(customerPos.lat) && !isNaN(customerPos.lng)) ||
+        (typeof customerPos.latitude === 'number' && typeof customerPos.longitude === 'number' && !isNaN(customerPos.latitude) && !isNaN(customerPos.longitude))
+      );
+      
+      let center;
+      if (hasValidCustomerPos) {
+        center = { 
+          lat: customerPos.lat || customerPos.latitude, 
+          lng: customerPos.lng || customerPos.longitude 
+        };
+      } else if (hasValidStoreLocation) {
+        center = { 
+          lat: storeLocation.latitude, 
+          lng: storeLocation.longitude 
+        };
+      } else {
+        center = DEFAULT_CENTER;
+      }
+      
+      // Always use zoom 14 when we have a valid location, otherwise use default
+      const zoom = (hasValidCustomerPos || hasValidStoreLocation) ? 14 : DEFAULT_ZOOM;
+      
+      logger.info('InteractiveMap: Map center and zoom', { center, zoom, hasValidStoreLocation, hasValidCustomerPos });
 
       const instance = createMap(mapContainerRef.current, { center, zoom });
       mapInstanceRef.current = instance;
 
       // Add store marker if provided and enabled
-      if (storeLocation && showStoreMarker) {
+      if (hasValidStoreLocation && showStoreMarker) {
         logger.info('InteractiveMap: Adding store marker', { lat: storeLocation.latitude, lng: storeLocation.longitude });
         const storeMarker = createStoreMarker({
           lat: storeLocation.latitude,
@@ -140,9 +165,11 @@ export default function InteractiveMap({
       }
 
       // Add customer/delivery marker if location provided
-      const deliveryPos = customerLocation || initialLocation;
-      if (deliveryPos && (showMarker || showCustomerMarker)) {
-        const pos = { lat: deliveryPos.lat || deliveryPos.latitude, lng: deliveryPos.lng || deliveryPos.longitude };
+      if (hasValidCustomerPos && (showMarker || showCustomerMarker)) {
+        const pos = { 
+          lat: customerPos.lat || customerPos.latitude, 
+          lng: customerPos.lng || customerPos.longitude 
+        };
         logger.info('InteractiveMap: Adding delivery marker', pos);
         const marker = createDeliveryMarker(pos, { draggable: markerDraggable && enableSelection });
         instance.map.addObject(marker);
@@ -160,28 +187,33 @@ export default function InteractiveMap({
       }
 
       // Fit bounds to show both markers if both exist
-      if (storeLocation && deliveryPos && showStoreMarker) {
+      if (hasValidStoreLocation && hasValidCustomerPos && showStoreMarker) {
         const storeLat = storeLocation.latitude;
         const storeLng = storeLocation.longitude;
-        const custLat = deliveryPos.lat || deliveryPos.latitude;
-        const custLng = deliveryPos.lng || deliveryPos.longitude;
+        const custLat = customerPos.lat || customerPos.latitude;
+        const custLng = customerPos.lng || customerPos.longitude;
         
         logger.info('InteractiveMap: Fitting bounds', { storeLat, storeLng, custLat, custLng });
         
-        const bounds = new window.H.geo.Rect(
-          Math.max(storeLat, custLat),
-          Math.min(storeLng, custLng),
-          Math.min(storeLat, custLat),
-          Math.max(storeLng, custLng)
-        );
-        instance.map.getViewModel().setLookAtData({ bounds }, true);
-        // Add some padding
-        setTimeout(() => {
-          const currentZoom = instance.map.getZoom();
-          if (currentZoom > 15) {
-            instance.map.setZoom(15);
-          }
-        }, 100);
+        // Validate all coordinates before creating bounds
+        if (!isNaN(storeLat) && !isNaN(storeLng) && !isNaN(custLat) && !isNaN(custLng)) {
+          const bounds = new window.H.geo.Rect(
+            Math.max(storeLat, custLat),
+            Math.min(storeLng, custLng),
+            Math.min(storeLat, custLat),
+            Math.max(storeLng, custLng)
+          );
+          instance.map.getViewModel().setLookAtData({ bounds }, true);
+          // Add some padding and ensure reasonable zoom
+          setTimeout(() => {
+            const currentZoom = instance.map.getZoom();
+            if (currentZoom > 16) {
+              instance.map.setZoom(16);
+            } else if (currentZoom < 12) {
+              instance.map.setZoom(12);
+            }
+          }, 100);
+        }
       }
 
     } catch (err) {
