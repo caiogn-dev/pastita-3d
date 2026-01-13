@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/router';
 import Navbar from '../components/Navbar';
 import * as storeApi from '../services/storeApi';
 import { useAuth } from '../context/AuthContext';
@@ -238,7 +238,7 @@ const OrderDetailModal = ({ order, onClose, onReorder }) => {
 };
 
 const Profile = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { profile, updateProfile } = useAuth();
   const { addItem } = useCart();
   const [activeTab, setActiveTab] = useState('profile');
@@ -361,12 +361,12 @@ const Profile = () => {
       }
       
       // Navigate to menu with a message
-      navigate('/cardapio');
+      router.push('/cardapio');
     } catch (err) {
       console.error('Error reordering:', err);
-      navigate('/cardapio');
+      router.push('/cardapio');
     }
-  }, [navigate]);
+  }, [router]);
 
   return (
     <div className="profile-page">
