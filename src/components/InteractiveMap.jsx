@@ -308,6 +308,7 @@ export default function InteractiveMap({
   useEffect(() => {
     // Wait for map to be ready
     if (!isLoaded || !mapInstanceRef.current) {
+      logger.info('InteractiveMap: Polyline effect - map not ready', { isLoaded, hasMap: !!mapInstanceRef.current });
       return;
     }
     
@@ -317,6 +318,7 @@ export default function InteractiveMap({
     if (routeLineRef.current) {
       try {
         map.removeObject(routeLineRef.current);
+        logger.info('InteractiveMap: Removed existing polyline');
       } catch (e) {
         // Object might already be removed
       }
@@ -331,34 +333,47 @@ export default function InteractiveMap({
       });
       
       try {
+        // Create polyline with high visibility settings
         const polyline = createPolyline(routePolyline, {
-          strokeColor: PASTITA_COLORS.marsala,
-          lineWidth: 5
+          strokeColor: 'rgba(114, 47, 55, 1)', // Marsala red, full opacity
+          lineWidth: 6
         });
         
         // Verify polyline has valid geometry before adding
         const geometry = polyline.getGeometry();
         if (!geometry) {
-          logger.error('Polyline has no geometry');
+          logger.error('InteractiveMap: Polyline has no geometry');
           return;
         }
         
+        // Get point count for logging
+        const pointCount = geometry.getPointCount ? geometry.getPointCount() : 'unknown';
+        logger.info('InteractiveMap: Polyline geometry valid', { pointCount });
+        
+        // Add to map
         map.addObject(polyline);
         routeLineRef.current = polyline;
-        logger.info('InteractiveMap: Route polyline added successfully');
+        logger.info('InteractiveMap: Route polyline added to map successfully');
         
         // Fit bounds to show the entire route with padding
         try {
           const bounds = polyline.getBoundingBox();
           if (bounds) {
+            logger.info('InteractiveMap: Polyline bounds', {
+              top: bounds.getTop(),
+              bottom: bounds.getBottom(),
+              left: bounds.getLeft(),
+              right: bounds.getRight()
+            });
+            
             // Expand bounds slightly for padding
             const top = bounds.getTop();
             const bottom = bounds.getBottom();
             const left = bounds.getLeft();
             const right = bounds.getRight();
             
-            const latPadding = Math.abs(top - bottom) * 0.15 || 0.005;
-            const lngPadding = Math.abs(right - left) * 0.15 || 0.005;
+            const latPadding = Math.abs(top - bottom) * 0.2 || 0.005;
+            const lngPadding = Math.abs(right - left) * 0.2 || 0.005;
             
             const paddedBounds = new window.H.geo.Rect(
               top + latPadding,
@@ -372,19 +387,26 @@ export default function InteractiveMap({
             // Ensure reasonable zoom
             setTimeout(() => {
               const currentZoom = map.getZoom();
+              logger.info('InteractiveMap: Current zoom after bounds fit', { currentZoom });
               if (currentZoom > 16) {
                 map.setZoom(16);
-              } else if (currentZoom < 11) {
-                map.setZoom(11);
+              } else if (currentZoom < 12) {
+                map.setZoom(12);
               }
-            }, 200);
+            }, 300);
           }
         } catch (boundsErr) {
-          logger.warn('Could not adjust bounds for polyline', boundsErr);
+          logger.warn('InteractiveMap: Could not adjust bounds for polyline', boundsErr);
         }
       } catch (err) {
-        logger.error('Failed to draw route polyline:', err);
+        logger.error('InteractiveMap: Failed to draw route polyline:', err);
       }
+    } else {
+      logger.info('InteractiveMap: No polyline to draw', { 
+        hasPolyline: !!routePolyline, 
+        type: typeof routePolyline,
+        length: routePolyline?.length 
+      });
     }
   }, [isLoaded, routePolyline]);
 

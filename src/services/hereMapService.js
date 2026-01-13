@@ -541,13 +541,20 @@ export function createPolyline(coordinates, options = {}) {
       throw new Error(`Not enough valid points for polyline: ${pointCount}`);
     }
 
+    // Use a visible color - marsala red with full opacity
+    const strokeColor = options.strokeColor || 'rgba(114, 47, 55, 1)'; // PASTITA marsala
+    const lineWidth = options.lineWidth || 6;
+
+    logger.info('Creating polyline with style', { strokeColor, lineWidth, pointCount });
+
     const polyline = new H.map.Polyline(lineString, {
       style: {
-        strokeColor: options.strokeColor || PASTITA_COLORS.routeColor,
-        lineWidth: options.lineWidth || 4,
+        strokeColor: strokeColor,
+        lineWidth: lineWidth,
         lineCap: 'round',
         lineJoin: 'round'
-      }
+      },
+      zIndex: 10 // Ensure polyline is above other map elements
     });
     
     logger.info('Polyline object created successfully', { pointCount });
