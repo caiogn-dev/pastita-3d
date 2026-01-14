@@ -314,10 +314,22 @@ export default function InteractiveMap({
   }, [customerLocation, showCustomerMarker, markerDraggable, enableSelection]);
 
   // Draw route polyline when provided
+  // Use a ref to track if we need to draw the polyline after map is ready
+  const pendingPolylineRef = useRef(null);
+  
   useEffect(() => {
+    // Store polyline for later if map not ready
+    if (routePolyline && typeof routePolyline === 'string' && routePolyline.length > 0) {
+      pendingPolylineRef.current = routePolyline;
+    }
+    
     // Wait for map to be ready
     if (!isLoaded || !mapInstanceRef.current) {
-      logger.info('InteractiveMap: Polyline effect - map not ready', { isLoaded, hasMap: !!mapInstanceRef.current });
+      logger.info('InteractiveMap: Polyline effect - map not ready, storing for later', { 
+        isLoaded, 
+        hasMap: !!mapInstanceRef.current,
+        hasPolyline: !!routePolyline 
+      });
       return;
     }
     
@@ -334,19 +346,27 @@ export default function InteractiveMap({
       routeLineRef.current = null;
     }
     
+    // Use current polyline or pending one
+    const polylineToUse = routePolyline || pendingPolylineRef.current;
+    
     // Draw new route if polyline provided
-    if (routePolyline && typeof routePolyline === 'string' && routePolyline.length > 0) {
+    if (polylineToUse && typeof polylineToUse === 'string' && polylineToUse.length > 0) {
       logger.info('InteractiveMap: Drawing route polyline', { 
-        length: routePolyline.length,
-        preview: routePolyline.substring(0, 50) + '...'
+        length: polylineToUse.length,
+        preview: polylineToUse.substring(0, 50) + '...'
       });
       
       try {
         // Create polyline with high visibility settings
-        const polyline = createPolyline(routePolyline, {
+        const polyline = createPolyline(polylineToUse, {
           strokeColor: 'rgba(114, 47, 55, 1)', // Marsala red, full opacity
           lineWidth: 6
         });
+        
+        if (!polyline) {
+          logger.error('InteractiveMap: createPolyline returned null');
+          return;
+        }
         
         // Verify polyline has valid geometry before adding
         const geometry = polyline.getGeometry();
@@ -362,7 +382,8 @@ export default function InteractiveMap({
         // Add to map
         map.addObject(polyline);
         routeLineRef.current = polyline;
-        logger.info('InteractiveMap: Route polyline added to map successfully');
+        pendingPolylineRef.current = null; // Clear pending
+        logger.info('InteractiveMap: ✅ Route polyline added to map successfully');
         
         // Fit bounds to show the entire route with padding
         try {
