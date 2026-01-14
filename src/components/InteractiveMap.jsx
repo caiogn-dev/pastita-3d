@@ -79,6 +79,15 @@ export default function InteractiveMap({
   className = '',
   placeholder = 'Buscar endereço ou CEP...',
 }) {
+  // Debug: Log props on every render
+  logger.info('InteractiveMap RENDER', {
+    hasRoutePolyline: !!routePolyline,
+    polylineLength: routePolyline?.length,
+    polylinePreview: routePolyline?.substring(0, 30),
+    hasCustomerLocation: !!customerLocation,
+    hasStoreLocation: !!storeLocation
+  });
+
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
