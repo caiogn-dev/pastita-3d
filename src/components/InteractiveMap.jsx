@@ -23,6 +23,29 @@ import { calculateRouteWithPolyline, getRouteSummary } from '../services/hereRou
 import { STORE_LOCATION } from './checkout/utils';
 import logger from '../services/logger';
 
+// Helper function to validate coordinates
+const isValidCoordinate = (lat, lng) => {
+  return typeof lat === 'number' && 
+         typeof lng === 'number' && 
+         !isNaN(lat) && 
+         !isNaN(lng) &&
+         lat >= -90 && lat <= 90 &&
+         lng >= -180 && lng <= 180;
+};
+
+// Helper to extract lat/lng from various formats
+const extractCoords = (location) => {
+  if (!location) return null;
+  
+  const lat = location.lat ?? location.latitude;
+  const lng = location.lng ?? location.longitude;
+  
+  if (isValidCoordinate(lat, lng)) {
+    return { lat, lng };
+  }
+  return null;
+};
+
 /**
  * Interactive Map Component using HERE Maps JavaScript API
  * 
@@ -38,24 +61,33 @@ import logger from '../services/logger';
 export default function InteractiveMap({
   initialLocation = null,
   storeLocation = null,
-  customerLocation = null,  // New prop for customer marker
-  routePolyline = null,     // New prop for route polyline
+  customerLocation = null,
+  routePolyline = null,
   onLocationSelect,
   onAddressChange,
   height = '400px',
   showSearch = true,
   showGeolocation = true,
   showMarker = true,
-  showStoreMarker = true,   // New prop to control store marker
-  showCustomerMarker = true, // New prop to control customer marker
+  showStoreMarker = true,
+  showCustomerMarker = true,
   markerDraggable = true,
-  enableSelection = true,   // New prop to enable/disable click selection
+  enableSelection = true,
   showRoute = false,
   showZones = false,
   zones = [],
   className = '',
   placeholder = 'Buscar endereço ou CEP...',
 }) {
+  // Debug: Log props on every render
+  logger.info('InteractiveMap RENDER', {
+    hasRoutePolyline: !!routePolyline,
+    polylineLength: routePolyline?.length,
+    polylinePreview: routePolyline?.substring(0, 30),
+    hasCustomerLocation: !!customerLocation,
+    hasStoreLocation: !!storeLocation
+  });
+
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
@@ -107,73 +139,68 @@ export default function InteractiveMap({
     if (!isLoaded || !mapContainerRef.current || mapInstanceRef.current) return;
 
     try {
-      // Determine center - prefer customer location, then store, then default
-      const customerPos = customerLocation || initialLocation;
+      // Extract and validate coordinates
+      const customerCoords = extractCoords(customerLocation) || extractCoords(initialLocation);
+      const storeCoords = extractCoords(storeLocation) || extractCoords(STORE_LOCATION);
       
       logger.info('InteractiveMap: Creating map', {
-        customerPos,
-        storeLocation,
+        customerCoords,
+        storeCoords,
         showStoreMarker,
-        showCustomerMarker
+        showCustomerMarker,
+        STORE_LOCATION
       });
       
-      // Validate store location
-      const hasValidStoreLocation = storeLocation && 
-        typeof storeLocation.latitude === 'number' && 
-        typeof storeLocation.longitude === 'number' &&
-        !isNaN(storeLocation.latitude) && 
-        !isNaN(storeLocation.longitude);
-      
-      // Validate customer position
-      const hasValidCustomerPos = customerPos && (
-        (typeof customerPos.lat === 'number' && typeof customerPos.lng === 'number' && !isNaN(customerPos.lat) && !isNaN(customerPos.lng)) ||
-        (typeof customerPos.latitude === 'number' && typeof customerPos.longitude === 'number' && !isNaN(customerPos.latitude) && !isNaN(customerPos.longitude))
-      );
-      
+      // Determine map center - ALWAYS prefer store location first for initial view
+      // This ensures the map starts centered on Palmas, not in the ocean
       let center;
-      if (hasValidCustomerPos) {
-        center = { 
-          lat: customerPos.lat || customerPos.latitude, 
-          lng: customerPos.lng || customerPos.longitude 
-        };
-      } else if (hasValidStoreLocation) {
-        center = { 
-          lat: storeLocation.latitude, 
-          lng: storeLocation.longitude 
-        };
+      let zoom;
+      
+      if (customerCoords && storeCoords) {
+        // Both exist - we'll fit bounds later, start with store
+        center = storeCoords;
+        zoom = 14;
+      } else if (customerCoords) {
+        center = customerCoords;
+        zoom = 15;
+      } else if (storeCoords) {
+        center = storeCoords;
+        zoom = 14;
       } else {
-        center = DEFAULT_CENTER;
+        // Fallback to Palmas, TO (Pastita location)
+        center = { lat: -10.1854332, lng: -48.3038653 };
+        zoom = 13;
       }
       
-      // Always use zoom 14 when we have a valid location, otherwise use default
-      const zoom = (hasValidCustomerPos || hasValidStoreLocation) ? 14 : DEFAULT_ZOOM;
-      
-      logger.info('InteractiveMap: Map center and zoom', { center, zoom, hasValidStoreLocation, hasValidCustomerPos });
+      logger.info('InteractiveMap: Map center and zoom', { center, zoom });
 
       const instance = createMap(mapContainerRef.current, { center, zoom });
       mapInstanceRef.current = instance;
 
-      // Add store marker if provided and enabled
-      if (hasValidStoreLocation && showStoreMarker) {
-        logger.info('InteractiveMap: Adding store marker', { lat: storeLocation.latitude, lng: storeLocation.longitude });
-        const storeMarker = createStoreMarker({
-          lat: storeLocation.latitude,
-          lng: storeLocation.longitude
-        });
-        instance.map.addObject(storeMarker);
-        storeMarkerRef.current = storeMarker;
+      // Add store marker if valid and enabled
+      if (storeCoords && showStoreMarker) {
+        logger.info('InteractiveMap: Adding store marker', storeCoords);
+        try {
+          const storeMarker = createStoreMarker(storeCoords);
+          instance.map.addObject(storeMarker);
+          storeMarkerRef.current = storeMarker;
+        } catch (markerErr) {
+          logger.error('Failed to create store marker', markerErr);
+        }
       }
 
       // Add customer/delivery marker if location provided
-      if (hasValidCustomerPos && (showMarker || showCustomerMarker)) {
-        const pos = { 
-          lat: customerPos.lat || customerPos.latitude, 
-          lng: customerPos.lng || customerPos.longitude 
-        };
-        logger.info('InteractiveMap: Adding delivery marker', pos);
-        const marker = createDeliveryMarker(pos, { draggable: markerDraggable && enableSelection });
-        instance.map.addObject(marker);
-        markerRef.current = marker;
+      if (customerCoords && (showMarker || showCustomerMarker)) {
+        logger.info('InteractiveMap: Adding delivery marker', customerCoords);
+        try {
+          const marker = createDeliveryMarker(customerCoords, { 
+            draggable: markerDraggable && enableSelection 
+          });
+          instance.map.addObject(marker);
+          markerRef.current = marker;
+        } catch (markerErr) {
+          logger.error('Failed to create delivery marker', markerErr);
+        }
       }
 
       // Enable dragging if needed
@@ -187,32 +214,40 @@ export default function InteractiveMap({
       }
 
       // Fit bounds to show both markers if both exist
-      if (hasValidStoreLocation && hasValidCustomerPos && showStoreMarker) {
-        const storeLat = storeLocation.latitude;
-        const storeLng = storeLocation.longitude;
-        const custLat = customerPos.lat || customerPos.latitude;
-        const custLng = customerPos.lng || customerPos.longitude;
+      if (storeCoords && customerCoords && showStoreMarker) {
+        logger.info('InteractiveMap: Fitting bounds to show both markers');
         
-        logger.info('InteractiveMap: Fitting bounds', { storeLat, storeLng, custLat, custLng });
-        
-        // Validate all coordinates before creating bounds
-        if (!isNaN(storeLat) && !isNaN(storeLng) && !isNaN(custLat) && !isNaN(custLng)) {
+        try {
+          // Calculate bounds with padding
+          const minLat = Math.min(storeCoords.lat, customerCoords.lat);
+          const maxLat = Math.max(storeCoords.lat, customerCoords.lat);
+          const minLng = Math.min(storeCoords.lng, customerCoords.lng);
+          const maxLng = Math.max(storeCoords.lng, customerCoords.lng);
+          
+          // Add padding (about 20%)
+          const latPadding = (maxLat - minLat) * 0.2 || 0.01;
+          const lngPadding = (maxLng - minLng) * 0.2 || 0.01;
+          
           const bounds = new window.H.geo.Rect(
-            Math.max(storeLat, custLat),
-            Math.min(storeLng, custLng),
-            Math.min(storeLat, custLat),
-            Math.max(storeLng, custLng)
+            maxLat + latPadding,
+            minLng - lngPadding,
+            minLat - latPadding,
+            maxLng + lngPadding
           );
+          
           instance.map.getViewModel().setLookAtData({ bounds }, true);
-          // Add some padding and ensure reasonable zoom
+          
+          // Ensure reasonable zoom after bounds fit
           setTimeout(() => {
             const currentZoom = instance.map.getZoom();
             if (currentZoom > 16) {
               instance.map.setZoom(16);
-            } else if (currentZoom < 12) {
-              instance.map.setZoom(12);
+            } else if (currentZoom < 11) {
+              instance.map.setZoom(11);
             }
-          }, 100);
+          }, 150);
+        } catch (boundsErr) {
+          logger.error('Failed to fit bounds', boundsErr);
         }
       }
 
@@ -236,39 +271,53 @@ export default function InteractiveMap({
 
   // Add store marker when storeLocation becomes available (after map is created)
   useEffect(() => {
-    if (!mapInstanceRef.current || !storeLocation || !showStoreMarker) return;
+    if (!mapInstanceRef.current || !showStoreMarker) return;
     if (storeMarkerRef.current) return; // Already added
     
+    const storeCoords = extractCoords(storeLocation) || extractCoords(STORE_LOCATION);
+    if (!storeCoords) return;
+    
     const map = mapInstanceRef.current.map;
-    logger.info('InteractiveMap: Late adding store marker', { lat: storeLocation.latitude, lng: storeLocation.longitude });
-    const storeMarker = createStoreMarker({
-      lat: storeLocation.latitude,
-      lng: storeLocation.longitude
-    });
-    map.addObject(storeMarker);
-    storeMarkerRef.current = storeMarker;
+    logger.info('InteractiveMap: Late adding store marker', storeCoords);
+    
+    try {
+      const storeMarker = createStoreMarker(storeCoords);
+      map.addObject(storeMarker);
+      storeMarkerRef.current = storeMarker;
+    } catch (err) {
+      logger.error('Failed to late-add store marker', err);
+    }
   }, [storeLocation, showStoreMarker]);
 
   // Update customer marker when customerLocation changes
   useEffect(() => {
-    if (!mapInstanceRef.current || !customerLocation) return;
+    if (!mapInstanceRef.current) return;
+    
+    const customerCoords = extractCoords(customerLocation);
+    if (!customerCoords) return;
     
     const map = mapInstanceRef.current.map;
-    const pos = { lat: customerLocation.lat || customerLocation.latitude, lng: customerLocation.lng || customerLocation.longitude };
     
     if (markerRef.current) {
-      markerRef.current.setGeometry(pos);
+      markerRef.current.setGeometry(customerCoords);
     } else if (showCustomerMarker) {
-      const marker = createDeliveryMarker(pos, { draggable: markerDraggable && enableSelection });
-      map.addObject(marker);
-      markerRef.current = marker;
+      try {
+        const marker = createDeliveryMarker(customerCoords, { 
+          draggable: markerDraggable && enableSelection 
+        });
+        map.addObject(marker);
+        markerRef.current = marker;
+      } catch (err) {
+        logger.error('Failed to update customer marker', err);
+      }
     }
-  }, [customerLocation, showCustomerMarker]);
+  }, [customerLocation, showCustomerMarker, markerDraggable, enableSelection]);
 
-  // Draw route polyline when provided - depends on both isLoaded and routePolyline
+  // Draw route polyline when provided
   useEffect(() => {
     // Wait for map to be ready
     if (!isLoaded || !mapInstanceRef.current) {
+      logger.info('InteractiveMap: Polyline effect - map not ready', { isLoaded, hasMap: !!mapInstanceRef.current });
       return;
     }
     
@@ -278,6 +327,7 @@ export default function InteractiveMap({
     if (routeLineRef.current) {
       try {
         map.removeObject(routeLineRef.current);
+        logger.info('InteractiveMap: Removed existing polyline');
       } catch (e) {
         // Object might already be removed
       }
@@ -286,35 +336,86 @@ export default function InteractiveMap({
     
     // Draw new route if polyline provided
     if (routePolyline && typeof routePolyline === 'string' && routePolyline.length > 0) {
+      logger.info('InteractiveMap: Drawing route polyline', { 
+        length: routePolyline.length,
+        preview: routePolyline.substring(0, 50) + '...'
+      });
+      
       try {
+        // Create polyline with high visibility settings
         const polyline = createPolyline(routePolyline, {
-          strokeColor: PASTITA_COLORS.marsala,
+          strokeColor: 'rgba(114, 47, 55, 1)', // Marsala red, full opacity
           lineWidth: 6
         });
+        
+        // Verify polyline has valid geometry before adding
+        const geometry = polyline.getGeometry();
+        if (!geometry) {
+          logger.error('InteractiveMap: Polyline has no geometry');
+          return;
+        }
+        
+        // Get point count for logging
+        const pointCount = geometry.getPointCount ? geometry.getPointCount() : 'unknown';
+        logger.info('InteractiveMap: Polyline geometry valid', { pointCount });
+        
+        // Add to map
         map.addObject(polyline);
         routeLineRef.current = polyline;
+        logger.info('InteractiveMap: Route polyline added to map successfully');
         
         // Fit bounds to show the entire route with padding
         try {
           const bounds = polyline.getBoundingBox();
           if (bounds) {
-            map.getViewModel().setLookAtData({ bounds }, true);
-            // Add slight delay to ensure bounds are applied, then adjust zoom
+            logger.info('InteractiveMap: Polyline bounds', {
+              top: bounds.getTop(),
+              bottom: bounds.getBottom(),
+              left: bounds.getLeft(),
+              right: bounds.getRight()
+            });
+            
+            // Expand bounds slightly for padding
+            const top = bounds.getTop();
+            const bottom = bounds.getBottom();
+            const left = bounds.getLeft();
+            const right = bounds.getRight();
+            
+            const latPadding = Math.abs(top - bottom) * 0.2 || 0.005;
+            const lngPadding = Math.abs(right - left) * 0.2 || 0.005;
+            
+            const paddedBounds = new window.H.geo.Rect(
+              top + latPadding,
+              left - lngPadding,
+              bottom - latPadding,
+              right + lngPadding
+            );
+            
+            map.getViewModel().setLookAtData({ bounds: paddedBounds }, true);
+            
+            // Ensure reasonable zoom
             setTimeout(() => {
               const currentZoom = map.getZoom();
-              if (currentZoom > 15) {
-                map.setZoom(15);
+              logger.info('InteractiveMap: Current zoom after bounds fit', { currentZoom });
+              if (currentZoom > 16) {
+                map.setZoom(16);
               } else if (currentZoom < 12) {
                 map.setZoom(12);
               }
-            }, 150);
+            }, 300);
           }
         } catch (boundsErr) {
-          logger.warn('Could not adjust bounds for polyline', boundsErr);
+          logger.warn('InteractiveMap: Could not adjust bounds for polyline', boundsErr);
         }
       } catch (err) {
-        logger.error('Failed to draw route polyline:', err);
+        logger.error('InteractiveMap: Failed to draw route polyline:', err);
       }
+    } else {
+      logger.info('InteractiveMap: No polyline to draw', { 
+        hasPolyline: !!routePolyline, 
+        type: typeof routePolyline,
+        length: routePolyline?.length 
+      });
     }
   }, [isLoaded, routePolyline]);
 

@@ -309,14 +309,23 @@ export function createPolygon(coordinates, options = {}) {
 }
 
 /**
- * Decode flexible polyline format from HERE API
- * Based on HERE's flexible polyline encoding specification
+ * Decode HERE Flexible Polyline format
+ * 
+ * Official implementation based on:
+ * https://github.com/heremaps/flexible-polyline/blob/master/javascript/index.js
+ * 
+ * Format:
+ * - First varint: version (must be 1)
+ * - Second varint: header with precision (4 bits) + thirdDim (3 bits) + thirdDimPrecision (4 bits)
+ * - Remaining varints: pairs/triplets of (lat_delta, lng_delta, [z_delta])
  */
 function decodeFlexiblePolyline(encoded) {
-  if (!encoded || typeof encoded !== 'string') {
+  if (!encoded || typeof encoded !== 'string' || encoded.length < 2) {
+    logger.warn('decodeFlexiblePolyline: Invalid input', { encoded });
     return [];
   }
 
+  // Official HERE decoding table (maps char codes offset by 45)
   const DECODING_TABLE = [
     62, -1, -1, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1, -1,
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
@@ -324,98 +333,142 @@ function decodeFlexiblePolyline(encoded) {
     36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
   ];
 
-  try {
-    const result = [];
-    let index = 0;
+  const decodeChar = (char) => {
+    const charCode = char.charCodeAt(0);
+    return DECODING_TABLE[charCode - 45];
+  };
 
-    // Decode header - version
-    let version = 0;
+  // Decode all unsigned values first (as per official implementation)
+  const decodeUnsignedValues = () => {
+    let result = 0;
     let shift = 0;
-    let byte;
+    const resList = [];
 
-    do {
-      byte = DECODING_TABLE[encoded.charCodeAt(index++) - 45];
-      version |= (byte & 0x1F) << shift;
-      shift += 5;
-    } while (byte >= 0x20);
-
-    // Decode precision
-    let precision = 0;
-    shift = 0;
-    do {
-      byte = DECODING_TABLE[encoded.charCodeAt(index++) - 45];
-      precision |= (byte & 0x1F) << shift;
-      shift += 5;
-    } while (byte >= 0x20);
-
-    // Decode third dimension type and precision (if present)
-    let thirdDimPrecision = 0;
-    let thirdDimType = 0;
-    if (version === 1) {
-      shift = 0;
-      do {
-        byte = DECODING_TABLE[encoded.charCodeAt(index++) - 45];
-        thirdDimType |= (byte & 0x1F) << shift;
+    for (let i = 0; i < encoded.length; i++) {
+      const value = decodeChar(encoded[i]);
+      if (value === -1 || value === undefined) {
+        throw new Error(`Invalid character '${encoded[i]}' at position ${i}`);
+      }
+      result |= (value & 0x1F) << shift;
+      if ((value & 0x20) === 0) {
+        resList.push(result);
+        result = 0;
+        shift = 0;
+      } else {
         shift += 5;
-      } while (byte >= 0x20);
-
-      thirdDimPrecision = thirdDimType & 0x0F;
-      thirdDimType = (thirdDimType >> 4) & 0x07;
+      }
     }
 
-    const factor = Math.pow(10, precision);
-    const thirdFactor = Math.pow(10, thirdDimPrecision);
+    if (shift > 0) {
+      throw new Error('Invalid encoding - incomplete varint');
+    }
 
-    let lat = 0;
-    let lng = 0;
-    let alt = 0;
+    return resList;
+  };
 
-    while (index < encoded.length) {
-      // Decode latitude
-      let deltaLat = 0;
-      shift = 0;
-      do {
-        byte = DECODING_TABLE[encoded.charCodeAt(index++) - 45];
-        deltaLat |= (byte & 0x1F) << shift;
-        shift += 5;
-      } while (byte >= 0x20);
-      deltaLat = (deltaLat & 1) ? ~(deltaLat >> 1) : (deltaLat >> 1);
-      lat += deltaLat;
+  // Convert unsigned to signed (ZigZag decoding)
+  const toSigned = (val) => {
+    let res = val;
+    if (res & 1) {
+      res = ~res;
+    }
+    res >>= 1;
+    return res;
+  };
 
-      // Decode longitude
-      let deltaLng = 0;
-      shift = 0;
-      do {
-        byte = DECODING_TABLE[encoded.charCodeAt(index++) - 45];
-        deltaLng |= (byte & 0x1F) << shift;
-        shift += 5;
-      } while (byte >= 0x20);
-      deltaLng = (deltaLng & 1) ? ~(deltaLng >> 1) : (deltaLng >> 1);
-      lng += deltaLng;
+  try {
+    const decoder = decodeUnsignedValues();
+    
+    if (decoder.length < 2) {
+      throw new Error('Not enough data in polyline');
+    }
 
-      // Decode altitude if present
-      if (thirdDimType !== 0 && index < encoded.length) {
-        let deltaAlt = 0;
-        shift = 0;
-        do {
-          byte = DECODING_TABLE[encoded.charCodeAt(index++) - 45];
-          deltaAlt |= (byte & 0x1F) << shift;
-          shift += 5;
-        } while (byte >= 0x20);
-        deltaAlt = (deltaAlt & 1) ? ~(deltaAlt >> 1) : (deltaAlt >> 1);
-        alt += deltaAlt;
+    // First value is version (must be 1)
+    const version = decoder[0];
+    if (version !== 1) {
+      throw new Error(`Invalid format version: ${version}`);
+    }
+
+    // Second value is header
+    const headerNumber = decoder[1];
+    const precision = headerNumber & 15;
+    const thirdDim = (headerNumber >> 4) & 7;
+    const thirdDimPrecision = (headerNumber >> 7) & 15;
+
+    const factorDegree = Math.pow(10, precision);
+    const factorZ = Math.pow(10, thirdDimPrecision);
+
+    logger.info('decodeFlexiblePolyline: Header', {
+      version,
+      precision,
+      thirdDim,
+      thirdDimPrecision,
+      factorDegree,
+      totalValues: decoder.length
+    });
+
+    const result = [];
+    let lastLat = 0;
+    let lastLng = 0;
+    let lastZ = 0;
+
+    let i = 2; // Start after header (version + header)
+    while (i < decoder.length) {
+      const deltaLat = toSigned(decoder[i]);
+      const deltaLng = toSigned(decoder[i + 1]);
+      lastLat += deltaLat;
+      lastLng += deltaLng;
+
+      const point = {
+        lat: lastLat / factorDegree,
+        lng: lastLng / factorDegree
+      };
+
+      if (thirdDim) {
+        const deltaZ = toSigned(decoder[i + 2]);
+        lastZ += deltaZ;
+        point.alt = lastZ / factorZ;
+        i += 3;
+      } else {
+        i += 2;
       }
 
-      result.push({
-        lat: lat / factor,
-        lng: lng / factor,
-        alt: thirdDimType !== 0 ? alt / thirdFactor : undefined
+      // Validate coordinates
+      if (point.lat >= -90 && point.lat <= 90 && 
+          point.lng >= -180 && point.lng <= 180) {
+        result.push(point);
+      }
+    }
+
+    if (result.length > 0) {
+      const first = result[0];
+      const last = result[result.length - 1];
+      
+      // Check if route is in Brazil (Palmas, TO region: -10.18, -48.30)
+      const inPalmasRegion = first.lat < -5 && first.lat > -15 && 
+                            first.lng < -45 && first.lng > -52;
+      
+      logger.info('decodeFlexiblePolyline: Success', {
+        points: result.length,
+        first: `${first.lat.toFixed(5)}, ${first.lng.toFixed(5)}`,
+        last: `${last.lat.toFixed(5)}, ${last.lng.toFixed(5)}`,
+        inPalmasRegion
       });
+      
+      if (!inPalmasRegion) {
+        logger.warn('decodeFlexiblePolyline: Route not in Palmas region!', {
+          expected: 'Palmas, TO (-10.18, -48.30)',
+          actual: first
+        });
+      }
     }
 
     return result;
   } catch (e) {
-    logger.error('Failed to decode flexible polyline:', e);
+    logger.error('decodeFlexiblePolyline: Failed', { 
+      error: e.message,
+      encodedPreview: encoded.substring(0, 50)
+    });
     return [];
   }
 }
@@ -425,46 +478,86 @@ function decodeFlexiblePolyline(encoded) {
  */
 export function createPolyline(coordinates, options = {}) {
   const H = window.H;
+  
   logger.info('createPolyline called', {
     type: typeof coordinates,
     isString: typeof coordinates === 'string',
-    length: typeof coordinates === 'string' ? coordinates.length : coordinates?.length
+    length: typeof coordinates === 'string' ? coordinates.length : coordinates?.length,
+    preview: typeof coordinates === 'string' ? coordinates.substring(0, 50) : null
   });
 
   try {
     let lineString = new H.geo.LineString();
+    let pointCount = 0;
 
     if (typeof coordinates === 'string') {
-      // Flexible polyline encoded string - decode it manually
+      // Flexible polyline encoded string - decode it
       const decoded = decodeFlexiblePolyline(coordinates);
-      logger.info('Polyline decoded from flexible polyline string, points:', decoded.length);
-
+      
       if (decoded.length === 0) {
-        throw new Error('Failed to decode polyline - no points');
+        throw new Error('Failed to decode polyline - no valid points');
       }
 
-      decoded.forEach(coord => {
-        lineString.pushPoint({ lat: coord.lat, lng: coord.lng });
+      // Add points to linestring, validating each one
+      decoded.forEach((coord, idx) => {
+        if (typeof coord.lat === 'number' && typeof coord.lng === 'number' &&
+            !isNaN(coord.lat) && !isNaN(coord.lng)) {
+          lineString.pushPoint({ lat: coord.lat, lng: coord.lng });
+          pointCount++;
+        } else {
+          logger.warn(`Invalid point at index ${idx}:`, coord);
+        }
       });
+      
+      logger.info('Polyline decoded from flexible polyline', { 
+        decodedPoints: decoded.length,
+        validPoints: pointCount 
+      });
+      
     } else if (Array.isArray(coordinates)) {
       // Array of coordinates
-      coordinates.forEach(coord => {
-        lineString.pushPoint({ lat: coord.lat || coord[0], lng: coord.lng || coord[1] });
+      coordinates.forEach((coord, idx) => {
+        const lat = coord.lat ?? coord.latitude ?? coord[0];
+        const lng = coord.lng ?? coord.longitude ?? coord[1];
+        
+        if (typeof lat === 'number' && typeof lng === 'number' &&
+            !isNaN(lat) && !isNaN(lng)) {
+          lineString.pushPoint({ lat, lng });
+          pointCount++;
+        } else {
+          logger.warn(`Invalid point at index ${idx}:`, coord);
+        }
       });
-      logger.info('Polyline created from coordinate array');
+      
+      logger.info('Polyline created from coordinate array', { 
+        inputPoints: coordinates.length,
+        validPoints: pointCount 
+      });
     } else {
       throw new Error('Invalid coordinates format');
     }
 
+    if (pointCount < 2) {
+      throw new Error(`Not enough valid points for polyline: ${pointCount}`);
+    }
+
+    // Use a visible color - marsala red with full opacity
+    const strokeColor = options.strokeColor || 'rgba(114, 47, 55, 1)'; // PASTITA marsala
+    const lineWidth = options.lineWidth || 6;
+
+    logger.info('Creating polyline with style', { strokeColor, lineWidth, pointCount });
+
     const polyline = new H.map.Polyline(lineString, {
       style: {
-        strokeColor: options.strokeColor || PASTITA_COLORS.routeColor,
-        lineWidth: options.lineWidth || 4,
+        strokeColor: strokeColor,
+        lineWidth: lineWidth,
         lineCap: 'round',
         lineJoin: 'round'
-      }
+      },
+      zIndex: 10 // Ensure polyline is above other map elements
     });
-    logger.info('Polyline object created successfully');
+    
+    logger.info('Polyline object created successfully', { pointCount });
     return polyline;
   } catch (error) {
     logger.error('Failed to create polyline:', error);
