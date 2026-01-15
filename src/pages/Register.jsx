@@ -87,7 +87,8 @@ const Register = () => {
         password: formData.password,
         first_name: formData.first_name,
         last_name: formData.last_name,
-        coupon_code: formData.coupon_code.trim()
+        coupon_code: formData.coupon_code.trim(),
+        store_slug: storeApi.STORE_SLUG  // Send store slug for email automation
       });
 
       setSuccess(true);
