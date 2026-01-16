@@ -475,6 +475,13 @@ function decodeFlexiblePolyline(encoded) {
 
 /**
  * Create a polyline (route)
+ * 
+ * @param {string|Array} coordinates - Flexible polyline string or array of coordinates
+ * @param {Object} options - Options for the polyline
+ * @param {string} options.strokeColor - Color of the line
+ * @param {number} options.lineWidth - Width of the line
+ * @param {Object} options.startPoint - Optional start point to prepend {lat, lng}
+ * @param {Object} options.endPoint - Optional end point to append {lat, lng}
  */
 export function createPolyline(coordinates, options = {}) {
   const H = window.H;
@@ -483,12 +490,34 @@ export function createPolyline(coordinates, options = {}) {
     type: typeof coordinates,
     isString: typeof coordinates === 'string',
     length: typeof coordinates === 'string' ? coordinates.length : coordinates?.length,
-    preview: typeof coordinates === 'string' ? coordinates.substring(0, 50) : null
+    preview: typeof coordinates === 'string' ? coordinates.substring(0, 50) : null,
+    hasStartPoint: !!options.startPoint,
+    hasEndPoint: !!options.endPoint
   });
 
   try {
     let lineString = new H.geo.LineString();
     let pointCount = 0;
+    
+    // Helper to add a point
+    const addPoint = (lat, lng) => {
+      if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+        lineString.pushPoint({ lat, lng });
+        pointCount++;
+        return true;
+      }
+      return false;
+    };
+    
+    // Prepend start point if provided (to connect to store marker)
+    if (options.startPoint) {
+      const sp = options.startPoint;
+      const lat = sp.lat ?? sp.latitude;
+      const lng = sp.lng ?? sp.longitude;
+      if (addPoint(lat, lng)) {
+        logger.info('Prepended start point to polyline', { lat, lng });
+      }
+    }
 
     if (typeof coordinates === 'string') {
       // Flexible polyline encoded string - decode it
@@ -500,13 +529,7 @@ export function createPolyline(coordinates, options = {}) {
 
       // Add points to linestring, validating each one
       decoded.forEach((coord, idx) => {
-        if (typeof coord.lat === 'number' && typeof coord.lng === 'number' &&
-            !isNaN(coord.lat) && !isNaN(coord.lng)) {
-          lineString.pushPoint({ lat: coord.lat, lng: coord.lng });
-          pointCount++;
-        } else {
-          logger.warn(`Invalid point at index ${idx}:`, coord);
-        }
+        addPoint(coord.lat, coord.lng);
       });
       
       logger.info('Polyline decoded from flexible polyline', { 
@@ -519,14 +542,7 @@ export function createPolyline(coordinates, options = {}) {
       coordinates.forEach((coord, idx) => {
         const lat = coord.lat ?? coord.latitude ?? coord[0];
         const lng = coord.lng ?? coord.longitude ?? coord[1];
-        
-        if (typeof lat === 'number' && typeof lng === 'number' &&
-            !isNaN(lat) && !isNaN(lng)) {
-          lineString.pushPoint({ lat, lng });
-          pointCount++;
-        } else {
-          logger.warn(`Invalid point at index ${idx}:`, coord);
-        }
+        addPoint(lat, lng);
       });
       
       logger.info('Polyline created from coordinate array', { 
@@ -535,6 +551,16 @@ export function createPolyline(coordinates, options = {}) {
       });
     } else {
       throw new Error('Invalid coordinates format');
+    }
+    
+    // Append end point if provided (to connect to customer marker)
+    if (options.endPoint) {
+      const ep = options.endPoint;
+      const lat = ep.lat ?? ep.latitude;
+      const lng = ep.lng ?? ep.longitude;
+      if (addPoint(lat, lng)) {
+        logger.info('Appended end point to polyline', { lat, lng });
+      }
     }
 
     if (pointCount < 2) {

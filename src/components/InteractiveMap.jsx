@@ -351,16 +351,26 @@ export default function InteractiveMap({
     
     // Draw new route if polyline provided
     if (polylineToUse && typeof polylineToUse === 'string' && polylineToUse.length > 0) {
+      // Extract store and customer coordinates for connecting polyline to markers
+      const storeCoords = extractCoords(storeLocation) || extractCoords(STORE_LOCATION);
+      const customerCoords = extractCoords(customerLocation);
+      
       logger.info('InteractiveMap: Drawing route polyline', { 
         length: polylineToUse.length,
-        preview: polylineToUse.substring(0, 50) + '...'
+        preview: polylineToUse.substring(0, 50) + '...',
+        storeCoords,
+        customerCoords
       });
       
       try {
-        // Create polyline with high visibility settings
+        // Create polyline with start/end points to connect to markers
+        // This ensures the polyline starts exactly at the store marker
+        // and ends exactly at the customer marker
         const polyline = createPolyline(polylineToUse, {
           strokeColor: 'rgba(114, 47, 55, 1)', // Marsala red, full opacity
-          lineWidth: 6
+          lineWidth: 6,
+          startPoint: storeCoords,  // Connect to store marker
+          endPoint: customerCoords   // Connect to customer marker
         });
         
         if (!polyline) {
@@ -438,7 +448,7 @@ export default function InteractiveMap({
         length: routePolyline?.length 
       });
     }
-  }, [isLoaded, routePolyline]);
+  }, [isLoaded, routePolyline, storeLocation, customerLocation]);
 
   // Display zones
   useEffect(() => {
