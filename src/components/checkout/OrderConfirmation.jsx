@@ -126,6 +126,11 @@ const OrderConfirmation = ({
                   {confirmedAddress.street}
                   {confirmedAddress.number && `, ${confirmedAddress.number}`}
                 </p>
+                {confirmedAddress.complement && (
+                  <p className={styles.addressComplement}>
+                    🏠 {confirmedAddress.complement}
+                  </p>
+                )}
                 <p className={styles.addressCity}>
                   {confirmedAddress.neighborhood && `${confirmedAddress.neighborhood}, `}
                   {confirmedAddress.city} - {confirmedAddress.state}
