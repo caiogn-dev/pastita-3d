@@ -486,6 +486,10 @@ function decodeFlexiblePolyline(encoded) {
 export function createPolyline(coordinates, options = {}) {
   const H = window.H;
   
+  // Minimum distance (in meters) to add connector points
+  // If polyline start/end is closer than this to the marker, don't add extra point
+  const MIN_CONNECTOR_DISTANCE = 50;
+  
   logger.info('createPolyline called', {
     type: typeof coordinates,
     isString: typeof coordinates === 'string',
@@ -496,82 +500,123 @@ export function createPolyline(coordinates, options = {}) {
   });
 
   try {
-    let lineString = new H.geo.LineString();
-    let pointCount = 0;
+    // First, decode the polyline to get all points
+    let decodedPoints = [];
     
-    // Helper to add a point
-    const addPoint = (lat, lng) => {
-      if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
-        lineString.pushPoint({ lat, lng });
-        pointCount++;
-        return true;
-      }
-      return false;
-    };
-    
-    // Prepend start point if provided (to connect to store marker)
-    if (options.startPoint) {
-      const sp = options.startPoint;
-      const lat = sp.lat ?? sp.latitude;
-      const lng = sp.lng ?? sp.longitude;
-      if (addPoint(lat, lng)) {
-        logger.info('Prepended start point to polyline', { lat, lng });
-      }
-    }
-
     if (typeof coordinates === 'string') {
-      // Flexible polyline encoded string - decode it
-      const decoded = decodeFlexiblePolyline(coordinates);
-      
-      if (decoded.length === 0) {
+      decodedPoints = decodeFlexiblePolyline(coordinates);
+      if (decodedPoints.length === 0) {
         throw new Error('Failed to decode polyline - no valid points');
       }
-
-      // Add points to linestring, validating each one
-      decoded.forEach((coord, idx) => {
-        addPoint(coord.lat, coord.lng);
-      });
-      
-      logger.info('Polyline decoded from flexible polyline', { 
-        decodedPoints: decoded.length,
-        validPoints: pointCount 
-      });
-      
+      logger.info('Polyline decoded', { pointCount: decodedPoints.length });
     } else if (Array.isArray(coordinates)) {
-      // Array of coordinates
-      coordinates.forEach((coord, idx) => {
-        const lat = coord.lat ?? coord.latitude ?? coord[0];
-        const lng = coord.lng ?? coord.longitude ?? coord[1];
-        addPoint(lat, lng);
-      });
-      
-      logger.info('Polyline created from coordinate array', { 
-        inputPoints: coordinates.length,
-        validPoints: pointCount 
-      });
+      decodedPoints = coordinates.map(coord => ({
+        lat: coord.lat ?? coord.latitude ?? coord[0],
+        lng: coord.lng ?? coord.longitude ?? coord[1]
+      })).filter(p => typeof p.lat === 'number' && typeof p.lng === 'number');
+      logger.info('Polyline from array', { pointCount: decodedPoints.length });
     } else {
       throw new Error('Invalid coordinates format');
     }
     
-    // Append end point if provided (to connect to customer marker)
-    if (options.endPoint) {
-      const ep = options.endPoint;
-      const lat = ep.lat ?? ep.latitude;
-      const lng = ep.lng ?? ep.longitude;
-      if (addPoint(lat, lng)) {
-        logger.info('Appended end point to polyline', { lat, lng });
+    if (decodedPoints.length < 2) {
+      throw new Error(`Not enough valid points for polyline: ${decodedPoints.length}`);
+    }
+    
+    // Helper to calculate distance between two points (Haversine formula)
+    const haversineDistance = (p1, p2) => {
+      const R = 6371000; // Earth radius in meters
+      const lat1 = p1.lat * Math.PI / 180;
+      const lat2 = p2.lat * Math.PI / 180;
+      const dLat = (p2.lat - p1.lat) * Math.PI / 180;
+      const dLng = (p2.lng - p1.lng) * Math.PI / 180;
+      
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1) * Math.cos(lat2) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    };
+    
+    // Build final points array
+    let finalPoints = [];
+    
+    // Check if we need to prepend start point (store marker)
+    if (options.startPoint) {
+      const sp = {
+        lat: options.startPoint.lat ?? options.startPoint.latitude,
+        lng: options.startPoint.lng ?? options.startPoint.longitude
+      };
+      
+      if (typeof sp.lat === 'number' && typeof sp.lng === 'number') {
+        const firstPolylinePoint = decodedPoints[0];
+        const distanceToFirst = haversineDistance(sp, firstPolylinePoint);
+        
+        logger.info('Start point distance check', { 
+          startPoint: sp, 
+          firstPolylinePoint, 
+          distanceMeters: distanceToFirst.toFixed(1)
+        });
+        
+        // Only add start point if polyline doesn't already start near the store
+        if (distanceToFirst > MIN_CONNECTOR_DISTANCE) {
+          finalPoints.push(sp);
+          logger.info('Prepended start point to polyline (distance > threshold)', { 
+            distance: distanceToFirst.toFixed(1) + 'm'
+          });
+        } else {
+          // Replace first point with exact store location for perfect alignment
+          decodedPoints[0] = sp;
+          logger.info('Replaced first polyline point with store location for alignment');
+        }
       }
     }
-
-    if (pointCount < 2) {
-      throw new Error(`Not enough valid points for polyline: ${pointCount}`);
+    
+    // Add all decoded points
+    finalPoints = finalPoints.concat(decodedPoints);
+    
+    // Check if we need to append end point (customer marker)
+    if (options.endPoint) {
+      const ep = {
+        lat: options.endPoint.lat ?? options.endPoint.latitude,
+        lng: options.endPoint.lng ?? options.endPoint.longitude
+      };
+      
+      if (typeof ep.lat === 'number' && typeof ep.lng === 'number') {
+        const lastPolylinePoint = finalPoints[finalPoints.length - 1];
+        const distanceToLast = haversineDistance(ep, lastPolylinePoint);
+        
+        logger.info('End point distance check', { 
+          endPoint: ep, 
+          lastPolylinePoint, 
+          distanceMeters: distanceToLast.toFixed(1)
+        });
+        
+        // Only add end point if polyline doesn't already end near the customer
+        if (distanceToLast > MIN_CONNECTOR_DISTANCE) {
+          finalPoints.push(ep);
+          logger.info('Appended end point to polyline (distance > threshold)', { 
+            distance: distanceToLast.toFixed(1) + 'm'
+          });
+        } else {
+          // Replace last point with exact customer location for perfect alignment
+          finalPoints[finalPoints.length - 1] = ep;
+          logger.info('Replaced last polyline point with customer location for alignment');
+        }
+      }
     }
+    
+    // Create LineString from final points
+    let lineString = new H.geo.LineString();
+    finalPoints.forEach(p => {
+      lineString.pushPoint({ lat: p.lat, lng: p.lng });
+    });
 
     // Use a visible color - marsala red with full opacity
     const strokeColor = options.strokeColor || 'rgba(114, 47, 55, 1)'; // PASTITA marsala
     const lineWidth = options.lineWidth || 6;
 
-    logger.info('Creating polyline with style', { strokeColor, lineWidth, pointCount });
+    logger.info('Creating polyline with style', { strokeColor, lineWidth, pointCount: finalPoints.length });
 
     const polyline = new H.map.Polyline(lineString, {
       style: {
@@ -583,7 +628,7 @@ export function createPolyline(coordinates, options = {}) {
       zIndex: 10 // Ensure polyline is above other map elements
     });
     
-    logger.info('Polyline object created successfully', { pointCount });
+    logger.info('Polyline object created successfully', { pointCount: finalPoints.length });
     return polyline;
   } catch (error) {
     logger.error('Failed to create polyline:', error);
