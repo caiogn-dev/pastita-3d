@@ -13,9 +13,7 @@ module.exports = {
         display: ['Playfair Display', 'Georgia', 'serif'],
       },
       colors: {
-        // ============================================
-        // PASTITA BRAND - Marsala (Primary)
-        // ============================================
+        // Pastita Brand Colors (Marsala + Gold)
         marsala: {
           DEFAULT: '#722F37',
           50: '#F9F2F3',
@@ -30,26 +28,6 @@ module.exports = {
           900: '#2D1215',
           950: '#1A0B0D',
         },
-        // ============================================
-        // AGRIÃO BRAND - Verde Agrião (Secondary)
-        // ============================================
-        agriao: {
-          DEFAULT: '#4A5D23',
-          50: '#F4F7EF',
-          100: '#E8EFDE',
-          200: '#D1DFBD',
-          300: '#B5C896',
-          400: '#8FB06B',
-          500: '#6B8E23',
-          600: '#4A5D23',
-          700: '#3D4D1D',
-          800: '#2F3B16',
-          900: '#1F2710',
-          950: '#141A0A',
-        },
-        // ============================================
-        // ACCENT & NEUTRAL
-        // ============================================
         gold: {
           DEFAULT: '#D4AF37',
           50: '#FCF9EE',
@@ -64,44 +42,32 @@ module.exports = {
           900: '#342B0C',
           950: '#1E1907',
         },
+        // Semantic colors
         cream: {
           DEFAULT: '#FDFBF7',
           50: '#FFFFFF',
           100: '#FDFBF7',
           200: '#F5EFE6',
           300: '#EDE3D5',
-          400: '#E5D7C4',
         },
-        // ============================================
-        // STATUS COLORS
-        // ============================================
+        // Status colors
         success: {
           DEFAULT: '#10B981',
           50: '#ECFDF5',
-          100: '#D1FAE5',
           500: '#10B981',
           600: '#059669',
         },
         error: {
           DEFAULT: '#EF4444',
           50: '#FEF2F2',
-          100: '#FEE2E2',
           500: '#EF4444',
           600: '#DC2626',
         },
         warning: {
           DEFAULT: '#F59E0B',
           50: '#FFFBEB',
-          100: '#FEF3C7',
           500: '#F59E0B',
           600: '#D97706',
-        },
-        info: {
-          DEFAULT: '#3B82F6',
-          50: '#EFF6FF',
-          100: '#DBEAFE',
-          500: '#3B82F6',
-          600: '#2563EB',
         },
       },
       boxShadow: {
@@ -114,7 +80,6 @@ module.exports = {
         'inner-gold': 'inset 0 -3px 0 0 #D4AF37',
         'inner-marsala': 'inset 0 -3px 0 0 #722F37',
         'glow-marsala': '0 0 20px rgba(114, 47, 55, 0.4)',
-        'glow-agriao': '0 0 20px rgba(74, 93, 35, 0.4)',
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',

@@ -3,52 +3,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { useStore } from '../context/StoreContext';
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { cartCount, toggleCart } = useCart();
   const { isAuthenticated, signOut, profile, user } = useAuth();
-  const { store } = useStore();
   const router = useRouter();
 
   const isActive = (path) => router.pathname === path;
-  
-  // Dynamic branding based on store
-  const brandInfo = useMemo(() => {
-    const defaultBrand = {
-      name: 'Pastita',
-      logo: '/pastita-logo.ico',
-      primaryColor: '#722F37',
-    };
-    
-    if (!store) return defaultBrand;
-    
-    // Check if it's Agrião
-    const isAgriao = store.name?.toLowerCase().includes('agriao') || 
-                     store.slug?.toLowerCase().includes('agriao');
-    
-    if (isAgriao) {
-      return {
-        name: store.name || 'Agrião',
-        logo: store.logo_url || '/agriao-logo.png',
-        primaryColor: '#4A5D23',
-      };
-    }
-    
-    return {
-      name: store.name || 'Pastita',
-      logo: store.logo_url || '/pastita-logo.ico',
-      primaryColor: store.primary_color || '#722F37',
-    };
-  }, [store]);
-  
-  // Apply brand colors to CSS variables
-  useEffect(() => {
-    if (brandInfo.primaryColor) {
-      document.documentElement.style.setProperty('--color-marsala', brandInfo.primaryColor);
-    }
-  }, [brandInfo.primaryColor]);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -106,17 +68,9 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        {/* Dynamic Logo based on store */}
-        <Link href="/" className="navbar-logo" onClick={closeMobileMenu} aria-label={brandInfo.name}>
-          <img 
-            src={brandInfo.logo} 
-            alt={brandInfo.name} 
-            className="navbar-logo-image"
-            onError={(e) => {
-              // Fallback to default logo on error
-              e.currentTarget.src = '/pastita-logo.ico';
-            }}
-          />
+        {/* Logo */}
+        <Link href="/" className="navbar-logo" onClick={closeMobileMenu} aria-label="Pastita">
+          <img src="/pastita-logo.ico" alt="Pastita" className="navbar-logo-image" />
         </Link>
 
         {/* Desktop Navigation */}
