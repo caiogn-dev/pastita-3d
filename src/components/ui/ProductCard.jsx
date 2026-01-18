@@ -7,6 +7,7 @@ import Badge from './Badge';
  * @param {Object} props
  * @param {Object} props.product - Dados do produto
  * @param {Function} props.onAddToCart - Callback ao adicionar ao carrinho
+ * @param {Function} props.onClick - Callback ao clicar no card (abre modal)
  * @param {React.ReactNode} props.favoriteButton - Botão de favorito
  * @param {React.ReactNode} props.stockBadge - Badge de estoque
  * @param {string} props.weightLabel - Label de peso (ex: "500g")
@@ -15,6 +16,7 @@ import Badge from './Badge';
 const ProductCard = ({
   product,
   onAddToCart,
+  onClick,
   favoriteButton,
   stockBadge,
   weightLabel,
@@ -28,16 +30,26 @@ const ProductCard = ({
   const imageSrc = product.image || product.image_url;
   const animationDelay = `${index * 50}ms`;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e) => {
+    e.stopPropagation(); // Não abre o modal ao clicar em adicionar
     if (onAddToCart && inStock) {
       onAddToCart(product);
     }
   };
 
+  const handleClick = () => {
+    if (onClick) {
+      onClick(product);
+    }
+  };
+
   return (
     <article 
-      className={`product-card ${className}`}
+      className={`product-card ${onClick ? 'product-card--clickable' : ''} ${className}`}
       style={{ '--animation-delay': animationDelay }}
+      onClick={handleClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
     >
       {/* Imagem */}
       <div className="product-card__image-wrapper">

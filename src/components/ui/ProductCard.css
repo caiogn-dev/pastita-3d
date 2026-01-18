@@ -35,6 +35,16 @@
   border-color: var(--color-gold);
 }
 
+/* Clickable Card */
+.product-card--clickable {
+  cursor: pointer;
+}
+
+.product-card--clickable:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(114, 47, 55, 0.2), 0 16px 40px rgba(114, 47, 55, 0.12);
+}
+
 /* ===== Image Wrapper ===== */
 .product-card__image-wrapper {
   position: relative;

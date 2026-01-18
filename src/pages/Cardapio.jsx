@@ -11,6 +11,7 @@ import Input from '../components/ui/Input';
 import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import ProductCard from '../components/ui/ProductCard';
+import ProductDetailModal from '../components/ui/ProductDetailModal';
 import PageTransition, { StaggeredList, AnimatedCard } from '../components/ui/PageTransition';
 
 const CATEGORY_PRIORITY = ['rondelli', 'rondellis', 'molho', 'molhos'];
@@ -53,6 +54,8 @@ const Cardapio = () => {
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showProductModal, setShowProductModal] = useState(false);
   
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
@@ -129,21 +132,34 @@ const Cardapio = () => {
     });
   }, [products, query, categoryFilter, showFavoritesOnly, isFavorited]);
 
-  const handleAddToCart = (product) => {
+  // Abre o modal de detalhes do produto
+  const handleProductClick = (product) => {
+    setSelectedProduct(product);
+    setShowProductModal(true);
+  };
+
+  // Adiciona ao carrinho (pode vir do modal ou do card)
+  const handleAddToCart = (product, quantity = 1, observations = '') => {
     if (!isAuthenticated) {
-      setPendingProduct(product);
+      setPendingProduct({ product, quantity, observations });
       setShowLoginModal(true);
       return;
     }
     if (product.stock_quantity <= 0) {
       return;
     }
-    addToCart(product);
+    // Adiciona com quantidade e observações
+    for (let i = 0; i < quantity; i++) {
+      addToCart({ ...product, observations });
+    }
   };
 
   const handleLoginSuccess = () => {
     if (pendingProduct) {
-      addToCart(pendingProduct);
+      const { product, quantity, observations } = pendingProduct;
+      for (let i = 0; i < (quantity || 1); i++) {
+        addToCart({ ...product, observations });
+      }
       setPendingProduct(null);
     }
   };
@@ -151,6 +167,11 @@ const Cardapio = () => {
   const handleCloseModal = () => {
     setShowLoginModal(false);
     setPendingProduct(null);
+  };
+
+  const handleCloseProductModal = () => {
+    setShowProductModal(false);
+    setSelectedProduct(null);
   };
 
   const handleClearSearch = () => {
@@ -175,6 +196,15 @@ const Cardapio = () => {
         isOpen={showLoginModal} 
         onClose={handleCloseModal}
         onSuccess={handleLoginSuccess}
+      />
+
+      {/* Modal de Detalhes do Produto */}
+      <ProductDetailModal
+        isOpen={showProductModal}
+        onClose={handleCloseProductModal}
+        product={selectedProduct}
+        onAddToCart={handleAddToCart}
+        favoriteButton={selectedProduct && <FavoriteButton productId={selectedProduct.id} size="small" />}
       />
 
       {/* Header with animation */}
@@ -282,7 +312,8 @@ const Cardapio = () => {
                     <ProductCard
                       product={p}
                       index={index}
-                      onAddToCart={handleAddToCart}
+                      onClick={handleProductClick}
+                      onAddToCart={(product) => handleAddToCart(product, 1, '')}
                       weightLabel={getProductWeightLabel(p)}
                       favoriteButton={<FavoriteButton productId={p.id} size="small" />}
                       stockBadge={<StockBadge quantity={p.stock_quantity} />}
