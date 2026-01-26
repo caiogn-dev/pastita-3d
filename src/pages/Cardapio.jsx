@@ -16,6 +16,18 @@ import PageTransition, { StaggeredList, AnimatedCard } from '../components/ui/Pa
 const CATEGORY_PRIORITY = ['rondelli', 'rondellis', 'molho', 'molhos'];
 const WEIGHTED_CATEGORIES = new Set(['rondelli', 'rondellis', 'molho', 'molhos']);
 
+// Display names for categories
+const CATEGORY_DISPLAY_NAMES = {
+  'rondelli': "Rondelli's",
+  'rondellis': "Rondelli's",
+  'molho': 'Molhos',
+  'molhos': 'Molhos',
+  'carne': 'Carnes',
+  'carnes': 'Carnes',
+  'combo': 'Combos',
+  'combos': 'Combos',
+};
+
 const normalizeCategory = (value) => (value || '')
   .toString()
   .toLowerCase()
@@ -28,6 +40,12 @@ const getCategoryRank = (value) => {
   const normalized = normalizeCategory(value);
   const index = CATEGORY_PRIORITY.indexOf(normalized);
   return index === -1 ? CATEGORY_PRIORITY.length + 1 : index;
+};
+
+const getCategoryDisplayName = (category) => {
+  const normalized = normalizeCategory(category);
+  return CATEGORY_DISPLAY_NAMES[normalized] || 
+    category.charAt(0).toUpperCase() + category.slice(1);
 };
 
 const getProductWeightLabel = (product) => {
@@ -250,7 +268,7 @@ const Cardapio = () => {
                     role="tab"
                     aria-selected={categoryFilter === category && !showFavoritesOnly}
                   >
-                    {category}
+                    {getCategoryDisplayName(category)}
                   </button>
                 ))}
                 <button

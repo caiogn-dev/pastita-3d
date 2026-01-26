@@ -56,6 +56,10 @@
   flex-direction: column;
   gap: var(--space-lg);
   margin-bottom: var(--space-xl);
+  background: var(--color-white);
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(114, 47, 55, 0.08);
 }
 
 .cardapio-search {
@@ -69,50 +73,74 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .category-chip {
-  padding: 10px 20px;
+  padding: 12px 24px;
   border-radius: var(--radius-full);
-  border: 1.5px solid var(--color-marsala);
+  border: 2px solid var(--color-marsala);
   background-color: var(--color-white);
   color: var(--color-marsala);
   font-weight: 600;
-  font-size: 0.875rem;
-  letter-spacing: 0.3px;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.category-chip::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--color-marsala) 0%, #8B3A42 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+}
+
+.category-chip span,
+.category-chip {
+  position: relative;
+  z-index: 1;
 }
 
 .category-chip:hover {
-  background-color: rgba(114, 47, 55, 0.06);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(114, 47, 55, 0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(114, 47, 55, 0.2);
+  border-color: var(--color-marsala);
 }
 
 .category-chip.active {
-  background-color: var(--color-marsala);
+  background: linear-gradient(135deg, var(--color-marsala) 0%, #8B3A42 100%);
   color: var(--color-white);
-  border-color: var(--color-marsala);
-  box-shadow: 0 6px 20px rgba(114, 47, 55, 0.25);
-  transform: translateY(-1px);
+  border-color: transparent;
+  box-shadow: 0 8px 25px rgba(114, 47, 55, 0.35);
+  transform: translateY(-2px);
 }
 
 .category-chip.favorites-chip {
-  border-color: var(--color-error);
-  color: var(--color-error);
+  border-color: #E11D48;
+  color: #E11D48;
+  background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%);
 }
 
 .category-chip.favorites-chip:hover {
-  background-color: rgba(239, 68, 68, 0.06);
+  background: linear-gradient(135deg, #FFE4E6 0%, #FECDD3 100%);
+  box-shadow: 0 8px 25px rgba(225, 29, 72, 0.2);
 }
 
 .category-chip.favorites-chip.active {
-  background-color: var(--color-error);
+  background: linear-gradient(135deg, #E11D48 0%, #BE123C 100%);
   color: var(--color-white);
-  border-color: var(--color-error);
+  border-color: transparent;
+  box-shadow: 0 8px 25px rgba(225, 29, 72, 0.35);
 }
 
 /* ===== Products Grid ===== */
