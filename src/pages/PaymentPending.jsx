@@ -13,6 +13,49 @@ const formatMoney = (value) => {
   return Number.isFinite(numeric) ? numeric.toFixed(2) : '0.00';
 };
 
+// Status indicator component for clear visual feedback
+const OrderStatusIndicator = ({ orderStatus, paymentStatus, paymentMethod }) => {
+  const isCash = paymentMethod?.toLowerCase() === 'cash' || paymentMethod?.toLowerCase() === 'dinheiro';
+  const isPaid = paymentStatus === 'paid' || paymentStatus === 'approved';
+  
+  if (isPaid) {
+    return (
+      <div className="status-indicator-banner status-indicator-success">
+        <div className="status-indicator-icon">✅</div>
+        <div className="status-indicator-content">
+          <span className="status-indicator-title">Pagamento confirmado!</span>
+          <span className="status-indicator-subtitle">Seu pedido está sendo preparado</span>
+        </div>
+      </div>
+    );
+  }
+  
+  if (isCash) {
+    return (
+      <div className="status-indicator-banner status-indicator-info">
+        <div className="status-indicator-icon">💵</div>
+        <div className="status-indicator-content">
+          <span className="status-indicator-title">Pedido recebido!</span>
+          <span className="status-indicator-subtitle">Pagamento na entrega/retirada</span>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="status-indicator-banner status-indicator-pending">
+      <div className="status-indicator-icon">
+        <div className="status-pulse-animation" />
+        💳
+      </div>
+      <div className="status-indicator-content">
+        <span className="status-indicator-title">Pedido recebido!</span>
+        <span className="status-indicator-subtitle">Aguardando confirmação do pagamento</span>
+      </div>
+    </div>
+  );
+};
+
 const PaymentPending = () => {
   const router = useRouter();
   
@@ -183,16 +226,35 @@ const PaymentPending = () => {
   return (
     <div className="status-page">
       <div className="status-card status-pending">
-        <div className="status-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12,6 12,12 16,14" />
-          </svg>
-        </div>
+        {/* Order Status Indicator - Clear visual feedback */}
+        {orderDetails && (
+          <OrderStatusIndicator 
+            orderStatus={orderDetails.status}
+            paymentStatus={orderDetails.payment_status}
+            paymentMethod={orderDetails.payment_method}
+          />
+        )}
+        
+        {!orderDetails && (
+          <div className="status-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12,6 12,12 16,14" />
+            </svg>
+          </div>
+        )}
 
-        <h1 className="status-title">Pagamento em análise</h1>
+        <h1 className="status-title">
+          {orderDetails?.payment_status === 'paid' 
+            ? '✅ Pagamento confirmado!' 
+            : '📦 Pedido recebido!'}
+        </h1>
         <p className="status-subtitle">
-          Seu pagamento está sendo processado e será confirmado em breve.
+          {orderDetails?.payment_status === 'paid'
+            ? 'Seu pedido já está sendo preparado!'
+            : orderDetails?.payment_method === 'cash'
+              ? 'O pagamento será feito na entrega ou retirada.'
+              : 'Aguardando confirmação do pagamento.'}
         </p>
 
         {displayOrderNumber && (
@@ -206,8 +268,15 @@ const PaymentPending = () => {
         {orderDetails && (
           <div className="status-details">
             <div className="status-row">
-              <span>Status:</span>
-              <span className="status-badge">{displayStatus}</span>
+              <span>Status do Pedido:</span>
+              <span className="status-badge">{orderDetails.status === 'pending' ? 'Recebido' : displayStatus}</span>
+            </div>
+            <div className="status-row">
+              <span>Status do Pagamento:</span>
+              <span className={`status-badge ${orderDetails.payment_status === 'paid' ? 'status-badge-success' : 'status-badge-pending'}`}>
+                {orderDetails.payment_status === 'paid' ? '✅ Pago' : 
+                 orderDetails.payment_method === 'cash' ? '💵 Dinheiro' : '💳 Aguardando'}
+              </span>
             </div>
             {orderDetails.subtotal > 0 && (
               <div className="status-row">

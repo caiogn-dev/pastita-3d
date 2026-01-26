@@ -472,10 +472,116 @@
   height: 20px;
 }
 
-/* Success badge variant */
+/* Status Badge Variants */
 .status-badge-success {
   background-color: #dcfce7;
   color: #16a34a;
+}
+
+.status-badge-pending {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.status-badge-info {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* Order Status Indicator Banner - NEW */
+.status-indicator-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.status-indicator-icon {
+  font-size: 2rem;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+}
+
+.status-indicator-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-indicator-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.status-indicator-subtitle {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.status-indicator-success {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  border: 1px solid #86efac;
+}
+
+.status-indicator-success .status-indicator-title {
+  color: #166534;
+}
+
+.status-indicator-success .status-indicator-subtitle {
+  color: #15803d;
+}
+
+.status-indicator-pending {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #fcd34d;
+}
+
+.status-indicator-pending .status-indicator-title {
+  color: #92400e;
+}
+
+.status-indicator-pending .status-indicator-subtitle {
+  color: #a16207;
+}
+
+.status-indicator-info {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 1px solid #93c5fd;
+}
+
+.status-indicator-info .status-indicator-title {
+  color: #1e40af;
+}
+
+.status-indicator-info .status-indicator-subtitle {
+  color: #1d4ed8;
+}
+
+/* Pulse animation for pending indicator */
+.status-pulse-animation {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: rgba(217, 119, 6, 0.3);
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
 }
 
 @media (max-width: 640px) {
@@ -486,5 +592,15 @@
   .whatsapp-button {
     width: 100%;
     padding: 12px 20px;
+  }
+  
+  .status-indicator-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .status-indicator-icon {
+    margin-bottom: 8px;
   }
 }
