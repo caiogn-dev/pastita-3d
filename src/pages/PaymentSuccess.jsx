@@ -70,6 +70,12 @@ const PaymentSuccess = () => {
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
   };
 
+  // Determine if payment is confirmed or just order received
+  const isPaymentConfirmed = orderDetails?.payment_status === 'paid' || 
+                             orderDetails?.payment_status === 'approved';
+  const isCashPayment = orderDetails?.payment_method === 'cash' || 
+                        orderDetails?.payment_method === 'dinheiro';
+
   return (
     <div className="status-page">
       <div className="status-card status-success">
@@ -80,22 +86,44 @@ const PaymentSuccess = () => {
           </svg>
         </div>
 
-        <h1 className="status-title">Pagamento confirmado!</h1>
-        <p className="status-subtitle">Seu pedido foi processado com sucesso.</p>
+        <h1 className="status-title">
+          {isPaymentConfirmed 
+            ? '✅ Pagamento confirmado!' 
+            : isCashPayment 
+              ? '📦 Pedido recebido!'
+              : '📦 Pedido enviado!'}
+        </h1>
+        <p className="status-subtitle">
+          {isPaymentConfirmed 
+            ? 'Seu pedido já está sendo preparado!'
+            : isCashPayment
+              ? 'Pagamento será feito na entrega. Iniciando o preparo!'
+              : 'Seu pedido foi enviado e está sendo processado.'}
+        </p>
 
-        {orderNumber && (
+        {displayOrderNumber && (
           <div className="status-order">
             <span className="status-label">Número do Pedido:</span>
-            <span className="status-value">#{orderNumber}</span>
+            <span className="status-value">#{displayOrderNumber}</span>
           </div>
         )}
 
         {orderDetails && (
           <div className="status-details">
             <div className="status-row">
-              <span>Status:</span>
+              <span>Status do Pedido:</span>
               <span className="status-badge status-badge-success">
-                {orderDetails.status_display || orderDetails.payment_status || 'Aprovado'}
+                {orderDetails.status === 'pending' ? '📥 Recebido' :
+                 orderDetails.status === 'preparing' ? '🔥 Preparando' :
+                 orderDetails.status === 'ready' ? '📦 Pronto' :
+                 orderDetails.status_display || 'Em andamento'}
+              </span>
+            </div>
+            <div className="status-row">
+              <span>Pagamento:</span>
+              <span className={`status-badge ${isPaymentConfirmed ? 'status-badge-success' : 'status-badge-info'}`}>
+                {isPaymentConfirmed ? '✅ Confirmado' : 
+                 isCashPayment ? '💵 Na entrega' : '⏳ Processando'}
               </span>
             </div>
             <div className="status-row">
@@ -110,7 +138,9 @@ const PaymentSuccess = () => {
 
         {!loading && (
           <p className="status-note">
-            Você receberá um e-mail com os detalhes do seu pedido e informações de entrega.
+            {isPaymentConfirmed 
+              ? '📧 Você receberá um e-mail com os detalhes do seu pedido.'
+              : '📧 Você receberá um e-mail assim que o pagamento for confirmado.'}
           </p>
         )}
 
