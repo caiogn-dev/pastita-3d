@@ -1,0 +1,989 @@
+name: Pastita Platform
+version: "1.0.0"
+description: "Complete e-commerce platform for artisanal pasta with 3D visualization, dashboard, and backend API"
+author: "Pastita Team"
+created: 2026-01-11
+
+# ============================================================================
+# PROJECT STRUCTURE & OVERVIEW
+# ============================================================================
+projects:
+  pastita-3d:
+    name: "PASTITA-3D"
+    type: "Frontend - E-Commerce & Landing Page"
+    framework: "Next.js 15 + React 19"
+    language: "JavaScript/JSX"
+    description: "Main customer-facing e-commerce platform with 3D product visualization, shopping cart, checkout, and payment integration"
+    location: "pastita-3d/"
+    
+    features:
+      - Public landing page with 3D model showcase
+      - Product catalog (cardápio) with filtering
+      - Shopping cart with persistent state
+      - User authentication (login/register)
+      - Checkout flow with delivery zone selection
+      - Payment integration (Mercado Pago - PIX, Boleto, Card)
+      - User profile and order history
+      - Order tracking system
+      - Wishlist/Favorites
+      - WhatsApp integration for support
+      - Responsive design (mobile-first)
+      - Real-time cart updates via WebSocket
+    
+    structure:
+      src:
+        - components/
+          - Navbar.jsx (responsive navigation)
+          - CartSidebar.jsx (shopping cart modal)
+          - LoginModal.jsx (authentication)
+          - ProductFilters.jsx (catalog filters)
+          - ComboCard.jsx (product display)
+          - FavoriteButton.jsx (wishlist)
+          - OrderTimeline.jsx (order tracking)
+          - AddressSelector.jsx (delivery zones)
+          - InteractiveMap.jsx (location selection)
+          - ErrorBoundary.jsx (error handling)
+        - context/
+          - AuthContext.jsx (user authentication state)
+          - CartContext.jsx (shopping cart state)
+          - WishlistContext.jsx (favorites state)
+        - pages/
+          - index.jsx (landing page)
+          - cardapio.jsx (product catalog)
+          - checkout.jsx (checkout process)
+          - login.jsx (authentication)
+          - registro.jsx (registration)
+          - perfil.jsx (user profile)
+          - pendente.jsx (pending orders)
+          - sucesso.jsx (order success)
+          - erro.jsx (error page)
+        - services/
+          - api.js (Axios configuration)
+          - auth.js (authentication methods)
+          - ecommerce.js (product & cart API)
+          - orders.js (order management API)
+          - payment.js (payment handling)
+        - styles/
+          - Global CSS variables
+          - Responsive breakpoints
+          - Component-specific styles
+        - hooks/
+          - useAuth.js (authentication hook)
+          - useCart.js (cart management hook)
+          - useFetch.js (data fetching hook)
+        - utils/
+          - helpers.js
+          - validators.js
+          - formatters.js
+      
+      public:
+        - robots.txt
+        - sitemap.xml
+      
+      pages/ (Next.js routing layer - wrappers)
+        - _app.js
+        - _document.js
+        - Various page files
+    
+    scripts:
+      dev: "next dev"
+      build: "next build"
+      start: "next start"
+      lint: "next lint"
+    
+    dependencies:
+      runtime:
+        - "next@15.2.4"
+        - "react@19.2.0"
+        - "react-dom@19.2.0"
+        - "axios@1.13.2"
+        - "swr@2.3.8"
+        - "@mercadopago/sdk-react@1.0.7"
+      dev:
+        - "tailwindcss@4.1.18"
+        - "postcss@8.5.6"
+        - "eslint@9.39.1"
+    
+    env_vars:
+      - NEXT_PUBLIC_API_URL: "Backend API base URL"
+      - NEXT_PUBLIC_WS_URL: "WebSocket connection URL"
+      - NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY: "Payment provider public key"
+      - NEXT_PUBLIC_AUTH_COOKIE_NAME: "Cookie name for auth token"
+    
+    ports:
+      dev: 3000
+      prod: 3000
+    
+    key_files:
+      - "next.config.js" (build configuration)
+      - "tailwind.config.js" (styling configuration)
+      - "package.json" (dependencies)
+      - "eslint.config.js" (code quality)
+    
+    testing:
+      framework: "Jest (recommended)"
+      coverage: "Components and services"
+    
+    deployment:
+      platform: "Vercel (recommended for Next.js)"
+      config_file: "vercel.json"
+
+  pastita-dash:
+    name: "PASTITA-DASH"
+    type: "Frontend - Business Dashboard"
+    framework: "React 18 + TypeScript + Vite"
+    language: "TypeScript/TSX"
+    description: "Admin dashboard for business metrics, order management, customer analytics, and WhatsApp integration monitoring"
+    location: "pastita-dash/"
+    
+    features:
+      - Real-time order monitoring
+      - WhatsApp business API dashboard
+      - Sales analytics and charts
+      - Customer management
+      - Inventory tracking
+      - Revenue reports
+      - Delivery zone management
+      - Campaign management
+      - Message automation
+      - Response time analytics
+      - User role management
+      - Data export (CSV/Excel)
+    
+    structure:
+      src:
+        - components/
+          - Layout/ (Header, Sidebar, Footer)
+          - Charts/ (Sales, Revenue, Analytics)
+          - Tables/ (Orders, Customers, Messages)
+          - Forms/ (Create/Edit entities)
+          - Modals/ (Confirmations, Details)
+          - Cards/ (Metric cards, Summary)
+        - pages/
+          - Dashboard.tsx (main dashboard)
+          - Orders.tsx (order management)
+          - Customers.tsx (customer list)
+          - Analytics.tsx (business metrics)
+          - WhatsApp.tsx (message management)
+          - Settings.tsx (configuration)
+          - Users.tsx (user management)
+        - services/
+          - api.ts (API client configuration)
+          - orders.ts (order API calls)
+          - analytics.ts (metrics API calls)
+          - whatsapp.ts (WhatsApp API calls)
+          - auth.ts (authentication)
+        - stores/
+          - authStore.ts (auth state - Zustand)
+          - orderStore.ts (order state)
+          - analyticsStore.ts (metrics state)
+        - hooks/
+          - useApi.ts (API fetching hook)
+          - useAuth.ts (authentication hook)
+          - useFilters.ts (filter management)
+        - types/
+          - api.ts (API response types)
+          - models.ts (business entity types)
+          - filters.ts (filter types)
+        - styles/
+          - Global styles
+          - Tailwind configuration
+    
+    scripts:
+      dev: "vite --host 0.0.0.0 --port 12001"
+      build: "tsc && vite build"
+      lint: "eslint . --ext ts,tsx"
+      preview: "vite preview"
+    
+    dependencies:
+      runtime:
+        - "react@18.2.0"
+        - "react-dom@18.2.0"
+        - "react-router-dom@6.21.1"
+        - "axios@1.6.2"
+        - "chart.js@4.4.1"
+        - "react-chartjs-2@5.2.0"
+        - "zustand@4.4.7"
+        - "@headlessui/react@1.7.17"
+        - "@heroicons/react@2.1.1"
+        - "date-fns@3.0.6"
+        - "react-hot-toast@2.4.1"
+      dev:
+        - "typescript@5.2.2"
+        - "vite@5.0.8"
+        - "tailwindcss@3.4.0"
+        - "postcss@8.4.32"
+        - "eslint@8.55.0"
+    
+    ports:
+      dev: 12001
+      prod: 12001
+    
+    key_files:
+      - "vite.config.ts" (build configuration)
+      - "tsconfig.json" (TypeScript configuration)
+      - "tailwind.config.js" (styling)
+      - "package.json" (dependencies)
+    
+    deployment:
+      platform: "Vercel or Docker"
+      build_output: "dist/"
+    
+    access_control:
+      authentication: "JWT token required"
+      roles:
+        - "admin"
+        - "manager"
+        - "operator"
+        - "analyst"
+
+  server-main:
+    name: "SERVER-MAIN"
+    type: "Backend - Django REST Framework API"
+    framework: "Django 4.2 + Django REST Framework"
+    language: "Python 3.11+"
+    description: "Core backend API handling e-commerce operations, payments, WhatsApp automation, order management, and business logic"
+    location: "server-main/"
+    
+    features:
+      - RESTful API for all platform operations
+      - Product catalog management
+      - Shopping cart & checkout system
+      - Payment processing (Mercado Pago integration)
+      - Order lifecycle management
+      - Delivery zone management with dynamic pricing
+      - User authentication & authorization
+      - WhatsApp Business API integration
+      - Langflow LLM automation for chatbots
+      - Real-time WebSocket updates
+      - Email notifications (Resend)
+      - Data export (CSV/Excel)
+      - Admin panel with customizations
+      - Audit logging
+      - Campaign management
+      - Message automation
+    
+    structure:
+      apps:
+        core:
+          - models: User, Company, Settings
+          - authentication and permissions
+          - base views and viewsets
+        ecommerce:
+          - models: Product, Category, Cart, Checkout, Order
+          - API endpoints for catalog and purchasing
+          - inventory management
+          - pricing logic
+        orders:
+          - models: Order, OrderItem, OrderStatus, Delivery
+          - order lifecycle management
+          - delivery zone calculations
+          - notification triggers
+        payments:
+          - models: Payment, Transaction
+          - Mercado Pago integration
+          - payment status tracking
+          - webhook handling
+        whatsapp:
+          - models: WhatsAppAccount, Message, Contact
+          - WhatsApp Business API integration
+          - message scheduling
+          - webhook receivers
+        notifications:
+          - models: Notification, Email
+          - email delivery via Resend
+          - notification templates
+          - delivery tracking
+        automation:
+          - models: Campaign, Trigger, Action
+          - Langflow LLM integration
+          - workflow automation
+          - chatbot management
+        langflow:
+          - Langflow integration layer
+          - LLM chain management
+          - custom agents
+        conversations:
+          - models: Conversation, ConversationMessage
+          - chat history management
+          - context preservation
+        campaigns:
+          - models: Campaign, CampaignSegment
+          - marketing campaign management
+          - audience segmentation
+          - analytics
+        audit:
+          - models: AuditLog
+          - change tracking
+          - user action logging
+      
+      config:
+        - settings/ (environment-specific settings)
+          - base.py (common settings)
+          - development.py
+          - production.py
+        - urls.py (main URL routing)
+        - asgi.py (async server configuration)
+        - wsgi.py (production server configuration)
+        - celery.py (task queue configuration)
+      
+      domain:
+        - entities/ (business entity models)
+        - events/ (domain events)
+        - use_cases/ (business logic layer)
+      
+      infrastructure:
+        - external_apis/ (integrations)
+          - mercadopago.py
+          - whatsapp.py
+          - langflow.py
+          - resend.py
+          - here_maps.py (for delivery zones)
+        - messaging/ (message queue)
+          - celery tasks
+          - redis configuration
+      
+      tests:
+        - test_ecommerce_api.py
+        - test_orders_api.py
+        - test_payments.py
+        - test_whatsapp_integration.py
+    
+    scripts:
+      dev: "python manage.py runserver"
+      migrate: "python manage.py migrate"
+      createsuperuser: "python manage.py createsuperuser"
+      makemigrations: "python manage.py makemigrations"
+      shell: "python manage.py shell"
+    
+    background_tasks:
+      worker: "celery -A config worker -l info"
+      beat: "celery -A config beat -l info"
+      queues:
+        - "automation"
+        - "whatsapp"
+        - "orders"
+        - "payments"
+        - "langflow"
+    
+    dependencies:
+      runtime:
+        - "Django@4.2"
+        - "djangorestframework@3.14.0"
+        - "django-cors-headers@4.3.0"
+        - "channels@4.0.0"
+        - "channels-redis@4.1.0"
+        - "celery@5.3.4"
+        - "redis@5.0.1"
+        - "psycopg2-binary@2.9.9"
+        - "mercadopago@2.3.0"
+        - "requests@2.31.0"
+        - "Pillow@10.0.0"
+        - "boto3@1.34.0"
+        - "openpyxl@3.1.2"
+        - "resend@0.7.0"
+      dev:
+        - "python-dotenv@1.0.0"
+        - "pytest@7.x"
+        - "pytest-django@4.x"
+    
+    database:
+      default:
+        - PostgreSQL 15+ (production)
+        - SQLite (development)
+      migrations: "Django migrations system"
+    
+    cache:
+      backend: "Redis"
+      port: 6379
+    
+    message_queue:
+      backend: "Redis (via Celery)"
+      port: 6379
+    
+    api_docs:
+      swagger: "/api/docs/"
+      redoc: "/api/redoc/"
+      schema: "/api/schema/"
+    
+    environment:
+      - DEBUG: "Development only"
+      - SECRET_KEY: "Django secret key"
+      - DATABASE_URL: "PostgreSQL connection"
+      - REDIS_URL: "Redis connection"
+      - MERCADO_PAGO_ACCESS_TOKEN: "Payment provider"
+      - WHATSAPP_BUSINESS_ACCOUNT_ID: "WhatsApp integration"
+      - LANGFLOW_API_URL: "LLM automation"
+      - RESEND_API_KEY: "Email service"
+      - AWS_S3_BUCKET_NAME: "File storage"
+      - ALLOWED_HOSTS: "CORS configuration"
+    
+    ports:
+      dev: 8000
+      prod: 8000
+    
+    deployment:
+      platforms:
+        - "Docker (provided Dockerfile)"
+        - "Railway"
+        - "Heroku"
+      config_files:
+        - "Dockerfile"
+        - "docker-compose.yml"
+        - "railway.json"
+        - "Procfile"
+
+# ============================================================================
+# MCP TOOLS & CAPABILITIES
+# ============================================================================
+tools:
+  code_generation:
+    - name: "Generate React Component"
+      description: "Create a new React/TSX component with state management and hooks"
+      projects: ["pastita-3d", "pastita-dash"]
+      templates:
+        - "Functional component with useState"
+        - "Component with Context"
+        - "Component with custom hooks"
+        - "Component with Zustand store"
+      
+    - name: "Generate API Endpoint"
+      description: "Create a new Django REST API endpoint with serializers and views"
+      project: "server-main"
+      templates:
+        - "CRUD ViewSet"
+        - "List + Create"
+        - "Detail + Update + Delete"
+        - "Custom action endpoint"
+      
+    - name: "Generate Database Model"
+      description: "Create new Django model with fields, methods, and admin integration"
+      project: "server-main"
+      includes:
+        - Model definition
+        - Django admin registration
+        - Serializer for API
+        - Permissions/validators
+      
+    - name: "Generate Test Suite"
+      description: "Create test cases for components or API endpoints"
+      projects: ["pastita-3d", "pastita-dash", "server-main"]
+      coverage:
+        - Unit tests
+        - Integration tests
+        - API tests
+        - Component tests
+  
+  project_management:
+    - name: "Analyze Project Structure"
+      description: "Generate documentation of entire project architecture"
+      outputs: ["README", "Architecture diagram", "Component tree"]
+    
+    - name: "Dependency Audit"
+      description: "Check for outdated packages and security vulnerabilities"
+      projects: ["pastita-3d", "pastita-dash", "server-main"]
+    
+    - name: "Code Quality Report"
+      description: "ESLint/Pylint analysis with improvement suggestions"
+      checks:
+        - "Code style consistency"
+        - "Unused variables/imports"
+        - "Performance issues"
+        - "Security vulnerabilities"
+    
+    - name: "Generate Migration Guide"
+      description: "Create step-by-step guide for database schema changes"
+      project: "server-main"
+  
+  documentation:
+    - name: "Generate API Documentation"
+      description: "Create OpenAPI/Swagger documentation for endpoints"
+      project: "server-main"
+      format: ["OpenAPI 3.0", "Markdown", "HTML"]
+    
+    - name: "Generate Component Documentation"
+      description: "Create Storybook-style documentation with props and examples"
+      projects: ["pastita-3d", "pastita-dash"]
+    
+    - name: "Generate Architecture Diagram"
+      description: "Create visual representation of system architecture"
+      formats: ["Mermaid", "ASCII", "SVG"]
+    
+    - name: "Generate Setup Instructions"
+      description: "Create step-by-step setup guide for developers"
+      includes:
+        - Environment setup
+        - Dependency installation
+        - Database initialization
+        - Running services
+  
+  debugging:
+    - name: "Error Analysis"
+      description: "Analyze error logs and suggest fixes"
+    
+    - name: "Performance Profiler"
+      description: "Identify slow components or API endpoints"
+    
+    - name: "Integration Debugger"
+      description: "Debug API communication between frontend and backend"
+  
+  deployment:
+    - name: "Generate Docker Configuration"
+      description: "Create Dockerfile and docker-compose.yml"
+      projects: ["pastita-3d", "pastita-dash", "server-main"]
+    
+    - name: "Generate CI/CD Pipeline"
+      description: "Create GitHub Actions or similar pipeline"
+      stages:
+        - "Lint & Format"
+        - "Test"
+        - "Build"
+        - "Deploy"
+    
+    - name: "Generate Environment Config"
+      description: "Create .env.example and configuration docs"
+
+# ============================================================================
+# WORKFLOWS & BEST PRACTICES
+# ============================================================================
+workflows:
+  new_feature:
+    steps:
+      - "Create branch from development"
+      - "Design/Plan feature architecture"
+      - "Generate boilerplate code (components/models)"
+      - "Implement feature logic"
+      - "Write tests"
+      - "Update documentation"
+      - "Create pull request"
+      - "Code review & merge"
+  
+  bugfix:
+    steps:
+      - "Reproduce bug with minimal example"
+      - "Analyze error logs and stack traces"
+      - "Identify root cause"
+      - "Implement fix"
+      - "Test thoroughly (unit + integration)"
+      - "Update tests if needed"
+      - "Document issue and solution"
+  
+  deployment:
+    pastita-3d:
+      - "Run tests and linter"
+      - "Build: npm run build"
+      - "Deploy to Vercel (automatic on main branch)"
+    
+    pastita-dash:
+      - "Run tests and linter"
+      - "Build: npm run build"
+      - "Deploy to Vercel or Docker"
+    
+    server-main:
+      - "Run tests: pytest"
+      - "Run migrations: python manage.py migrate"
+      - "Collect static files: python manage.py collectstatic"
+      - "Deploy Docker image to production"
+      - "Run Celery worker and beat scheduler"
+
+# ============================================================================
+# CODING STANDARDS & CONVENTIONS
+# ============================================================================
+standards:
+  javascript:
+    - "ESLint configuration enforced"
+    - "Prettier for code formatting"
+    - "Camel case for variables and functions"
+    - "PascalCase for components and classes"
+    - "Consistent import ordering"
+    - "Destructuring preferred"
+    - "Arrow functions preferred"
+  
+  typescript:
+    - "Strict mode enabled"
+    - "Explicit type annotations"
+    - "Interface for object types"
+    - "Type for union/intersection types"
+    - "Avoid 'any' type"
+    - "Export types from files"
+  
+  python:
+    - "PEP 8 style guide"
+    - "Type hints for all functions"
+    - "Docstrings for modules, classes, methods"
+    - "Snake_case for variables and functions"
+    - "PascalCase for classes"
+    - "Private attributes prefixed with _"
+  
+  css:
+    - "BEM methodology for naming"
+    - "CSS variables for colors and spacing"
+    - "Mobile-first responsive design"
+    - "Consistent breakpoints (480px, 768px, 1024px)"
+    - "Component-scoped styles preferred"
+    - "Tailwind for utility-first styling (dash)"
+
+# ============================================================================
+# INTEGRATION POINTS
+# ============================================================================
+integrations:
+  external_services:
+    mercado_pago:
+      purpose: "Payment processing"
+      endpoints:
+        - "Create checkout session"
+        - "Verify payment status"
+        - "Refund handling"
+      implementation: "server-main/apps/payments"
+    
+    whatsapp_business:
+      purpose: "Customer communication"
+      endpoints:
+        - "Send messages"
+        - "Receive webhooks"
+        - "Message templates"
+      implementation: "server-main/apps/whatsapp"
+    
+    langflow:
+      purpose: "LLM-powered automation"
+      features:
+        - "Chatbot responses"
+        - "Message generation"
+        - "Customer support automation"
+      implementation: "server-main/apps/langflow"
+    
+    resend:
+      purpose: "Email notifications"
+      templates:
+        - "Order confirmation"
+        - "Shipping updates"
+        - "Password reset"
+      implementation: "server-main/apps/notifications"
+    
+    here_maps:
+      purpose: "Delivery zone mapping"
+      features:
+        - "Address validation"
+        - "Distance calculation"
+        - "Zone pricing"
+      implementation: "server-main/infrastructure/external_apis"
+    
+    aws_s3:
+      purpose: "File storage"
+      usage:
+        - "Product images"
+        - "User documents"
+        - "Export files"
+  
+  internal_apis:
+    frontend_to_backend:
+      protocol: "HTTP REST + WebSocket"
+      authentication: "JWT token"
+      base_url: "http://localhost:8000/api/v1"
+      
+      endpoints:
+        ecommerce:
+          - "GET /ecommerce/products/"
+          - "GET /ecommerce/categories/"
+          - "POST /ecommerce/cart/list/"
+          - "POST /ecommerce/checkout/create_checkout/"
+          - "GET /ecommerce/checkout/status/{checkout_id}/"
+        
+        orders:
+          - "GET /orders/"
+          - "GET /orders/{order_id}/"
+          - "POST /orders/{order_id}/cancel/"
+          - "GET /orders/{order_id}/tracking/"
+        
+        users:
+          - "POST /auth/login/"
+          - "POST /auth/register/"
+          - "POST /auth/logout/"
+          - "GET /users/profile/"
+          - "PUT /users/profile/"
+          - "POST /users/password-reset/"
+        
+        deliveries:
+          - "GET /deliveries/zones/"
+          - "POST /deliveries/calculate-price/"
+          - "GET /deliveries/order/{order_id}/"
+    
+    dashboard_to_backend:
+      protocol: "HTTP REST"
+      authentication: "JWT token + role-based"
+      base_url: "http://localhost:8000/api/v1"
+      
+      endpoints:
+        analytics:
+          - "GET /analytics/sales/"
+          - "GET /analytics/revenue/"
+          - "GET /analytics/customers/"
+          - "GET /analytics/top-products/"
+        
+        orders_management:
+          - "GET /admin/orders/"
+          - "PUT /admin/orders/{order_id}/status/"
+          - "GET /admin/orders/{order_id}/timeline/"
+        
+        whatsapp:
+          - "GET /admin/messages/"
+          - "POST /admin/messages/send/"
+          - "GET /admin/conversations/"
+        
+        campaigns:
+          - "GET /admin/campaigns/"
+          - "POST /admin/campaigns/"
+          - "PUT /admin/campaigns/{campaign_id}/"
+
+# ============================================================================
+# DEVELOPMENT SETUP & COMMANDS
+# ============================================================================
+development:
+  prerequisites:
+    - "Node.js 18+ (for frontend projects)"
+    - "Python 3.11+ (for backend)"
+    - "PostgreSQL 15+ (for production database)"
+    - "Redis 7+ (for caching and task queue)"
+    - "Docker (recommended)"
+  
+  quick_start:
+    pastita_3d: |
+      cd pastita-3d
+      npm install
+      # Create .env.local with API endpoint
+      npm run dev
+      # Runs on http://localhost:3000
+    
+    pastita_dash: |
+      cd pastita-dash
+      npm install
+      # Create .env.local with API endpoint
+      npm run dev
+      # Runs on http://localhost:12001
+    
+    server_main: |
+      cd server-main
+      python -m venv venv
+      source venv/bin/activate  # Windows: venv\Scripts\activate
+      pip install -r requirements.txt
+      python manage.py migrate
+      python manage.py createsuperuser
+      python manage.py runserver
+      # Runs on http://localhost:8000
+      
+      # In separate terminals:
+      celery -A config worker -l info
+      celery -A config beat -l info
+  
+  environment_files:
+    pastita_3d: |
+      .env.local:
+        NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1/stores
+        NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
+        NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY=<your-key>
+        NEXT_PUBLIC_AUTH_COOKIE_NAME=auth_token
+    
+    server_main: |
+      .env:
+        DEBUG=True
+        SECRET_KEY=<your-secret>
+        DATABASE_URL=sqlite:///db.sqlite3
+        REDIS_URL=redis://localhost:6379/0
+        ALLOWED_HOSTS=localhost,127.0.0.1
+        MERCADO_PAGO_ACCESS_TOKEN=<your-token>
+        WHATSAPP_BUSINESS_ACCOUNT_ID=<your-id>
+        LANGFLOW_API_URL=<your-langflow-url>
+        RESEND_API_KEY=<your-key>
+
+# ============================================================================
+# TESTING STRATEGY
+# ============================================================================
+testing:
+  pastita_3d:
+    framework: "Jest + React Testing Library"
+    coverage_target: "80%"
+    test_types:
+      - "Unit tests for components"
+      - "Integration tests for user flows"
+      - "API mock tests"
+    
+    key_test_areas:
+      - "Authentication flow"
+      - "Cart operations"
+      - "Checkout process"
+      - "Payment integration"
+      - "Order tracking"
+  
+  pastita_dash:
+    framework: "Vitest + React Testing Library"
+    coverage_target: "80%"
+    test_types:
+      - "Component rendering tests"
+      - "State management tests"
+      - "API integration tests"
+    
+    key_test_areas:
+      - "Dashboard data loading"
+      - "Filter and search operations"
+      - "Chart rendering"
+      - "User interactions"
+  
+  server_main:
+    framework: "pytest + pytest-django"
+    coverage_target: "85%"
+    test_types:
+      - "Unit tests for models and utilities"
+      - "Integration tests for API endpoints"
+      - "Payment webhook tests"
+      - "WhatsApp integration tests"
+    
+    key_test_areas:
+      - "Authentication endpoints"
+      - "Product CRUD operations"
+      - "Cart and checkout flows"
+      - "Order lifecycle"
+      - "Payment processing"
+      - "External integrations"
+
+# ============================================================================
+# PERFORMANCE & MONITORING
+# ============================================================================
+performance:
+  frontend:
+    optimization_strategies:
+      - "Code splitting with Next.js dynamic imports"
+      - "Image optimization with next/image"
+      - "CSS-in-JS with Tailwind (utility-first)"
+      - "SWR for data fetching (caching + revalidation)"
+      - "Lazy loading for components"
+    
+    metrics_to_monitor:
+      - "Lighthouse scores (90+)"
+      - "Core Web Vitals (LCP, FID, CLS)"
+      - "Bundle size"
+      - "Time to interactive"
+  
+  backend:
+    optimization_strategies:
+      - "Database query optimization with select_related/prefetch_related"
+      - "API response pagination"
+      - "Redis caching for frequently accessed data"
+      - "Asynchronous tasks with Celery"
+      - "CDN for static files (AWS CloudFront)"
+    
+    metrics_to_monitor:
+      - "API response time (< 200ms)"
+      - "Database query performance"
+      - "Cache hit rate"
+      - "Worker queue depth"
+
+# ============================================================================
+# SECURITY CONSIDERATIONS
+# ============================================================================
+security:
+  frontend:
+    measures:
+      - "HTTPS only in production"
+      - "Content Security Policy headers"
+      - "CORS properly configured"
+      - "Secure cookie settings (HttpOnly, Secure, SameSite)"
+      - "Input validation on all forms"
+      - "XSS protection"
+  
+  backend:
+    measures:
+      - "JWT with expiration and refresh tokens"
+      - "Password hashing with PBKDF2/bcrypt"
+      - "Rate limiting on sensitive endpoints"
+      - "SQL injection protection (ORM)"
+      - "CORS whitelisting"
+      - "API key rotation for external services"
+      - "Audit logging for sensitive operations"
+      - "HTTPS/TLS for all communications"
+  
+  data_protection:
+    - "PCI DSS compliance for payment data"
+    - "GDPR compliance for user data"
+    - "Regular security audits"
+    - "Dependency vulnerability scanning"
+    - "Secrets management (not in code)"
+
+# ============================================================================
+# SCALABILITY ROADMAP
+# ============================================================================
+scalability:
+  current_architecture:
+    - "Single Django backend instance"
+    - "SQLite or PostgreSQL local"
+    - "Redis local instance"
+    - "Frontend on Vercel CDN"
+  
+  phase_2:
+    - "Multiple Django instances (load balanced)"
+    - "Managed PostgreSQL (RDS/CloudSQL)"
+    - "Managed Redis (ElastiCache/MemoryStore)"
+    - "Message queue optimization"
+  
+  phase_3:
+    - "Database read replicas"
+    - "Microservices for payment/WhatsApp"
+    - "Global CDN with regional caching"
+    - "API Gateway for routing"
+  
+  phase_4:
+    - "Kubernetes orchestration"
+    - "Distributed caching layer"
+    - "Event streaming (Kafka)"
+    - "Multi-region deployment"
+
+# ============================================================================
+# USEFUL RESOURCES & DOCUMENTATION
+# ============================================================================
+resources:
+  api_reference:
+    - "Swagger UI: /api/docs/"
+    - "ReDoc: /api/redoc/"
+    - "OpenAPI Schema: /api/schema/"
+  
+  framework_docs:
+    - "Next.js: https://nextjs.org/docs"
+    - "React: https://react.dev"
+    - "Django REST: https://www.django-rest-framework.org"
+    - "Vite: https://vitejs.dev"
+    - "TypeScript: https://www.typescriptlang.org"
+  
+  deployment:
+    - "Vercel Docs: https://vercel.com/docs"
+    - "Docker Docs: https://docs.docker.com"
+    - "Railway Docs: https://docs.railway.app"
+  
+  external_integrations:
+    - "Mercado Pago SDK: https://github.com/mercadopago/sdk-nodejs"
+    - "WhatsApp Business API: https://developers.facebook.com/docs/whatsapp"
+    - "Langflow Docs: https://docs.langflow.org"
+    - "Resend Docs: https://resend.com/docs"
+
+# ============================================================================
+# CONTACT & TEAM
+# ============================================================================
+team:
+  roles:
+    - "Backend Developer"
+    - "Frontend Developer"
+    - "DevOps/Infrastructure"
+    - "Product Manager"
+    - "QA/Tester"
+
+# ============================================================================
+# CHANGELOG & VERSION HISTORY
+# ============================================================================
+changelog:
+  "1.0.0":
+    date: "2026-01-11"
+    highlights:
+      - "Initial MCP configuration for Pastita platform"
+      - "Full project structure documentation"
+      - "Tool definitions for code generation"
+      - "Development workflows and standards"
+      - "Deployment guides"
+      - "Testing and monitoring strategies"

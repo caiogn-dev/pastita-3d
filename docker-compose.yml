@@ -1,0 +1,23 @@
+services:
+  # ... seus outros serviços (web, celery, db, redis)
+
+  langflow:
+    image: langflowai/langflow:latest
+    container_name: langflow
+    ports:
+      - "7860:7860"
+    environment:
+      - LANGFLOW_DATABASE_URL=postgresql://postgres:postgres@db:5432/whatsapp_business
+      # Opcional: Se quiser usar o Redis para cache/tasks no Langflow
+      - LANGFLOW_REDIS_HOST=redis
+      - LANGFLOW_REDIS_PORT=6379
+    volumes:
+      - langflow_data:/root/.langflow
+    depends_on:
+      - db
+      - redis
+
+# Adicione no bloco final de volumes
+volumes:
+  # ... seus outros volumes
+  langflow_data:

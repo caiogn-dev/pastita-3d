@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Pastita",
+    "slug": "pastita-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#722F37"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pastita.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#722F37"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.pastita.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "pastita-app"
+      }
+    }
+  }
+}
