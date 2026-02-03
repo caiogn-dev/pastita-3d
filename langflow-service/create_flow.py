@@ -6,6 +6,7 @@ import json
 import requests
 import sys
 import os
+import time
 from pathlib import Path
 
 # Configuração
@@ -13,23 +14,67 @@ LANGFLOW_URL = os.environ.get("LANGFLOW_URL", "http://localhost:7860")
 SUPERUSER = os.environ.get("LANGFLOW_SUPERUSER", "admin")
 SUPERUSER_PASSWORD = os.environ.get("LANGFLOW_SUPERUSER_PASSWORD", "admin123")
 
+def wait_for_langflow(max_retries=30):
+    """Espera o Langflow estar pronto."""
+    print("Aguardando Langflow iniciar...")
+    for i in range(max_retries):
+        try:
+            response = requests.get(f"{LANGFLOW_URL}/health", timeout=5)
+            if response.status_code == 200:
+                print("Langflow está pronto!\n")
+                return True
+        except:
+            pass
+        time.sleep(2)
+        print(f"   Tentativa {i+1}/{max_retries}...")
+    print("Timeout esperando Langflow")
+    return False
+
 def get_access_token():
     """Obtém token de acesso via login."""
-    response = requests.post(
-        f"{LANGFLOW_URL}/api/v1/login",
-        data={
-            "username": SUPERUSER,
-            "password": SUPERUSER_PASSWORD
-        }
-    )
-    if response.status_code == 200:
-        return response.json()["access_token"]
-    else:
-        print(f"Erro ao fazer login: {response.text}")
-        sys.exit(1)
+    # Langflow 1.x usa /api/v1/login com form data
+    login_data = {
+        "username": SUPERUSER,
+        "password": SUPERUSER_PASSWORD
+    }
+    
+    # Tenta endpoint com form data (formato OAuth2)
+    try:
+        response = requests.post(
+            f"{LANGFLOW_URL}/api/v1/login",
+            data=login_data,  # form-data, não json
+            timeout=10
+        )
+        if response.status_code == 200:
+            data = response.json()
+            token = data.get("access_token") or data.get("token")
+            if token:
+                print("Login realizado com sucesso!")
+                return token
+    except Exception as e:
+        print(f"   Erro no login: {e}")
+    
+    # Tenta autenticação básica (fallback)
+    try:
+        response = requests.post(
+            f"{LANGFLOW_URL}/api/v1/auth/token",
+            data={
+                "grant_type": "password",
+                "username": SUPERUSER,
+                "password": SUPERUSER_PASSWORD
+            },
+            timeout=10
+        )
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("access_token")
+    except Exception as e:
+        print(f"   Erro no auth: {e}")
+    
+    return None
 
-def create_flow(token: str):
-    """Cria o flow de atendimento."""
+def create_flow_with_superuser():
+    """Cria o flow usando superuser diretamente (bypass auth)."""
     
     flow_data = {
         "name": "Atendimento Pastita",
@@ -46,12 +91,9 @@ def create_flow(token: str):
                                 "input_value": {
                                     "type": "str",
                                     "required": True,
-                                    "placeholder": "Mensagem do cliente",
-                                    "name": "input_value",
-                                    "display_name": "Input"
+                                    "name": "input_value"
                                 }
-                            },
-                            "display_name": "Input do Cliente"
+                            }
                         }
                     }
                 },
@@ -66,12 +108,11 @@ def create_flow(token: str):
                                     "type": "prompt",
                                     "required": True,
                                     "name": "template",
-                                    "display_name": "Template",
                                     "value": """Você é o assistente virtual da Pastita - Massas Artesanais, uma loja de massas frescas em Palmas/TO.
 
 CARDÁPIO:
 - Rondelli (vários sabores): R$ 39,99
-- Molhos artesanais: R$ 15,00 a R$ 25,00
+- Molhos artesanais: R$ 15,00 a R$ 25,00  
 - Combos promocionais disponíveis
 
 HORÁRIO:
@@ -92,8 +133,7 @@ Assistente:"""
                                     "required": True,
                                     "name": "input"
                                 }
-                            },
-                            "display_name": "Prompt"
+                            }
                         }
                     }
                 },
@@ -120,9 +160,14 @@ Assistente:"""
                                     "required": False,
                                     "name": "temperature",
                                     "value": 0.7
+                                },
+                                "max_tokens": {
+                                    "type": "int",
+                                    "required": False,
+                                    "name": "max_tokens",
+                                    "value": 500
                                 }
-                            },
-                            "display_name": "OpenAI"
+                            }
                         }
                     }
                 },
@@ -138,57 +183,67 @@ Assistente:"""
                                     "required": True,
                                     "name": "message"
                                 }
-                            },
-                            "display_name": "Output"
+                            }
                         }
                     }
                 }
             ],
             "edges": [
-                {
-                    "id": "input-to-prompt",
-                    "source": "input",
-                    "target": "prompt"
-                },
-                {
-                    "id": "prompt-to-openai",
-                    "source": "prompt",
-                    "target": "openai"
-                },
-                {
-                    "id": "openai-to-output",
-                    "source": "openai",
-                    "target": "output"
-                }
+                {"id": "e1", "source": "input", "target": "prompt"},
+                {"id": "e2", "source": "prompt", "target": "openai"},
+                {"id": "e3", "source": "openai", "target": "output"}
             ]
         }
     }
     
-    response = requests.post(
-        f"{LANGFLOW_URL}/api/v1/flows/",
-        headers={"Authorization": f"Bearer {token}"},
-        json=flow_data
-    )
+    token = get_access_token()
+    headers = {"Content-Type": "application/json"}
     
-    if response.status_code in [200, 201]:
-        result = response.json()
-        print(f"✅ Flow criado com sucesso!")
-        print(f"   ID: {result['id']}")
-        print(f"   Nome: {result['name']}")
-        print(f"\nConfigure no Django Admin:")
-        print(f"   Flow ID: {result['id']}")
-        print(f"   Endpoint: api/v1/run/{result['id']}")
-        return result['id']
-    else:
-        print(f"❌ Erro ao criar flow: {response.text}")
-        sys.exit(1)
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    
+    # Tenta criar flow
+    try:
+        response = requests.post(
+            f"{LANGFLOW_URL}/api/v1/flows/",
+            headers=headers,
+            json=flow_data,
+            timeout=30
+        )
+        
+        if response.status_code in [200, 201]:
+            result = response.json()
+            flow_id = result.get('id')
+            print(f"Flow criado com sucesso!")
+            print(f"   ID: {flow_id}")
+            print(f"   Nome: {result.get('name')}")
+            print(f"\nConfigure no Django Admin:")
+            print(f"   Flow ID: {flow_id}")
+            print(f"   Endpoint: api/v1/run/{flow_id}")
+            return flow_id
+        else:
+            print(f"Erro ao criar flow: {response.status_code}")
+            print(f"Resposta: {response.text[:500]}")
+    except Exception as e:
+        print(f"Erro na requisicao: {e}")
+    
+    return None
 
 if __name__ == "__main__":
-    print("🚀 Criando flow de atendimento no Langflow...")
+    print("Criando flow de atendimento no Langflow...")
     print(f"   URL: {LANGFLOW_URL}")
     print()
     
-    token = get_access_token()
-    flow_id = create_flow(token)
+    if not wait_for_langflow():
+        sys.exit(1)
     
-    print("\n✨ Pronto! Agora configure no Django Admin.")
+    flow_id = create_flow_with_superuser()
+    
+    if flow_id:
+        print("\nPronto! Agora configure no Django Admin.")
+    else:
+        print("\nNao foi possivel criar automaticamente.")
+        print("\nImporte manualmente via interface web:")
+        print(f"   1. Acesse: {LANGFLOW_URL}")
+        print(f"   2. Login: {SUPERUSER} / {SUPERUSER_PASSWORD}")
+        print(f"   3. Clique em 'Import' e selecione: flows/atendimento_pastita.json")

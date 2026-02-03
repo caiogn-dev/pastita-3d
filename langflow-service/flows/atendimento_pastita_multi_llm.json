@@ -1,0 +1,146 @@
+{
+  "name": "Atendimento Pastita - Multi LLM",
+  "description": "Assistente virtual compatível com OpenAI, Kimi (Moonshot), Anthropic e Groq",
+  "data": {
+    "nodes": [
+      {
+        "id": "input",
+        "type": "ChatInput",
+        "position": { "x": 100, "y": 300 },
+        "data": {
+          "node": {
+            "template": {
+              "input_value": {
+                "type": "str",
+                "required": true,
+                "name": "input_value"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "prompt",
+        "type": "PromptComponent",
+        "position": { "x": 400, "y": 300 },
+        "data": {
+          "node": {
+            "template": {
+              "template": {
+                "type": "prompt",
+                "required": true,
+                "name": "template",
+                "value": "Você é o assistente virtual da Pastita - Massas Artesanais, uma loja de massas frescas em Palmas/TO.\n\nCARDÁPIO:\n- Rondelli (vários sabores): R$ 39,99\n- Molhos artesanais: R$ 15,00 a R$ 25,00\n- Combos promocionais disponíveis\n\nHORÁRIO:\n- Terça a Domingo: 11h às 21h\n- Segunda: Fechado\n\nPAGAMENTO: PIX, Cartão, Dinheiro\nENTREGA: iFood, WhatsApp ou retirada\nSITE: https://pastita.com.br\n\nSeja cordial, use emojis 😊 e direcione pedidos para o site ou WhatsApp.\n\nCliente: {input}\nAssistente:"
+              },
+              "input": {
+                "type": "str",
+                "required": true,
+                "name": "input"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "openai",
+        "type": "OpenAIModel",
+        "position": { "x": 700, "y": 200 },
+        "data": {
+          "node": {
+            "template": {
+              "model": {
+                "type": "str",
+                "required": true,
+                "name": "model",
+                "value": "gpt-3.5-turbo"
+              },
+              "openai_api_key": {
+                "type": "str",
+                "required": true,
+                "name": "openai_api_key"
+              },
+              "temperature": {
+                "type": "float",
+                "required": false,
+                "name": "temperature",
+                "value": 0.7
+              },
+              "max_tokens": {
+                "type": "int",
+                "required": false,
+                "name": "max_tokens",
+                "value": 500
+              },
+              "base_url": {
+                "type": "str",
+                "required": false,
+                "name": "base_url",
+                "value": "",
+                "display_name": "Base URL (opcional - use para Kimi/Groq)"
+              }
+            },
+            "description": "Compatível com: OpenAI, Kimi (Moonshot), Groq, Ollama. Para Kimi, use base_url: https://api.moonshot.cn/v1 e model: moonshot-v1-8k"
+          }
+        }
+      },
+      {
+        "id": "anthropic",
+        "type": "AnthropicModel",
+        "position": { "x": 700, "y": 400 },
+        "data": {
+          "node": {
+            "template": {
+              "model": {
+                "type": "str",
+                "required": true,
+                "name": "model",
+                "value": "claude-3-haiku-20240307"
+              },
+              "anthropic_api_key": {
+                "type": "str",
+                "required": true,
+                "name": "anthropic_api_key"
+              },
+              "temperature": {
+                "type": "float",
+                "required": false,
+                "name": "temperature",
+                "value": 0.7
+              },
+              "max_tokens": {
+                "type": "int",
+                "required": false,
+                "name": "max_tokens",
+                "value": 1024
+              }
+            },
+            "description": "Claude da Anthropic - Melhor para seguir instruções"
+          }
+        }
+      },
+      {
+        "id": "output",
+        "type": "ChatOutput",
+        "position": { "x": 1000, "y": 300 },
+        "data": {
+          "node": {
+            "template": {
+              "message": {
+                "type": "str",
+                "required": true,
+                "name": "message"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "id": "e1", "source": "input", "target": "prompt" },
+      { "id": "e2", "source": "prompt", "target": "openai" },
+      { "id": "e3", "source": "prompt", "target": "anthropic" },
+      { "id": "e4", "source": "openai", "target": "output" },
+      { "id": "e5", "source": "anthropic", "target": "output" }
+    ]
+  }
+}
