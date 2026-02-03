@@ -1,0 +1,147 @@
+{
+  "name": "Atendimento Pastita - Massas Artesanais",
+  "description": "Assistente virtual para atendimento da Pastita Massas Artesanais. Responde sobre cardápio, horários, pedidos e dúvidas frequentes.",
+  "data": {
+    "nodes": [
+      {
+        "id": "input",
+        "type": "ChatInput",
+        "position": { "x": 100, "y": 200 },
+        "data": {
+          "node": {
+            "template": {
+              "input_value": {
+                "type": "str",
+                "required": true,
+                "placeholder": "Mensagem do cliente",
+                "name": "input_value",
+                "display_name": "Input"
+              }
+            },
+            "description": "Recebe a mensagem do cliente",
+            "display_name": "Input do Cliente",
+            "category": "Inputs"
+          }
+        }
+      },
+      {
+        "id": "prompt",
+        "type": "PromptComponent",
+        "position": { "x": 400, "y": 200 },
+        "data": {
+          "node": {
+            "template": {
+              "template": {
+                "type": "prompt",
+                "required": true,
+                "placeholder": "",
+                "name": "template",
+                "display_name": "Template",
+                "value": "Você é o assistente virtual da Pastita - Massas Artesanais, uma loja de massas frescas em Palmas/TO.\n\nCARDÁPIO:\n- Rondelli (vários sabores): R$ 39,99\n- Molhos artesanais: R$ 15,00 a R$ 25,00\n- Combos promocionais disponíveis\n\nHORÁRIO DE FUNCIONAMENTO:\n- Terça a Domingo: 11h às 21h\n- Segunda: Fechado\n\nFORMAS DE PAGAMENTO:\n- PIX, Cartão de Crédito/Débito, Dinheiro\n\nENTREGA:\n- Delivery por aplicativos (iFood, WhatsApp)\n- Retirada na loja\n\nCONTATO:\n- WhatsApp: disponível no site\n- Site: https://pastita.com.br\n\nINSTRUÇÕES:\n1. Seja sempre cordial e profissional\n2. Use emojis ocasionalmente 😊\n3. Para pedidos, direcione para o site ou WhatsApp\n4. Não invente preços ou produtos não listados\n5. Se não souber algo, peça para falar com atendente humano\n\nMensagem do cliente: {input}\n\nResposta do assistente:"
+              },
+              "input": {
+                "type": "str",
+                "required": true,
+                "placeholder": "Mensagem do cliente",
+                "name": "input",
+                "display_name": "Input"
+              }
+            },
+            "description": "Processa a mensagem com contexto do restaurante",
+            "display_name": "Prompt Atendimento",
+            "category": "Prompts"
+          }
+        }
+      },
+      {
+        "id": "openai",
+        "type": "OpenAIModel",
+        "position": { "x": 700, "y": 200 },
+        "data": {
+          "node": {
+            "template": {
+              "model": {
+                "type": "str",
+                "required": true,
+                "placeholder": "gpt-3.5-turbo",
+                "name": "model",
+                "display_name": "Model",
+                "value": "gpt-3.5-turbo"
+              },
+              "openai_api_key": {
+                "type": "str",
+                "required": true,
+                "placeholder": "sk-...",
+                "name": "openai_api_key",
+                "display_name": "OpenAI API Key"
+              },
+              "temperature": {
+                "type": "float",
+                "required": false,
+                "placeholder": "0.7",
+                "name": "temperature",
+                "display_name": "Temperature",
+                "value": 0.7
+              },
+              "max_tokens": {
+                "type": "int",
+                "required": false,
+                "placeholder": "1000",
+                "name": "max_tokens",
+                "display_name": "Max Tokens",
+                "value": 500
+              }
+            },
+            "description": "Processa com GPT-3.5 Turbo",
+            "display_name": "OpenAI GPT",
+            "category": "Models"
+          }
+        }
+      },
+      {
+        "id": "output",
+        "type": "ChatOutput",
+        "position": { "x": 1000, "y": 200 },
+        "data": {
+          "node": {
+            "template": {
+              "message": {
+                "type": "str",
+                "required": true,
+                "placeholder": "Resposta",
+                "name": "message",
+                "display_name": "Message"
+              }
+            },
+            "description": "Retorna a resposta ao cliente",
+            "display_name": "Output",
+            "category": "Outputs"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "input-to-prompt",
+        "source": "input",
+        "target": "prompt",
+        "sourceHandle": "output",
+        "targetHandle": "input"
+      },
+      {
+        "id": "prompt-to-openai",
+        "source": "prompt",
+        "target": "openai",
+        "sourceHandle": "prompt",
+        "targetHandle": "input"
+      },
+      {
+        "id": "openai-to-output",
+        "source": "openai",
+        "target": "output",
+        "sourceHandle": "text",
+        "targetHandle": "message"
+      }
+    ]
+  }
+}
