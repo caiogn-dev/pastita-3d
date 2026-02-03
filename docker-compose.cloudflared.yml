@@ -54,6 +54,8 @@ services:
       - BACKEND_URL=${BACKEND_URL}
       - FRONTEND_URL=${FRONTEND_URL}
       - BASE_URL=${BASE_URL}
+      - LANGFLOW_API_URL=http://langflow:7860
+      - LANGFLOW_API_KEY=${LANGFLOW_API_KEY:-}
     volumes:
       - static_files:/app/staticfiles
       - media_files:/app/media
@@ -111,6 +113,34 @@ services:
     command: >
       sh -c "celery -A config.celery beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
 
+  langflow:
+    image: langflowai/langflow:latest
+    container_name: pastita_langflow
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    environment:
+      - LANGFLOW_DATABASE_URL=sqlite:///app/data/langflow.db
+      - LANGFLOW_SAVE_DB_IN_ROOT=true
+      - LANGFLOW_SUPERUSER=${LANGFLOW_SUPERUSER:-admin}
+      - LANGFLOW_SUPERUSER_PASSWORD=${LANGFLOW_SUPERUSER_PASSWORD:-admin123}
+      - LANGFLOW_SECRET_KEY=${LANGFLOW_SECRET_KEY:-langflow-secret-key-change-in-production}
+      - LANGFLOW_HOST=0.0.0.0
+      - LANGFLOW_PORT=7860
+      - LANGFLOW_AUTO_LOGIN=false
+    volumes:
+      - langflow_data:/app/data
+      - langflow_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      - db
+      - redis
+
   nginx:
     image: nginx:alpine
     container_name: pastita_nginx
@@ -140,6 +170,8 @@ volumes:
   redis_data:
   static_files:
   media_files:
+  langflow_data:
+  langflow_logs:
 
 networks:
   default:
