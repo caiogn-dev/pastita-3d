@@ -120,17 +120,17 @@ services:
     ports:
       - "7860:7860"
     environment:
-      - LANGFLOW_DATABASE_URL=sqlite:///app/data/langflow.db
-      - LANGFLOW_SAVE_DB_IN_ROOT=true
       - LANGFLOW_SUPERUSER=${LANGFLOW_SUPERUSER:-admin}
       - LANGFLOW_SUPERUSER_PASSWORD=${LANGFLOW_SUPERUSER_PASSWORD:-admin123}
       - LANGFLOW_SECRET_KEY=${LANGFLOW_SECRET_KEY:-langflow-secret-key-change-in-production}
       - LANGFLOW_HOST=0.0.0.0
       - LANGFLOW_PORT=7860
       - LANGFLOW_AUTO_LOGIN=false
+      - LANGFLOW_LOG_LEVEL=info
+
     volumes:
-      - langflow_data:/app/data
-      - langflow_logs:/app/logs
+      - langflow_data:/data
+      - langflow_logs:/tmp/logs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
       interval: 30s
