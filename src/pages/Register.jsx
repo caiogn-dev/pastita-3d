@@ -13,12 +13,10 @@ const formatPhone = (value) => {
 const Register = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    email: '',
+    name: '',
     phone: '',
     password: '',
-    confirmPassword: '',
-    first_name: '',
-    last_name: ''
+    confirmPassword: ''
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -27,10 +25,8 @@ const Register = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'E-mail é obrigatório';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'E-mail inválido';
+    if (!formData.name.trim()) {
+      newErrors.name = 'Nome é obrigatório';
     }
 
     if (!formData.phone.trim()) {
@@ -79,11 +75,9 @@ const Register = () => {
 
     try {
       await register({
-        email: formData.email,
+        name: formData.name,
         phone: formData.phone.replace(/\D/g, ''),
-        password: formData.password,
-        first_name: formData.first_name,
-        last_name: formData.last_name
+        password: formData.password
       });
 
       setSuccess(true);
@@ -147,42 +141,20 @@ const Register = () => {
           {errors.general && <div className="auth-error">{errors.general}</div>}
 
           <form onSubmit={handleSubmit}>
-            <div className="form-grid-2">
-              <div className="form-field">
-                <label className="form-label">Nome</label>
-                <input
-                  type="text"
-                  value={formData.first_name}
-                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  placeholder="João"
-                  className="form-input"
-                />
-              </div>
-              <div className="form-field">
-                <label className="form-label">Sobrenome</label>
-                <input
-                  type="text"
-                  value={formData.last_name}
-                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                  placeholder="Silva"
-                  className="form-input"
-                />
-              </div>
-            </div>
-
             <div className="form-field">
-              <label className="form-label">E-mail *</label>
+              <label className="form-label">Nome completo *</label>
               <input
-                type="email"
-                value={formData.email}
+                type="text"
+                value={formData.name}
                 onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value });
-                  if (errors.email) setErrors({ ...errors, email: '' });
+                  setFormData({ ...formData, name: e.target.value });
+                  if (errors.name) setErrors({ ...errors, name: '' });
                 }}
-                placeholder="seu@email.com"
-                className={`form-input ${errors.email ? 'is-error' : ''}`}
+                placeholder="Seu nome"
+                className={`form-input ${errors.name ? 'is-error' : ''}`}
+                required
               />
-              {errors.email && <span className="form-error">{errors.email}</span>}
+              {errors.name && <span className="form-error">{errors.name}</span>}
             </div>
 
             <div className="form-field">
@@ -197,6 +169,7 @@ const Register = () => {
                 }}
                 placeholder="(11) 99999-9999"
                 className={`form-input ${errors.phone ? 'is-error' : ''}`}
+                required
               />
               {errors.phone && <span className="form-error">{errors.phone}</span>}
             </div>
@@ -212,6 +185,7 @@ const Register = () => {
                 }}
                 placeholder="Mínimo 8 caracteres"
                 className={`form-input ${errors.password ? 'is-error' : ''}`}
+                required
               />
               {formData.password && (
                 <div className="password-strength">
@@ -245,6 +219,7 @@ const Register = () => {
                 }}
                 placeholder="Digite a senha novamente"
                 className={`form-input ${errors.confirmPassword ? 'is-error' : ''}`}
+                required
               />
               {errors.confirmPassword && <span className="form-error">{errors.confirmPassword}</span>}
             </div>
