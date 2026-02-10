@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAccessToken, getRefreshToken, clearTokens, refreshAccessToken } from './auth';
+import { getAccessToken, clearTokens, refreshAccessToken } from './auth';
 
 // API base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
