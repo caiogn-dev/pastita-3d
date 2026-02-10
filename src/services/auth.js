@@ -1,41 +1,21 @@
 // src/services/auth.js
-// Updated to work with unified backend (whatsapp_business) - JWT Support
-import api, { setAuthToken } from './api';
+import api, { registerRefreshHandler, setAuthToken } from './api';
+import { 
+  setTokens, 
+  getAccessToken, 
+  getRefreshToken, 
+  clearTokens as clearStorageTokens, 
+  setUser as setStorageUser, 
+  getUser as getStorageUser 
+} from './tokenStorage';
 
 const AUTH_BASE = '/auth';
 
-// ============================================
-// JWT TOKEN MANAGEMENT
-// ============================================
-
-const TOKEN_KEY = 'pastita_access_token';
-const REFRESH_KEY = 'pastita_refresh_token';
-const USER_KEY = 'pastita_user';
-
-export const setTokens = (access, refresh) => {
-  localStorage.setItem(TOKEN_KEY, access);
-  localStorage.setItem(REFRESH_KEY, refresh);
-  setAuthToken(access);
-};
-
-export const getAccessToken = () => localStorage.getItem(TOKEN_KEY);
-export const getRefreshToken = () => localStorage.getItem(REFRESH_KEY);
-
-export const clearTokens = () => {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(REFRESH_KEY);
-  localStorage.removeItem(USER_KEY);
-  setAuthToken(null);
-};
-
-export const setUser = (user) => {
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
-};
-
-export const getUser = () => {
-  const user = localStorage.getItem(USER_KEY);
-  return user ? JSON.parse(user) : null;
-};
+// Re-export storage functions for compatibility
+export { getAccessToken, getRefreshToken };
+export const getUser = getStorageUser;
+export const setUser = setStorageUser;
+export const clearTokens = clearStorageTokens; // Exportação nomeada correta
 
 // ============================================
 // TOKEN REFRESH
@@ -49,11 +29,14 @@ export const refreshAccessToken = async () => {
   }
   
   try {
+    // Importante: Usamos uma instancia limpa do axios ou garantimos que essa rota
+    // não entre em loop se der 401. A api.post normal deve funcionar.
     const response = await api.post(`${AUTH_BASE}/token/refresh/`, {
       refresh: refresh
     });
     const { access } = response.data;
-    localStorage.setItem(TOKEN_KEY, access);
+    // Atualiza apenas o access token se o refresh não mudou
+    localStorage.setItem('pastita_access_token', access); 
     setAuthToken(access);
     return access;
   } catch (error) {
@@ -62,8 +45,12 @@ export const refreshAccessToken = async () => {
   }
 };
 
+// INJEÇÃO DE DEPENDÊNCIA: Registra a função de refresh na API
+// Isso fecha o ciclo de forma segura
+registerRefreshHandler(refreshAccessToken);
+
 // ============================================
-// TRADITIONAL LOGIN (Email/Password)
+// TRADITIONAL LOGIN
 // ============================================
 
 export const login = async (login, password) => {
@@ -110,7 +97,6 @@ export const verifyWhatsAppCode = async (phoneNumber, code) => {
     code: code,
   });
   
-  // Save tokens if verification successful
   if (response.data.valid && response.data.tokens) {
     const { access, refresh } = response.data.tokens;
     setTokens(access, refresh);
