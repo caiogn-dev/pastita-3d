@@ -11,11 +11,13 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { sendWhatsAppCode, verifyWhatsAppCode, resendWhatsAppCode } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 
 // WhatsApp account ID - should be configured in environment
 const WHATSAPP_ACCOUNT_ID = process.env.NEXT_PUBLIC_WHATSAPP_ACCOUNT_ID || '';
 
 const WhatsAppLoginModal = ({ isOpen, onClose, onSuccess }) => {
+  const { signInWithWhatsApp } = useAuth();
   const [step, setStep] = useState('phone'); // 'phone' | 'code' | 'success'
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState(['', '', '', '', '', '']);
@@ -129,8 +131,11 @@ const WhatsAppLoginModal = ({ isOpen, onClose, onSuccess }) => {
       if (result.valid) {
         setStep('success');
         
+        // Update auth context with user data
+        await signInWithWhatsApp(result.user);
+        
         setTimeout(() => {
-          onSuccess(result.user);
+          if (onSuccess) onSuccess(result.user);
           onClose();
         }, 1500);
       } else {

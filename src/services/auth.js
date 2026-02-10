@@ -1,61 +1,101 @@
-﻿// src/services/auth.js
-// Updated to work with unified backend (whatsapp_business)
-import api, { fetchCsrfToken, setAuthToken } from './api';
+// src/services/auth.js
+// Updated to work with unified backend (whatsapp_business) - JWT Support
+import api, { setAuthToken } from './api';
 
-// Auth API base - points to core auth endpoints
 const AUTH_BASE = '/auth';
+
+// ============================================
+// JWT TOKEN MANAGEMENT
+// ============================================
+
+const TOKEN_KEY = 'pastita_access_token';
+const REFRESH_KEY = 'pastita_refresh_token';
+const USER_KEY = 'pastita_user';
+
+export const setTokens = (access, refresh) => {
+  localStorage.setItem(TOKEN_KEY, access);
+  localStorage.setItem(REFRESH_KEY, refresh);
+  setAuthToken(access);
+};
+
+export const getAccessToken = () => localStorage.getItem(TOKEN_KEY);
+export const getRefreshToken = () => localStorage.getItem(REFRESH_KEY);
+
+export const clearTokens = () => {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_KEY);
+  localStorage.removeItem(USER_KEY);
+  setAuthToken(null);
+};
+
+export const setUser = (user) => {
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+};
+
+export const getUser = () => {
+  const user = localStorage.getItem(USER_KEY);
+  return user ? JSON.parse(user) : null;
+};
+
+// ============================================
+// TOKEN REFRESH
+// ============================================
+
+export const refreshAccessToken = async () => {
+  const refresh = getRefreshToken();
+  if (!refresh) {
+    clearTokens();
+    throw new Error('No refresh token');
+  }
+  
+  try {
+    const response = await api.post(`${AUTH_BASE}/token/refresh/`, {
+      refresh: refresh
+    });
+    const { access } = response.data;
+    localStorage.setItem(TOKEN_KEY, access);
+    setAuthToken(access);
+    return access;
+  } catch (error) {
+    clearTokens();
+    throw error;
+  }
+};
 
 // ============================================
 // TRADITIONAL LOGIN (Email/Password)
 // ============================================
 
 export const login = async (login, password) => {
-  // Use the unified backend auth endpoint
-  const response = await api.post(`${AUTH_BASE}/login/`, { 
-    email: login, 
+  const response = await api.post(`${AUTH_BASE}/token/`, { 
+    username: login, 
     password 
   });
-  try {
-    await fetchCsrfToken();
-  } catch {
-    // CSRF refresh failure should not block login
-  }
-  if (response.data?.token) {
-    setAuthToken(response.data.token);
-  }
+  
+  const { access, refresh } = response.data;
+  setTokens(access, refresh);
+  
   return response.data;
 };
 
 export const register = async (userData) => {
-  // Registration endpoint
   const response = await api.post(`${AUTH_BASE}/register/`, userData);
   return response.data;
 };
 
-export const logout = async () => {
-  try {
-    await fetchCsrfToken();
-    await api.post(`${AUTH_BASE}/logout/`);
-  } catch {
-    // Ignore logout errors to allow local state cleanup
-  }
-  setAuthToken(null);
+export const logout = () => {
+  clearTokens();
+  return Promise.resolve();
 };
 
 export const isAuthenticated = () => {
-  return false;
+  return !!getAccessToken();
 };
 
 // ============================================
 // WHATSAPP OTP AUTHENTICATION
 // ============================================
 
-/**
- * Send OTP code via WhatsApp
- * @param {string} phoneNumber - Phone number with country code (e.g., +5511999999999)
- * @param {string} whatsappAccountId - UUID of the WhatsApp Business Account
- * @returns {Promise<{success: boolean, message: string, expires_in_minutes?: number}>}
- */
 export const sendWhatsAppCode = async (phoneNumber, whatsappAccountId) => {
   const response = await api.post(`${AUTH_BASE}/whatsapp/send/`, {
     phone_number: phoneNumber,
@@ -64,26 +104,22 @@ export const sendWhatsAppCode = async (phoneNumber, whatsappAccountId) => {
   return response.data;
 };
 
-/**
- * Verify OTP code received via WhatsApp
- * @param {string} phoneNumber - Phone number with country code
- * @param {string} code - 6-digit OTP code
- * @returns {Promise<{valid: boolean, user?: object, message: string}>}
- */
 export const verifyWhatsAppCode = async (phoneNumber, code) => {
   const response = await api.post(`${AUTH_BASE}/whatsapp/verify/`, {
     phone_number: phoneNumber,
     code: code,
   });
+  
+  // Save tokens if verification successful
+  if (response.data.valid && response.data.tokens) {
+    const { access, refresh } = response.data.tokens;
+    setTokens(access, refresh);
+    setUser(response.data.user);
+  }
+  
   return response.data;
 };
 
-/**
- * Resend OTP code via WhatsApp
- * @param {string} phoneNumber - Phone number with country code
- * @param {string} whatsappAccountId - UUID of the WhatsApp Business Account
- * @returns {Promise<{success: boolean, message: string}>}
- */
 export const resendWhatsAppCode = async (phoneNumber, whatsappAccountId) => {
   const response = await api.post(`${AUTH_BASE}/whatsapp/resend/`, {
     phone_number: phoneNumber,
@@ -96,19 +132,16 @@ export const resendWhatsAppCode = async (phoneNumber, whatsappAccountId) => {
 // PROFILE MANAGEMENT
 // ============================================
 
-// Get current user profile
 export const getProfile = async () => {
   const response = await api.get(`${AUTH_BASE}/me/`);
   return response.data;
 };
 
-// Update user profile
 export const updateProfile = async (profileData) => {
   const response = await api.patch(`${AUTH_BASE}/me/`, profileData);
   return response.data;
 };
 
-// Change password
 export const changePassword = async (oldPassword, newPassword) => {
   const response = await api.post(`${AUTH_BASE}/change-password/`, {
     old_password: oldPassword,

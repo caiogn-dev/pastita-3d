@@ -1,6 +1,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { login as authLogin, logout as authLogout } from '../services/auth';
-import api from '../services/api';
+import { 
+  login as authLogin, 
+  logout as authLogout, 
+  getUser, 
+  getAccessToken,
+  isAuthenticated as checkIsAuthenticated 
+} from '../services/auth';
+import api, { setAuthToken } from '../services/api';
 
 const AuthContext = createContext();
 const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -37,6 +43,13 @@ export const AuthProvider = ({ children }) => {
   const initRef = useRef(false);
 
   const fetchProfile = useCallback(async ({ force = false } = {}) => {
+    // Check if we have a token first
+    if (!checkIsAuthenticated()) {
+      setUser(null);
+      setProfile(null);
+      return null;
+    }
+
     const cached = readProfileCache();
     if (!force && cached) {
       setProfile(cached);
@@ -50,7 +63,7 @@ export const AuthProvider = ({ children }) => {
 
     profileFetchPromise = (async () => {
       try {
-        const response = await api.get('/users/profile/', { skipAuthRedirect: true });
+        const response = await api.get('/users/profile/');
         setProfile(response.data);
         setUser(response.data);
         writeProfileCache(response.data);
@@ -79,10 +92,29 @@ export const AuthProvider = ({ children }) => {
     initRef.current = true;
 
     const initAuth = async () => {
-      await fetchProfile();
+      // Load user from localStorage
+      const savedUser = getUser();
+      const token = getAccessToken();
+      
+      if (savedUser && token) {
+        setAuthToken(token);
+        setUser(savedUser);
+        await fetchProfile();
+      }
+      
       setLoading(false);
     };
     initAuth();
+
+    // Listen for logout events
+    const handleLogout = () => {
+      clearProfileCache();
+      setUser(null);
+      setProfile(null);
+    };
+    
+    window.addEventListener('auth:logout', handleLogout);
+    return () => window.removeEventListener('auth:logout', handleLogout);
   }, [fetchProfile]);
 
   const signIn = async (login, password) => {
@@ -95,15 +127,15 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.non_field_errors?.[0]
-          || error.response?.data?.detail
+        error: error.response?.data?.detail
+          || error.response?.data?.non_field_errors?.[0]
           || 'E-mail, celular ou senha invalidos'
       };
     }
   };
 
   const signOut = () => {
-    authLogout().catch(() => {});
+    authLogout();
     clearProfileCache();
     setUser(null);
     setProfile(null);
@@ -121,14 +153,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // WhatsApp Login handler
+  const signInWithWhatsApp = async (userData) => {
+    setUser(userData);
+    writeProfileCache(userData);
+    setProfile(userData);
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
       profile,
       loading,
-      isAuthenticated: Boolean(user || profile),
+      isAuthenticated: checkIsAuthenticated(),
       signIn,
       signOut,
+      signInWithWhatsApp,
       updateProfile,
       fetchProfile
     }}>

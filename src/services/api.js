@@ -1,8 +1,7 @@
 import axios from 'axios';
+import { getAccessToken, getRefreshToken, clearTokens, refreshAccessToken } from './auth';
 
-// API base URL - uses Next env or defaults to localhost for development
-// Points to the unified stores API (whatsapp_business backend)
-// For store-specific endpoints, use: ${API_BASE_URL}/stores/{store_slug}/
+// API base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 // Default store slug (Pastita)
@@ -12,42 +11,33 @@ export const DEFAULT_STORE_SLUG = process.env.NEXT_PUBLIC_STORE_SLUG || 'pastita
 const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
 
 let authTokenMemory = null;
-const AUTH_COOKIE_NAME = process.env.NEXT_PUBLIC_AUTH_COOKIE_NAME || 'auth_token';
 
-// Create axios instance with base configuration
+// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Enable sending cookies for CSRF
 });
 
-let csrfTokenCache = null;
-let csrfRefreshPromise = null;
+// Load token from localStorage on init
+const loadToken = () => {
+  const token = getAccessToken();
+  if (token) {
+    authTokenMemory = token;
+  }
+};
+loadToken();
 
-// Helper to get CSRF token from cookie
-const getCsrfTokenFromCookie = () => {
-  if (typeof document === 'undefined') {
-    return csrfTokenCache;
-  }
-  const name = 'csrftoken';
-  const cookies = document.cookie.split(';');
-  for (let cookie of cookies) {
-    const [cookieName, cookieValue] = cookie.trim().split('=');
-    if (cookieName === name) {
-      return cookieValue;
-    }
-  }
-  return csrfTokenCache;
+export const setAuthToken = (token) => {
+  authTokenMemory = token || null;
 };
 
-// Fetch CSRF token from server (call this on app init)
+// Fetch CSRF token (for non-JWT endpoints if needed)
 export const fetchCsrfToken = async () => {
   try {
     const response = await api.get('/csrf/');
-    csrfTokenCache = response.data.csrfToken;
     return response.data.csrfToken;
   } catch (error) {
     console.error('Failed to fetch CSRF token:', error);
@@ -55,101 +45,79 @@ export const fetchCsrfToken = async () => {
   }
 };
 
-const refreshCsrfToken = () => {
-  if (!csrfRefreshPromise) {
-    csrfRefreshPromise = fetchCsrfToken().finally(() => {
-      csrfRefreshPromise = null;
-    });
-  }
-  return csrfRefreshPromise;
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+const onRefreshed = (token) => {
+  refreshSubscribers.forEach((callback) => callback(token));
+  refreshSubscribers = [];
 };
 
-export const setAuthToken = (token) => {
-  authTokenMemory = token || null;
+const subscribeTokenRefresh = (callback) => {
+  refreshSubscribers.push(callback);
 };
 
-const getAuthTokenFromCookie = () => {
-  if (typeof document === 'undefined') {
-    return null;
-  }
-  const cookies = document.cookie.split(';');
-  for (let cookie of cookies) {
-    const [cookieName, cookieValue] = cookie.trim().split('=');
-    if (cookieName === AUTH_COOKIE_NAME) {
-      return cookieValue || null;
-    }
-  }
-  return null;
-};
-
-// Bootstrap auth token from HttpOnly cookie (if present)
-if (typeof document !== 'undefined' && !authTokenMemory) {
-  const cookieToken = getAuthTokenFromCookie();
-  if (cookieToken) {
-    authTokenMemory = cookieToken;
-  }
-}
-
-// Request interceptor - adds auth token and CSRF token to all requests
+// Request interceptor - adds JWT token to all requests
 api.interceptors.request.use(
   (config) => {
-    if (authTokenMemory && !config.headers.Authorization) {
-      config.headers.Authorization = `Token ${authTokenMemory}`;
+    const token = authTokenMemory || getAccessToken();
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-
-    // Add CSRF token for non-GET requests (POST, PUT, PATCH, DELETE)
-    if (config.method !== 'get') {
-      const csrfToken = getCsrfTokenFromCookie();
-      if (csrfToken) {
-        config.headers['X-CSRFToken'] = csrfToken;
-      }
-    }
-    
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor - handles common errors
+// Response interceptor - handles token refresh on 401
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Handle 401 Unauthorized - do not force redirect (avoid logout loops)
-    // Caller can decide whether to show login modal.
-    
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Handle 401 Unauthorized
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Wait for token refresh
+        return new Promise((resolve) => {
+          subscribeTokenRefresh((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            resolve(api(originalRequest));
+          });
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const newToken = await refreshAccessToken();
+        isRefreshing = false;
+        onRefreshed(newToken);
+        
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        isRefreshing = false;
+        clearTokens();
+        // Redirect to login or show modal
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:logout'));
+        }
+        return Promise.reject(refreshError);
+      }
+    }
+
     // Handle 429 Rate Limiting
     if (error.response?.status === 429) {
       console.warn('Rate limit exceeded. Please wait before making more requests.');
-      // The error will be propagated to the caller for UI handling
     }
-    
-    // Handle 403 CSRF errors - refresh token and retry
-    if (error.response?.status === 403) {
-      const errorDetail = error.response?.data?.detail || '';
-      if (errorDetail.toLowerCase().includes('csrf')) {
-        console.warn('CSRF token expired, refreshing...');
-        if (!error.config?._retry) {
-          const retryConfig = { ...error.config, _retry: true };
-          return refreshCsrfToken()
-            .then((token) => {
-              if (token) {
-                retryConfig.headers = retryConfig.headers || {};
-                retryConfig.headers['X-CSRFToken'] = token;
-              }
-              return api.request(retryConfig);
-            })
-            .catch((refreshError) => Promise.reject(refreshError));
-        }
-      }
-    }
-    
+
     // Handle network errors
     if (!error.response) {
       console.error('Network error - please check your connection');
     }
-    
+
     return Promise.reject(error);
   }
 );
