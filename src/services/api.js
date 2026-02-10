@@ -1,8 +1,12 @@
 import axios from 'axios';
 
 // API base URL - uses Next env or defaults to localhost for development
-// Now pointing to the unified backend (whatsapp_business)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/ecommerce';
+// Points to the unified stores API (whatsapp_business backend)
+// For store-specific endpoints, use: ${API_BASE_URL}/stores/{store_slug}/
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+
+// Default store slug (Pastita)
+export const DEFAULT_STORE_SLUG = process.env.NEXT_PUBLIC_STORE_SLUG || 'pastita';
 
 // WebSocket URL for real-time notifications
 const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';

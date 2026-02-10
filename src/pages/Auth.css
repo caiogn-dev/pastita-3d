@@ -199,6 +199,58 @@
   margin-bottom: 10px;
 }
 
+/* WhatsApp Login Button */
+.btn-whatsapp-login {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background-color: #25D366;
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.btn-whatsapp-login:hover {
+  background-color: #1da851;
+  transform: translateY(-1px);
+}
+
+.btn-whatsapp-login:active {
+  transform: translateY(0);
+}
+
+.btn-whatsapp-login svg {
+  flex-shrink: 0;
+}
+
+/* Divider */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-gray-300);
+}
+
+.auth-divider span {
+  padding: 0 16px;
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .auth-card {

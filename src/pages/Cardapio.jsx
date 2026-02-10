@@ -1,13 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import api from '../services/api';
+import api, { DEFAULT_STORE_SLUG } from '../services/api';
 import useSWR from 'swr';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import LoginModal from '../components/LoginModal';
 import Navbar from '../components/Navbar';
 
-const fetchProducts = (url) => api.get(url).then((res) => res.data);
+// Fetch catalog from stores API - returns {store, products, categories, featured_products, combos}
+const fetchCatalog = (url) => api.get(url).then((res) => res.data);
+
+// Store catalog endpoint
+const CATALOG_URL = `/stores/${DEFAULT_STORE_SLUG}/catalog/`;
 
 const CATEGORY_PRIORITY = ['rondelli', 'rondellis', 'molho', 'molhos'];
 const WEIGHTED_CATEGORIES = new Set(['rondelli', 'rondellis', 'molho', 'molhos']);
@@ -42,25 +46,43 @@ const Cardapio = () => {
   
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
-  const { data, error, isLoading } = useSWR('/products/', fetchProducts, {
+  
+  // Fetch catalog from stores API
+  const { data: catalogData, error, isLoading } = useSWR(CATALOG_URL, fetchCatalog, {
     dedupingInterval: 60 * 1000,
     revalidateOnFocus: false
   });
 
   useEffect(() => {
     if (error) {
-      console.error('Erro menu:', error);
+      console.error('Erro ao carregar cardápio:', error);
     }
   }, [error]);
 
+  // Extract products from catalog response
+  // API returns: {store, products, categories, featured_products, combos, products_by_category}
   const products = useMemo(() => {
-    const payload = data?.results ?? data ?? [];
-    return Array.isArray(payload) ? payload : [];
-  }, [data]);
+    if (!catalogData) return [];
+    // Products from stores API have: id, name, price, description, main_image_url, category, stock_quantity, featured
+    const rawProducts = catalogData.products || [];
+    return rawProducts.map(p => ({
+      ...p,
+      // Map main_image_url to image for component compatibility
+      image: p.main_image_url || p.image_url || p.image,
+      // Map category object to category name
+      category: p.category?.name || p.category_name || p.category || '',
+    }));
+  }, [catalogData]);
 
   const loading = isLoading && products.length === 0;
 
+  // Get categories from catalog response (already sorted by sort_order)
   const categories = useMemo(() => {
+    if (catalogData?.categories) {
+      // Use categories from API (already sorted)
+      return catalogData.categories.map(c => c.name);
+    }
+    // Fallback: extract from products
     const values = products
       .map((product) => (product.category || '').trim())
       .filter(Boolean);
@@ -72,7 +94,7 @@ const Cardapio = () => {
       }
       return a.localeCompare(b, 'pt-BR');
     });
-  }, [products]);
+  }, [catalogData, products]);
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
