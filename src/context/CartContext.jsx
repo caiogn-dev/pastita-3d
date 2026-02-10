@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import api from '../services/api';
+import api, { DEFAULT_STORE_SLUG } from '../services/api';
 import { buildMediaUrl } from '../utils/media';
 import { useAuth } from './AuthContext';
 
@@ -69,7 +69,7 @@ export const CartProvider = ({ children }) => {
     });
   };
 
-  const fetchCart = useCallback(async ({ force = false } = {}) => {
+  const fetchCart = useCallback(async ({ force = false, storeSlug = DEFAULT_STORE_SLUG } = {}) => {
     if (!isAuthenticated) {
       clearCartCache();
       setCart([]);
@@ -88,9 +88,9 @@ export const CartProvider = ({ children }) => {
 
     cartFetchPromise = (async () => {
       try {
-        // Updated endpoint for unified backend
-        const response = await api.get('/cart/list/');
-        const items = response.data.items || [];
+        // Novo endpoint RESTful
+        const response = await api.get(`/stores/${storeSlug}/cart/`);
+        const items = response.data.items || response.data || [];
 
         const formattedCart = items.map((item) => ({
           id: item.product.id,
@@ -130,7 +130,7 @@ export const CartProvider = ({ children }) => {
 
   const toggleCart = () => setIsCartOpen(!isCartOpen);
 
-  const addToCart = async (product) => {
+  const addToCart = async (product, storeSlug = DEFAULT_STORE_SLUG) => {
     setIsLoading(true);
     const previousCart = cartRef.current;
     updateCartState((prevCart) => {
@@ -148,7 +148,7 @@ export const CartProvider = ({ children }) => {
     setIsCartOpen(true);
 
     try {
-      const response = await api.post('/cart/add_item/', {
+      const response = await api.post(`/stores/${storeSlug}/cart/add/`, {
         product_id: product.id,
         quantity: 1
       });
@@ -165,7 +165,7 @@ export const CartProvider = ({ children }) => {
           return [...prevCart, newItem];
         });
       } else {
-        await fetchCart({ force: true });
+        await fetchCart({ force: true, storeSlug });
       }
     } catch (error) {
       console.error('Erro ao adicionar item:', error);
@@ -176,18 +176,19 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const removeFromCart = async (productId) => {
+  const removeFromCart = async (productId, cartItemId, storeSlug = DEFAULT_STORE_SLUG) => {
     const previousCart = cartRef.current;
     updateCartState((prevCart) => prevCart.filter((item) => item.id !== productId));
     try {
-      await api.post('/cart/remove_item/', { product_id: productId });
+      // cartItemId é o id do item no carrinho (não do produto)
+      await api.delete(`/stores/${storeSlug}/cart/item/${cartItemId}/`);
     } catch (error) {
       console.error('Erro ao remover item:', error);
       updateCartState(previousCart);
     }
   };
 
-  const updateQuantity = async (productId, amount) => {
+  const updateQuantity = async (productId, amount, cartItemId, storeSlug = DEFAULT_STORE_SLUG) => {
     const currentItem = cart.find((item) => item.id === productId);
     if (!currentItem) return;
 
@@ -200,8 +201,7 @@ export const CartProvider = ({ children }) => {
     ));
 
     try {
-      const response = await api.post('/cart/update_item/', {
-        product_id: productId,
+      const response = await api.patch(`/stores/${storeSlug}/cart/item/${cartItemId}/`, {
         quantity: newQuantity
       });
       if (response.data?.item) {
@@ -210,7 +210,7 @@ export const CartProvider = ({ children }) => {
           item.id === productId ? { ...item, quantity: updatedItem.quantity } : item
         ));
       } else {
-        await fetchCart({ force: true });
+        await fetchCart({ force: true, storeSlug });
       }
     } catch (error) {
       console.error('Erro ao atualizar quantidade:', error);
@@ -218,9 +218,9 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const clearCart = async () => {
+  const clearCart = async (storeSlug = DEFAULT_STORE_SLUG) => {
     try {
-      await api.post('/cart/clear/');
+      await api.delete(`/stores/${storeSlug}/cart/clear/`);
       setCart([]);
       clearCartCache();
     } catch (error) {
