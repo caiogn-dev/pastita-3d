@@ -55,9 +55,9 @@ export const CartProvider = ({ children }) => {
 
   const buildOptimisticItem = (product, quantity) => ({
     id: product.id,
-    cart_item_id: product.id,
+    cart_item_id: null,
     name: product.name,
-    price: product.price,
+    price: Number(product.price) || 0,
     image: buildMediaUrl(product.image),
     quantity
   });
@@ -91,16 +91,15 @@ export const CartProvider = ({ children }) => {
       try {
         // Novo endpoint RESTful
         const response = await api.get(`/stores/${storeSlug}/cart/`);
-        const items = response.data.items || response.data || [];
+        const cartData = response.data || {};
+        const items = Array.isArray(cartData.items) ? cartData.items : [];
 
-        const formattedCart = items.map((item) => ({
-          id: item.product.id,
-          cart_item_id: item.id,
-          name: item.product.name,
-          price: item.product.price,
-          image: buildMediaUrl(item.product.image),
-          quantity: item.quantity
-        }));
+        const formattedCart = items.map((item) => {
+          const normalized = normalizeCartItem(item);
+          // garante quantity numérico
+          normalized.quantity = Number(normalized.quantity) || 0;
+          return normalized;
+        });
 
         setCart(formattedCart);
         writeCartCache(formattedCart);
@@ -165,6 +164,14 @@ export const CartProvider = ({ children }) => {
           }
           return [...prevCart, newItem];
         });
+      } else if (response.data?.items) {
+        const formatted = response.data.items.map((it) => {
+          const n = normalizeCartItem(it);
+          n.quantity = Number(n.quantity) || 0;
+          return n;
+        });
+        setCart(formatted);
+        writeCartCache(formatted);
       } else {
         await fetchCart({ force: true, storeSlug });
       }
@@ -182,7 +189,16 @@ export const CartProvider = ({ children }) => {
     updateCartState((prevCart) => prevCart.filter((item) => item.id !== productId));
     try {
       // cartItemId é o id do item no carrinho (não do produto)
-      await api.delete(`/stores/${storeSlug}/cart/item/${cartItemId}/`);
+      const response = await api.delete(`/stores/${storeSlug}/cart/item/${cartItemId}/`);
+      if (response.data?.items) {
+        const formatted = response.data.items.map((it) => {
+          const n = normalizeCartItem(it);
+          n.quantity = Number(n.quantity) || 0;
+          return n;
+        });
+        setCart(formatted);
+        writeCartCache(formatted);
+      }
     } catch (error) {
       console.error('Erro ao remover item:', error);
       updateCartState(previousCart);
@@ -205,7 +221,15 @@ export const CartProvider = ({ children }) => {
       const response = await api.patch(`/stores/${storeSlug}/cart/item/${cartItemId}/`, {
         quantity: newQuantity
       });
-      if (response.data?.item) {
+      if (response.data?.items) {
+        const formatted = response.data.items.map((it) => {
+          const n = normalizeCartItem(it);
+          n.quantity = Number(n.quantity) || 0;
+          return n;
+        });
+        setCart(formatted);
+        writeCartCache(formatted);
+      } else if (response.data?.item) {
         const updatedItem = normalizeCartItem(response.data.item);
         updateCartState((prevCart) => prevCart.map((item) =>
           item.id === productId ? { ...item, quantity: updatedItem.quantity } : item
