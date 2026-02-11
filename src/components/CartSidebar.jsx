@@ -31,39 +31,43 @@ const CartSidebar = () => {
               </button>
             </div>
           ) : (
-            cart.map((item) => (
-              <div key={item.cart_item_id || item.id} className="cart-item">
-                <img src={item.image} alt={item.name} className="cart-item-image" />
-                <div className="cart-item-details">
-                  <h4 className="cart-item-name">{item.name}</h4>
-                  <p className="cart-item-price">R$ {Number(item.price).toFixed(2)}</p>
+            cart.map((item) => {
+              // Garante que sempre existe um cart_item_id válido
+              const cartItemId = item.cart_item_id || item.id || item.product || '';
+              return (
+                <div key={cartItemId} className="cart-item">
+                  <img src={item.image} alt={item.name} className="cart-item-image" />
+                  <div className="cart-item-details">
+                    <h4 className="cart-item-name">{item.name}</h4>
+                    <p className="cart-item-price">R$ {isNaN(Number(item.price)) ? '0,00' : Number(item.price).toFixed(2)}</p>
 
-                  <div className="cart-item-actions">
-                    <div className="quantity-control">
+                    <div className="cart-item-actions">
+                      <div className="quantity-control">
+                        <button
+                          onClick={() => updateQuantity(item.id, -1, cartItemId)}
+                          aria-label="Diminuir quantidade"
+                        >
+                          -
+                        </button>
+                        <span>{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.id, 1, cartItemId)}
+                          aria-label="Aumentar quantidade"
+                        >
+                          +
+                        </button>
+                      </div>
                       <button
-                        onClick={() => updateQuantity(item.id, -1, item.cart_item_id)}
-                        aria-label="Diminuir quantidade"
+                        onClick={() => removeFromCart(item.id, cartItemId)}
+                        className="cart-item-remove"
                       >
-                        -
-                      </button>
-                      <span>{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, 1, item.cart_item_id)}
-                        aria-label="Aumentar quantidade"
-                      >
-                        +
+                        Remover
                       </button>
                     </div>
-                    <button
-                      onClick={() => removeFromCart(item.id, item.cart_item_id)}
-                      className="cart-item-remove"
-                    >
-                      Remover
-                    </button>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -71,7 +75,7 @@ const CartSidebar = () => {
           <div className="cart-footer">
             <div className="cart-total">
               <span>Total:</span>
-              <span>R$ {cartTotal.toFixed(2)}</span>
+              <span>R$ {isNaN(Number(cartTotal)) ? '0,00' : Number(cartTotal).toFixed(2)}</span>
             </div>
             {isAuthenticated ? (
               <Link

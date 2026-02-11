@@ -665,12 +665,12 @@ const CheckoutPage = () => {
                     <h4 className="checkout-summary-name">{item.name}</h4>
                     <p className="checkout-summary-qty">Qtd: {item.quantity}</p>
                   </div>
-                  <span className="checkout-summary-price">R$ {(Number(item.price) * item.quantity).toFixed(2)}</span>
+                  <span className="checkout-summary-price">R$ {isNaN(Number(item.price)) || isNaN(Number(item.quantity)) ? '0,00' : (Number(item.price) * Number(item.quantity)).toFixed(2)}</span>
                 </div>
               ))}
               <div className="checkout-summary-divider">
                 <div className="checkout-summary-row">
-                  <span>Subtotal</span><span>R$ {cartTotal.toFixed(2)}</span>
+                  <span>Subtotal</span><span>R$ {isNaN(Number(cartTotal)) ? '0,00' : Number(cartTotal).toFixed(2)}</span>
                 </div>
                 <div className="checkout-summary-row">
                   <span>{shippingMethod === 'pickup' ? 'Retirada' : 'Frete'}</span>
@@ -684,7 +684,7 @@ const CheckoutPage = () => {
                 )}
               </div>
               <div className="checkout-summary-total">
-                <span>Total</span><span>R$ {totalWithShipping.toFixed(2)}</span>
+                <span>Total</span><span>R$ {isNaN(Number(totalWithShipping)) ? '0,00' : Number(totalWithShipping).toFixed(2)}</span>
               </div>
               <div className="checkout-security">Pagamento seguro via Mercado Pago</div>
             </div>
