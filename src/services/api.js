@@ -12,6 +12,11 @@ const api = axios.create({
   }
 });
 
+// Ensure cookies and CSRF are sent for cross-site requests to Django
+api.defaults.withCredentials = true;
+api.defaults.xsrfCookieName = 'csrftoken';
+api.defaults.xsrfHeaderName = 'X-CSRFTOKEN';
+
 export const setAuthToken = (token) => {
   authToken = token || null;
   if (token) {
