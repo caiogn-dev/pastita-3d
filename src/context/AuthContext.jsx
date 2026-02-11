@@ -1,8 +1,12 @@
-/**
- * Auth Context - Uses unified Store API for authentication
- */
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import * as storeApi from '../services/storeApi';
+import { 
+  login as authLogin, 
+  logout as authLogout, 
+  getUser, 
+  getAccessToken,
+  isAuthenticated as checkIsAuthenticated 
+} from '../services/auth';
+import api, { setAuthToken } from '../services/api';
 
 const AuthContext = createContext();
 const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -39,6 +43,13 @@ export const AuthProvider = ({ children }) => {
   const initRef = useRef(false);
 
   const fetchProfile = useCallback(async ({ force = false } = {}) => {
+    // Check if we have a token first
+    if (!checkIsAuthenticated()) {
+      setUser(null);
+      setProfile(null);
+      return null;
+    }
+
     const cached = readProfileCache();
     if (!force && cached) {
       setProfile(cached);
@@ -52,11 +63,11 @@ export const AuthProvider = ({ children }) => {
 
     profileFetchPromise = (async () => {
       try {
-        const data = await storeApi.getProfile();
-        setProfile(data);
-        setUser(data);
-        writeProfileCache(data);
-        return data;
+        const response = await api.get('/users/profile/');
+        setProfile(response.data);
+        setUser(response.data);
+        writeProfileCache(response.data);
+        return response.data;
       } catch (error) {
         if (error.response?.status === 401) {
           clearProfileCache();
@@ -64,6 +75,7 @@ export const AuthProvider = ({ children }) => {
           setProfile(null);
           return null;
         }
+        console.error('Error fetching profile:', error);
         return null;
       } finally {
         profileFetchPromise = null;
@@ -80,15 +92,34 @@ export const AuthProvider = ({ children }) => {
     initRef.current = true;
 
     const initAuth = async () => {
-      await fetchProfile();
+      // Load user from localStorage
+      const savedUser = getUser();
+      const token = getAccessToken();
+      
+      if (savedUser && token) {
+        setAuthToken(token);
+        setUser(savedUser);
+        await fetchProfile();
+      }
+      
       setLoading(false);
     };
     initAuth();
+
+    // Listen for logout events
+    const handleLogout = () => {
+      clearProfileCache();
+      setUser(null);
+      setProfile(null);
+    };
+    
+    window.addEventListener('auth:logout', handleLogout);
+    return () => window.removeEventListener('auth:logout', handleLogout);
   }, [fetchProfile]);
 
-  const signIn = async (email, password) => {
+  const signIn = async (login, password) => {
     try {
-      const data = await storeApi.loginUser(email, password);
+      const data = await authLogin(login, password);
       const loginUser = data?.user || null;
       setUser(loginUser);
       const profileData = await fetchProfile({ force: true });
@@ -96,29 +127,37 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.non_field_errors?.[0]
-          || error.response?.data?.detail
-          || 'E-mail, celular ou senha inválidos'
+        error: error.response?.data?.detail
+          || error.response?.data?.non_field_errors?.[0]
+          || 'E-mail, celular ou senha invalidos'
       };
     }
   };
 
-  const signOut = async () => {
-    try {
-      await storeApi.logoutUser();
-    } catch {
-      // Ignore logout errors
-    }
+  const signOut = () => {
+    authLogout();
     clearProfileCache();
     setUser(null);
     setProfile(null);
   };
 
-  const updateUserProfile = async (data) => {
-    const updatedData = await storeApi.updateProfile(data);
-    setProfile(updatedData);
-    writeProfileCache(updatedData);
-    return updatedData;
+  const updateProfile = async (data) => {
+    try {
+      const response = await api.patch('/users/profile/', data);
+      setProfile(response.data);
+      writeProfileCache(response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
+  };
+
+  // WhatsApp Login handler
+  const signInWithWhatsApp = async (userData) => {
+    setUser(userData);
+    writeProfileCache(userData);
+    setProfile(userData);
   };
 
   return (
@@ -126,10 +165,11 @@ export const AuthProvider = ({ children }) => {
       user,
       profile,
       loading,
-      isAuthenticated: Boolean(user || profile),
+      isAuthenticated: checkIsAuthenticated(),
       signIn,
       signOut,
-      updateProfile: updateUserProfile,
+      signInWithWhatsApp,
+      updateProfile,
       fetchProfile
     }}>
       {children}
