@@ -414,10 +414,31 @@ export const getOrderStatus = async (orderIdOrNumber, token = null) => {
  * Get user orders (requires auth)
  */
 export const getUserOrders = async () => {
-  // The backend exposes customer orders at /api/v1/stores/orders/?store={slug}
-  // Use the authApi (which uses the API root) so interceptors add Authorization.
-  const response = await authApi.get(`/stores/orders/`, { params: { store: STORE_SLUG } });
-  return response.data;
+  // Prefer canonical endpoint: /api/v1/stores/orders/?store={slug}
+  // Some deployments may still serve legacy store-scoped URLs; retry fallbacks on 404.
+  try {
+    const response = await authApi.get(`/stores/orders/`, { params: { store: STORE_SLUG } });
+    return response.data;
+  } catch (err) {
+    // If not found, try legacy store-scoped endpoints as fallback
+    const status = err?.response?.status;
+    if (status === 404 || !err?.response) {
+      try {
+        // Legacy: storeApi baseURL includes /stores/s/{STORE_SLUG}
+        const legacy = await storeApi.get('/orders/');
+        return legacy.data;
+      } catch (err2) {
+        // Last-resort: call global orders endpoint via axios directly
+        try {
+          const direct = await authApi.get(`/stores/orders/`, { params: { store: STORE_SLUG } });
+          return direct.data;
+        } catch (finalErr) {
+          throw err; // rethrow original
+        }
+      }
+    }
+    throw err;
+  }
 };
 
 /**
