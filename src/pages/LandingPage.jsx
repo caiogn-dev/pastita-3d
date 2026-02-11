@@ -55,23 +55,21 @@ const LandingPage = () => {
             className="promo-modal"
             role="dialog"
             aria-modal="true"
-            aria-label="Promoção Pastita 10% OFF"
+            aria-label="Aviso de entrega Pastita"
             onClick={(event) => event.stopPropagation()}
           >
-            <button className="promo-close" onClick={handleClosePromo} aria-label="Fechar promoção">
+            <button className="promo-close" onClick={handleClosePromo} aria-label="Fechar aviso">
               x
             </button>
-            <div className="promo-badge">Novidade</div>
-            <h3>Ganhe 10% OFF no primeiro pedido</h3>
+            <div className="promo-badge">Aviso</div>
+            <h3>Entregamos em Palmas-TO (apenas)</h3>
             <p>
-              Crie sua conta agora e receba um cupom exclusivo para usar na primeira compra.
-              Válido para pedidos feitos pelo site.
+              No momento nossas entregas estão disponíveis somente em Palmas, Tocantins.
+              Se você está em Palmas, confira nosso cardápio ou registre-se para receber novidades.
             </p>
             <div className="promo-actions">
-              <Link href="/registro" className="btn-primary">Criar conta e ganhar 10%</Link>
-              <button type="button" className="btn-secondary" onClick={handleClosePromo}>
-                Ver cardápio primeiro
-              </button>
+              <Link href="/cardapio" className="btn-primary">Ver cardápio</Link>
+              <Link href="/registro" className="btn-secondary">Registrar-se</Link>
             </div>
           </div>
         </div>

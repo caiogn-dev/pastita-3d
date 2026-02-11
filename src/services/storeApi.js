@@ -414,7 +414,9 @@ export const getOrderStatus = async (orderIdOrNumber, token = null) => {
  * Get user orders (requires auth)
  */
 export const getUserOrders = async () => {
-  const response = await storeApi.get('/orders/', { params: { store: STORE_SLUG } });
+  // The backend exposes customer orders at /api/v1/stores/orders/?store={slug}
+  // Use the authApi (which uses the API root) so interceptors add Authorization.
+  const response = await authApi.get(`/stores/orders/`, { params: { store: STORE_SLUG } });
   return response.data;
 };
 
