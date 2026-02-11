@@ -32,7 +32,7 @@ const CartSidebar = () => {
             </div>
           ) : (
             cart.map((item) => (
-              <div key={item.id} className="cart-item">
+              <div key={item.cart_item_id || item.id} className="cart-item">
                 <img src={item.image} alt={item.name} className="cart-item-image" />
                 <div className="cart-item-details">
                   <h4 className="cart-item-name">{item.name}</h4>
@@ -41,21 +41,21 @@ const CartSidebar = () => {
                   <div className="cart-item-actions">
                     <div className="quantity-control">
                       <button
-                        onClick={() => updateQuantity(item.id, -1)}
+                        onClick={() => updateQuantity(item.id, -1, item.cart_item_id)}
                         aria-label="Diminuir quantidade"
                       >
                         -
                       </button>
                       <span>{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(item.id, 1)}
+                        onClick={() => updateQuantity(item.id, 1, item.cart_item_id)}
                         aria-label="Aumentar quantidade"
                       >
                         +
                       </button>
                     </div>
                     <button
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => removeFromCart(item.id, item.cart_item_id)}
                       className="cart-item-remove"
                     >
                       Remover

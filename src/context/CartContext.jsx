@@ -43,12 +43,13 @@ export const CartProvider = ({ children }) => {
     cartRef.current = cart;
   }, [cart]);
 
+  // Suporta tanto o formato antigo quanto o novo do backend
   const normalizeCartItem = (item) => ({
-    id: item.product.id,
+    id: item.product?.id || item.product || item.id,
     cart_item_id: item.id,
-    name: item.product.name,
-    price: item.product.price,
-    image: buildMediaUrl(item.product.image),
+    name: item.product_name || item.product?.name || item.name,
+    price: Number(item.unit_price || item.price),
+    image: buildMediaUrl(item.product_image || item.product?.image || item.image),
     quantity: item.quantity
   });
 
