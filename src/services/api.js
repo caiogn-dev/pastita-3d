@@ -42,10 +42,24 @@ const processQueue = (error, token = null) => {
 };
 
 api.interceptors.request.use((config) => {
+  config.headers = config.headers || {};
   if (authToken) {
-    config.headers = config.headers || {};
     config.headers['Authorization'] = `Bearer ${authToken}`;
   }
+
+  // Debugging: log auth presence for key endpoints in non-production
+  try {
+    if (process.env.NODE_ENV !== 'production') {
+      const url = (config.url || '').toString();
+      if (url.includes('/cart') || url.includes('/stores')) {
+        // eslint-disable-next-line no-console
+        console.debug('[api] Request:', config.method, config.url, 'Auth:', !!config.headers['Authorization']);
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
   return config;
 });
 

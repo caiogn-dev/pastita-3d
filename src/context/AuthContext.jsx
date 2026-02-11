@@ -155,9 +155,35 @@ export const AuthProvider = ({ children }) => {
 
   // WhatsApp Login handler
   const signInWithWhatsApp = async (userData) => {
+    // Ensure token from storage is applied to API instance
+    try {
+      const token = getAccessToken();
+      if (token) setAuthToken(token);
+    } catch (e) {
+      // ignore
+    }
+
     setUser(userData);
     writeProfileCache(userData);
     setProfile(userData);
+
+    // Try to fetch full profile from backend to populate phone/name/cpf
+    try {
+      const prof = await fetchProfile({ force: true });
+      if (prof) {
+        setUser(prof);
+        setProfile(prof);
+        writeProfileCache(prof);
+      } else {
+        // If profile not returned, at least ensure we set name from returned userData or phone
+        const displayName = (userData && (userData.name || userData.first_name)) || userData?.phone || null;
+        if (displayName && !profile) {
+          setProfile(prev => ({ ...(prev || {}), first_name: displayName }));
+        }
+      }
+    } catch (e) {
+      // ignore fetch errors
+    }
   };
 
   return (
