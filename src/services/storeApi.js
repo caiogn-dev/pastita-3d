@@ -7,6 +7,7 @@
  */
 import axios from 'axios';
 import logger from './logger';
+import { getAccessToken as getStoredAccessToken } from './tokenStorage';
 
 // Store slug - can be configured per deployment
 const STORE_SLUG = process.env.NEXT_PUBLIC_STORE_SLUG || 'pastita';
@@ -40,29 +41,17 @@ const authApi = axios.create({
   withCredentials: true,
 });
 
-// Auth token management
-let authToken = null;
-
-export const setAuthToken = (token) => {
-  authToken = token;
-  if (typeof window !== 'undefined' && token) {
-    localStorage.setItem('access_token', token);
-  }
-};
-
+// Use central tokenStorage to read access token (keeps names consistent)
 export const getAuthToken = () => {
-  if (authToken) return authToken;
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('access_token');
+  try {
+    return getStoredAccessToken();
+  } catch (e) {
+    return null;
   }
-  return null;
 };
 
 export const clearAuthToken = () => {
-  authToken = null;
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('access_token');
-  }
+  // tokenStorage handles clearing elsewhere; noop here
 };
 
 // Get CSRF token from cookie
@@ -81,7 +70,8 @@ storeApi.interceptors.request.use(
   (config) => {
     const token = getAuthToken();
     if (token) {
-      config.headers.Authorization = `Token ${token}`;
+      // Backend expects JWT Bearer tokens
+      config.headers.Authorization = `Bearer ${token}`;
     }
     // Add CSRF token for non-GET requests
     if (config.method !== 'get') {
@@ -100,7 +90,7 @@ authApi.interceptors.request.use(
   (config) => {
     const token = getAuthToken();
     if (token) {
-      config.headers.Authorization = `Token ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     if (config.method !== 'get') {
       const csrfToken = getCsrfToken();
@@ -186,7 +176,7 @@ export const getProductsByCategory = async (categorySlug) => {
  * Get product by ID
  */
 export const getProduct = async (productId) => {
-  const response = await axios.get(`${STORES_API_URL}/products/${productId}/`);
+  const response = await storeApi.get(`/products/${productId}/`);
   return response.data;
 };
 
@@ -403,7 +393,7 @@ export const reverseGeocode = async (lat, lng) => {
  * @param {string} accessToken - The secure access token for the order
  */
 export const getOrderByToken = async (accessToken) => {
-  const response = await axios.get(`${STORES_API_URL}/orders/by-token/${accessToken}/`);
+  const response = await storeApi.get(`/orders/by-token/${accessToken}/`);
   return response.data;
 };
 
@@ -414,12 +404,8 @@ export const getOrderByToken = async (accessToken) => {
  */
 export const getOrderStatus = async (orderIdOrNumber, token = null) => {
   const params = token ? { token } : {};
-  const authToken = getAuthToken();
-  const headers = authToken ? { Authorization: `Token ${authToken}` } : {};
-  
-  const response = await axios.get(`${STORES_API_URL}/orders/${orderIdOrNumber}/payment-status/`, {
+  const response = await storeApi.get(`/orders/${orderIdOrNumber}/payment-status/`, {
     params,
-    headers,
   });
   return response.data;
 };
@@ -428,11 +414,7 @@ export const getOrderStatus = async (orderIdOrNumber, token = null) => {
  * Get user orders (requires auth)
  */
 export const getUserOrders = async () => {
-  const token = getAuthToken();
-  const response = await axios.get(`${STORES_API_URL}/orders/`, {
-    headers: token ? { Authorization: `Token ${token}` } : {},
-    params: { store: STORE_SLUG },
-  });
+  const response = await storeApi.get('/orders/', { params: { store: STORE_SLUG } });
   return response.data;
 };
 
@@ -440,10 +422,7 @@ export const getUserOrders = async () => {
  * Get single order by ID
  */
 export const getOrder = async (orderId) => {
-  const token = getAuthToken();
-  const response = await axios.get(`${STORES_API_URL}/orders/${orderId}/`, {
-    headers: token ? { Authorization: `Token ${token}` } : {},
-  });
+  const response = await storeApi.get(`/orders/${orderId}/`);
   return response.data;
 };
 
@@ -451,10 +430,7 @@ export const getOrder = async (orderId) => {
  * Get WhatsApp confirmation URL for order
  */
 export const getOrderWhatsApp = async (orderId) => {
-  const token = getAuthToken();
-  const response = await axios.get(`${STORES_API_URL}/orders/${orderId}/whatsapp/`, {
-    headers: token ? { Authorization: `Token ${token}` } : {},
-  });
+  const response = await storeApi.get(`/orders/${orderId}/whatsapp/`);
   return response.data;
 };
 
