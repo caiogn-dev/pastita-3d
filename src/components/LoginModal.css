@@ -1,0 +1,301 @@
+.login-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.login-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  padding: 32px;
+  position: relative;
+  animation: slideUp 0.3s ease-out;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.login-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.login-modal-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.login-modal-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.login-modal-header h2 {
+  color: var(--color-marsala);
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+}
+
+.login-modal-header p {
+  color: #666;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.login-modal-error {
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.login-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-modal-field label {
+  font-size: 0.9rem;
+  color: #444;
+  font-weight: 500;
+}
+
+.login-modal-field input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.login-modal-field input:focus {
+  border-color: var(--color-marsala);
+  box-shadow: 0 0 0 3px rgba(114, 47, 55, 0.1);
+}
+
+.login-modal-submit {
+  width: 100%;
+  margin-top: 8px;
+  padding: 14px;
+  border-radius: 8px;
+}
+
+.login-modal-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.login-modal-footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.login-modal-footer p {
+  margin: 0;
+  color: #666;
+}
+
+.login-modal-footer a {
+  color: var(--color-marsala);
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.login-modal-footer a:hover {
+  text-decoration: underline;
+}
+
+/* WhatsApp Login Styles */
+.whatsapp-icon {
+  margin-bottom: 12px;
+}
+
+.login-modal-content {
+  text-align: center;
+}
+
+.login-modal-description {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+}
+
+.phone-input {
+  text-align: center;
+  font-size: 1.2rem !important;
+  letter-spacing: 1px;
+}
+
+.phone-display {
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: var(--color-marsala);
+  margin: 0 0 20px 0;
+}
+
+.code-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.code-input {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.code-input:focus {
+  border-color: var(--color-marsala);
+  box-shadow: 0 0 0 3px rgba(114, 47, 55, 0.1);
+}
+
+.attempts-warning {
+  color: #f59e0b;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.code-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 8px;
+  transition: color 0.2s;
+}
+
+.btn-link:hover:not(:disabled) {
+  color: var(--color-marsala);
+}
+
+.btn-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.countdown {
+  font-size: 0.9rem;
+  color: #999;
+}
+
+.btn-whatsapp {
+  background-color: #25D366 !important;
+  color: white !important;
+}
+
+.btn-whatsapp:hover:not(:disabled) {
+  background-color: #1da851 !important;
+}
+
+.success-content {
+  padding: 40px 20px;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #25D366 0%, #1da851 100%);
+  color: white;
+  font-size: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  animation: bounceIn 0.5s ease-out;
+}
+
+.success-content h3 {
+  color: #333;
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+}
+
+.success-content p {
+  color: #666;
+  margin: 0;
+}
+
+.login-modal-hint {
+  font-size: 0.85rem;
+  color: #999;
+  margin-top: 12px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
