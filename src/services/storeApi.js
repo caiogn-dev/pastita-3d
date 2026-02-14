@@ -445,7 +445,8 @@ export const reverseGeocode = async (lat, lng) => {
  * @param {string} accessToken - The secure access token for the order
  */
 export const getOrderByToken = async (accessToken) => {
-  const response = await storeApi.get(`/orders/by-token/${accessToken}/`);
+  // This endpoint is global (not store-specific), so use axios directly
+  const response = await axios.get(`${STORES_API_URL}/orders/by-token/${accessToken}/`);
   return response.data;
 };
 

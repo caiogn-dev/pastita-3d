@@ -167,8 +167,6 @@ export const useCheckoutForm = () => {
     const newErrors = {};
     
     if (!formData.name.trim()) newErrors.name = 'Nome é obrigatório';
-    if (!formData.email.trim()) newErrors.email = 'E-mail é obrigatório';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'E-mail inválido';
     
     if (!formData.phone.trim()) newErrors.phone = 'Telefone é obrigatório';
     else if (onlyDigits(formData.phone).length < 10) newErrors.phone = 'Telefone inválido';
@@ -210,10 +208,14 @@ export const useCheckoutForm = () => {
       zip_code: onlyDigits(formData.zip_code),
     };
 
+    // Generate email from phone if not provided
+    const phoneDigits = onlyDigits(formData.phone);
+    const customerEmail = formData.email?.trim() || `${phoneDigits}@cliente.pastita.com.br`;
+
     return {
       customer_name: formData.name.trim(),
-      customer_email: formData.email.trim(),
-      customer_phone: onlyDigits(formData.phone),
+      customer_email: customerEmail,
+      customer_phone: phoneDigits,
       cpf: onlyDigits(formData.cpf),
       // Legacy fields for backwards compatibility
       shipping_address: isPickup ? STORE_ADDRESS.address : fullAddress,
