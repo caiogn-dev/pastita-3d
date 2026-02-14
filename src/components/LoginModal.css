@@ -137,6 +137,86 @@
   text-decoration: underline;
 }
 
+/* Login Method Choice Styles */
+.login-modal-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.btn-whatsapp-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 24px;
+  background-color: #25D366;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-whatsapp-login:hover {
+  background-color: #1da851;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+}
+
+.btn-email-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 24px;
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-email-login:hover {
+  background-color: #eee;
+  border-color: #ccc;
+}
+
+.login-modal-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 8px 0;
+}
+
+.login-modal-divider::before,
+.login-modal-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #ddd;
+}
+
+.login-modal-divider span {
+  padding: 0 16px;
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.btn-back {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 16px;
+}
+
 /* WhatsApp Login Styles */
 .whatsapp-icon {
   margin-bottom: 12px;

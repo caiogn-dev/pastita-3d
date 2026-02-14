@@ -29,7 +29,16 @@ export const formatCPF = (value) => {
 };
 
 export const formatPhone = (value) => {
-  const numbers = toSafeString(value).replace(/\D/g, '').slice(0, 11);
+  let numbers = toSafeString(value).replace(/\D/g, '');
+  
+  // Remove country code 55 if present at the start
+  if (numbers.startsWith('55') && numbers.length > 11) {
+    numbers = numbers.slice(2);
+  }
+  
+  // Limit to 11 digits (DDD + 9 digits)
+  numbers = numbers.slice(0, 11);
+  
   if (numbers.length <= 2) return numbers;
   if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
   return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
