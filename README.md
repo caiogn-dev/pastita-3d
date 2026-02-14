@@ -21,11 +21,10 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
 
 # Payment
-NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY=your-mercado-pago-public-key
+NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY=mercado-pago-public-key
 
 # Maps
-NEXT_PUBLIC_HERE_API_KEY=G9H9YAXgkVi1YDXhkea18Sb5EIUAch5m1oNYoaPUZNw
-
+NEXT_PUBLIC_HERE_API_KEY=exemplo-x-api-key
 # Contact
 NEXT_PUBLIC_WHATSAPP_NUMBER=5563992957931
 NEXT_PUBLIC_CONTACT_EMAIL=contato@pastita.com.br
