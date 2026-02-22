@@ -3,7 +3,7 @@
  * 
  * This is the PRIMARY API service for the Pastita frontend.
  * All API calls should go through this service.
- * Uses the unified /api/v1/stores/s/{store_slug}/ endpoints.
+ * Uses the unified /api/v1/stores/{store_slug}/ endpoints.
  * 
  * IMPORTANT: Token synchronization
  * This module uses the same token storage as auth.js to ensure
@@ -19,7 +19,7 @@ const STORE_SLUG = process.env.NEXT_PUBLIC_STORE_SLUG || 'pastita';
 // API base URL
 const API_ROOT = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:12000/api/v1').replace(/\/+$/, '');
 const STORES_API_URL = `${API_ROOT}/stores`;
-const STORE_API_URL = `${STORES_API_URL}/s/${STORE_SLUG}`;
+const STORE_API_URL = `${STORES_API_URL}/${STORE_SLUG}`;
 const AUTH_API_URL = `${API_ROOT}`;
 
 // WebSocket URL
@@ -477,7 +477,7 @@ export const getUserOrders = async () => {
     const status = err?.response?.status;
     if (status === 404 || !err?.response) {
       try {
-        // Legacy: storeApi baseURL includes /stores/s/{STORE_SLUG}
+        // Store API baseURL includes /stores/{STORE_SLUG}
         const legacy = await storeApi.get('/orders/');
         return legacy.data;
       } catch (err2) {

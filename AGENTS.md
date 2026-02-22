@@ -37,7 +37,7 @@ src/
 ## Key Files
 
 ### API Client (`src/services/storeApi.js`)
-- Base URL: `/api/v1/stores/s/{STORE_SLUG}/`
+- Base URL: `/api/v1/stores/{STORE_SLUG}/`
 - Token auth via `Authorization: Token {token}`
 - Handles CSRF tokens automatically
 
