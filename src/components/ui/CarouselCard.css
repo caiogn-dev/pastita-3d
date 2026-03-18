@@ -1,0 +1,35 @@
+/* CarouselCard — Pastita */
+.carousel-card { position: relative; width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.carousel-card__viewport { overflow-x: auto; overflow-y: visible; padding: 2px 2px 8px; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
+.carousel-card__viewport::-webkit-scrollbar { display: none; }
+.carousel-card__track { display: flex; align-items: stretch; gap: 16px; width: max-content; min-width: 100%; }
+.carousel-card__slide { display: flex; min-width: 0; flex: 0 0 260px; width: 260px; scroll-snap-align: start; scroll-snap-stop: always; }
+.carousel-card__surface, .carousel-card__surface > * { width: 100%; }
+.carousel-card__controls { display: flex; justify-content: flex-end; gap: 10px; }
+.carousel-card__control {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(114, 47, 55, 0.18);
+  background: rgba(255, 252, 248, 0.94);
+  color: #722f37;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.carousel-card__control:hover:not(:disabled) { transform: translateY(-2px); background: #fff; border-color: rgba(114, 47, 55, 0.3); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+.carousel-card__control:disabled { opacity: .38; cursor: not-allowed; }
+.carousel-card__pagination { display: none; justify-content: center; gap: 6px; }
+.carousel-card__dot { width: 8px; height: 8px; border-radius: 9999px; background: rgba(114, 47, 55, 0.18); transition: width 0.2s, background-color 0.2s, transform 0.2s; }
+.carousel-card__dot--active { width: 24px; background: #722f37; transform: translateY(-1px); }
+@media (max-width: 640px) {
+  .carousel-card { gap: 10px; }
+  .carousel-card__controls { display: none; }
+  .carousel-card__track { gap: 12px; }
+  .carousel-card__pagination { display: flex; }
+}
+.carousel-card--static .carousel-card__track { width: max-content; min-width: 0; }
+.carousel-card--static .carousel-card__slide { flex: 0 0 min(100%, 248px); width: min(100%, 248px); }

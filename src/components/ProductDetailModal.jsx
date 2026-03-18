@@ -1,0 +1,248 @@
+import React, { useMemo } from 'react';
+import Modal from './ui/Modal';
+import Button from './ui/Button';
+import Badge from './ui/Badge';
+import { buildMediaUrl } from '../utils/media';
+import styles from './ProductDetailModal.module.css';
+
+const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+});
+
+const formatCurrency = (value) => currencyFormatter.format(Number(value || 0));
+
+const toLabel = (value) => String(value || '')
+  .replace(/[_-]+/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const normalizePrimitive = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return '';
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => normalizePrimitive(item))
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  if (typeof value === 'object') {
+    return '';
+  }
+
+  if (typeof value === 'boolean') {
+    return value ? 'Sim' : 'Não';
+  }
+
+  return String(value);
+};
+
+const getGalleryImages = (item) => {
+  const rawImages = [
+    item?.image_url,
+    item?.image,
+    item?.main_image_url,
+    ...(Array.isArray(item?.images) ? item.images : []),
+  ];
+
+  return Array.from(
+    new Set(
+      rawImages
+        .map((entry) => {
+          if (!entry) return '';
+          if (typeof entry === 'string') return buildMediaUrl(entry);
+          if (typeof entry === 'object') {
+            return buildMediaUrl(
+              entry.url
+              || entry.image
+              || entry.src
+              || entry.file
+              || ''
+            );
+          }
+          return '';
+        })
+        .filter(Boolean)
+    )
+  );
+};
+
+const buildDetailRows = (item) => {
+  const merged = {
+    ...(item?.attributes || {}),
+    ...(item?.typeAttributes || {}),
+  };
+
+  return Object.entries(merged)
+    .map(([key, value]) => ({
+      label: toLabel(key),
+      value: normalizePrimitive(value),
+    }))
+    .filter((entry) => entry.value);
+};
+
+const ProductDetailModal = ({
+  item,
+  isOpen,
+  onClose,
+  onAddToCart,
+}) => {
+  const gallery = useMemo(() => getGalleryImages(item), [item]);
+  const details = useMemo(() => buildDetailRows(item), [item]);
+
+  if (!item) {
+    return null;
+  }
+
+  const description = item.description || item.shortDescription;
+  const isCombo = item.itemType === 'combo' || item.isCombo;
+  const inStock = isCombo
+    ? (item.stock_quantity ?? 1) > 0
+    : Boolean(item.is_in_stock ?? ((item.stock_quantity ?? 0) > 0));
+  const categoryName = item.categoryLabel || item.productTypeName || (isCombo ? 'Monte seu prato' : 'Produto');
+
+  const badges = Array.from(new Set([
+    item.categoryLabel,
+    item.productTypeName,
+    item.weightLabel,
+    isCombo ? 'Combo' : 'Produto',
+  ].filter(Boolean)));
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="xl"
+      title={item.name}
+      className={styles.modal}
+    >
+      <div className={styles.layout}>
+        <div className={styles.mediaColumn}>
+          <div className={styles.heroImage}>
+            {gallery[0] ? (
+              <img src={gallery[0]} alt={item.name} />
+            ) : (
+              <div className={styles.imageFallback}>Sem imagem</div>
+            )}
+          </div>
+
+          {gallery.length > 1 && (
+            <div className={styles.gallery}>
+              {gallery.slice(0, 4).map((image, index) => (
+                <div key={`${image}-${index}`} className={styles.galleryThumb}>
+                  <img src={image} alt={`${item.name} ${index + 1}`} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className={styles.contentColumn}>
+          <section className={styles.summaryCard}>
+            <div className={styles.badges}>
+              {badges.map((badge) => (
+                <Badge key={badge} variant="outline" size="sm">
+                  {badge}
+                </Badge>
+              ))}
+              <Badge variant={inStock ? 'success' : 'warning'} size="sm">
+                {inStock ? 'Disponível' : 'Indisponível'}
+              </Badge>
+            </div>
+
+            <div className={styles.pricing}>
+              {item.original_price && Number(item.original_price) > Number(item.price) && (
+                <span className={styles.originalPrice}>
+                  {formatCurrency(item.original_price)}
+                </span>
+              )}
+              <div className={styles.currentPrice}>{formatCurrency(item.price)}</div>
+              {item.savings && Number(item.savings) > 0 && (
+                <div className={styles.savings}>
+                  Economize {formatCurrency(item.savings)}
+                </div>
+              )}
+            </div>
+
+            {description && (
+              <p className={styles.description}>
+                {description}
+              </p>
+            )}
+
+            <div className={styles.summaryFacts}>
+              <div className={styles.summaryFact}>
+                <span>Categoria</span>
+                <strong>{categoryName}</strong>
+              </div>
+              <div className={styles.summaryFact}>
+                <span>Formato</span>
+                <strong>{isCombo ? 'Montagem personalizada' : 'Pronto para pedir'}</strong>
+              </div>
+            </div>
+          </section>
+
+          {isCombo && Array.isArray(item.comboItems) && item.comboItems.length > 0 && (
+            <section className={styles.section}>
+              <h3>O que vem no combo</h3>
+              <ul className={styles.list}>
+                {item.comboItems.map((comboItem, index) => (
+                  <li key={`${comboItem.product_name || comboItem.product || index}-${index}`}>
+                    <span>{comboItem.product_name || 'Item do combo'}</span>
+                    <strong>x{comboItem.quantity || 1}</strong>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {details.length > 0 && (
+            <section className={styles.section}>
+              <h3>Informações do produto</h3>
+              <dl className={styles.detailsGrid}>
+                {details.map((detail) => (
+                  <div key={detail.label} className={styles.detailCard}>
+                    <dt>{detail.label}</dt>
+                    <dd>{detail.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
+
+          {Array.isArray(item.tags) && item.tags.length > 0 && (
+            <section className={styles.section}>
+              <h3>Características</h3>
+              <div className={styles.tags}>
+                {item.tags.map((tag) => (
+                  <span key={tag} className={styles.tag}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className={styles.actions}>
+            <Button variant="outline" onClick={onClose}>
+              Continuar no cardápio
+            </Button>
+            <Button
+              variant={inStock ? 'primary' : 'ghost'}
+              onClick={() => onAddToCart?.(item)}
+              disabled={!inStock}
+            >
+              {inStock ? 'Adicionar à sacola' : 'Item indisponível'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+export default ProductDetailModal;

@@ -11,19 +11,21 @@
  */
 import axios from 'axios';
 import logger from './logger';
-import { getAccessToken as getStoredAccessToken } from './tokenStorage';
+import { getAccessToken as getStoredAccessToken, setTokens } from './tokenStorage';
 
 // Store slug - can be configured per deployment
 const STORE_SLUG = process.env.NEXT_PUBLIC_STORE_SLUG || 'pastita';
 
 // API base URL
-const API_ROOT = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:12000/api/v1').replace(/\/+$/, '');
+const DEFAULT_API_URL = 'http://localhost:8000/api/v1';
+const API_ROOT = (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
 const STORES_API_URL = `${API_ROOT}/stores`;
 const STORE_API_URL = `${STORES_API_URL}/${STORE_SLUG}`;
 const AUTH_API_URL = `${API_ROOT}`;
 
 // WebSocket URL
-const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:12000/ws';
+const DEFAULT_WS_URL = DEFAULT_API_URL.replace(/^http/, 'ws').replace('/api/v1', '/ws');
+const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || DEFAULT_WS_URL;
 
 const isLikelyJwt = (token) => (
   typeof token === 'string'
@@ -228,7 +230,7 @@ export const getProductsByCategory = async (categorySlug) => {
  * Get product by ID
  */
 export const getProduct = async (productId) => {
-  const response = await storeApi.get(`/products/${productId}/`);
+  const response = await axios.get(`${STORES_API_URL}/products/${productId}/`);
   return response.data;
 };
 
@@ -457,8 +459,12 @@ export const getOrderByToken = async (accessToken) => {
  */
 export const getOrderStatus = async (orderIdOrNumber, token = null) => {
   const params = token ? { token } : {};
-  const response = await storeApi.get(`/orders/${orderIdOrNumber}/payment-status/`, {
+  const authToken = getAuthToken();
+  const authHeader = buildAuthHeader(authToken);
+
+  const response = await axios.get(`${STORES_API_URL}/orders/${orderIdOrNumber}/payment-status/`, {
     params,
+    headers: authHeader ? { Authorization: authHeader } : {},
   });
   return response.data;
 };
@@ -498,7 +504,11 @@ export const getUserOrders = async () => {
  * Get single order by ID
  */
 export const getOrder = async (orderId) => {
-  const response = await storeApi.get(`/orders/${orderId}/`);
+  const authToken = getAuthToken();
+  const authHeader = buildAuthHeader(authToken);
+  const response = await axios.get(`${STORES_API_URL}/orders/${orderId}/`, {
+    headers: authHeader ? { Authorization: authHeader } : {},
+  });
   return response.data;
 };
 
@@ -506,7 +516,11 @@ export const getOrder = async (orderId) => {
  * Get WhatsApp confirmation URL for order
  */
 export const getOrderWhatsApp = async (orderId) => {
-  const response = await storeApi.get(`/orders/${orderId}/whatsapp/`);
+  const authToken = getAuthToken();
+  const authHeader = buildAuthHeader(authToken);
+  const response = await axios.get(`${STORES_API_URL}/orders/${orderId}/whatsapp/`, {
+    headers: authHeader ? { Authorization: authHeader } : {},
+  });
   return response.data;
 };
 
@@ -527,8 +541,16 @@ export const registerUser = async (data) => {
  */
 export const loginUser = async (email, password) => {
   const response = await authApi.post('/auth/login/', { email, password });
-  if (response.data.token) {
-    setAuthToken(response.data.token);
+  const token = response.data?.token || response.data?.access || response.data?.tokens?.access;
+  const refresh = response.data?.refresh || response.data?.tokens?.refresh || null;
+
+  if (token) {
+    setTokens(token, refresh);
+    refreshAuthHeaders();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:login', { detail: { token } }));
+    }
   }
   return response.data;
 };

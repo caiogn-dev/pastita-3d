@@ -27,6 +27,8 @@ import '../src/components/ui/OrderTimeline.css';
 import '../src/components/ui/PixPayment.css';
 import '../src/components/ui/Skeleton.css';
 import '../src/components/ui/ProductCard.css';
+import '../src/components/ui/CarouselCard.css';
+import '../src/components/ui/ShaderBackground.css';
 
 // Page styles
 import '../src/pages/LandingPage.css';
@@ -35,6 +37,7 @@ import '../src/pages/Auth.css';
 import '../src/pages/CheckoutPage.css';
 import '../src/pages/Profile.css';
 
+import StoreHead from '../src/components/StoreHead';
 import { AuthProvider } from '../src/context/AuthContext';
 import { CartProvider } from '../src/context/CartContext';
 import { WishlistProvider } from '../src/context/WishlistContext';
@@ -105,6 +108,7 @@ gtag('config', '${GA_ID}');`}
       <ErrorBoundary>
         <AuthProvider>
           <StoreProvider>
+            <StoreHead />
             <WishlistProvider>
               <CartProvider>
                 <ToastProvider>
