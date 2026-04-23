@@ -49,7 +49,6 @@ const ProductsSkeleton = () => (
 
 const Cardapio = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [pendingProduct, setPendingProduct] = useState(null);
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -130,27 +129,14 @@ const Cardapio = () => {
   }, [products, query, categoryFilter, showFavoritesOnly, isFavorited]);
 
   const handleAddToCart = (product) => {
-    if (!isAuthenticated) {
-      setPendingProduct(product);
-      setShowLoginModal(true);
-      return;
-    }
     if (product.stock_quantity <= 0) {
       return;
     }
     addToCart(product);
   };
 
-  const handleLoginSuccess = () => {
-    if (pendingProduct) {
-      addToCart(pendingProduct);
-      setPendingProduct(null);
-    }
-  };
-
   const handleCloseModal = () => {
     setShowLoginModal(false);
-    setPendingProduct(null);
   };
 
   const handleClearSearch = () => {
@@ -171,10 +157,9 @@ const Cardapio = () => {
     <div className="cardapio-page">
       <Navbar />
       
-      <LoginModal 
-        isOpen={showLoginModal} 
+      <LoginModal
+        isOpen={showLoginModal}
         onClose={handleCloseModal}
-        onSuccess={handleLoginSuccess}
       />
 
       {/* Header with animation */}
