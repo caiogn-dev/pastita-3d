@@ -1,24 +1,21 @@
 import React from 'react';
 import Link from 'next/link';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
-
 const CartSidebar = () => {
-  const { 
-    cart, 
+  const {
+    cart,
     combos,
-    removeFromCart, 
+    removeFromCart,
     removeComboFromCart,
-    updateQuantity, 
+    updateQuantity,
     updateComboQuantity,
     cartTotal,
     productTotal,
     comboTotal,
     hasItems,
-    isCartOpen, 
-    toggleCart 
+    isCartOpen,
+    toggleCart
   } = useCart();
-  const { isAuthenticated } = useAuth();
 
   if (!isCartOpen) return null;
 
@@ -165,23 +162,13 @@ const CartSidebar = () => {
               <span>Total:</span>
               <span>R$ {cartTotal.toFixed(2)}</span>
             </div>
-            {isAuthenticated ? (
-              <Link
-                href="/checkout"
-                onClick={toggleCart}
-                className="btn-primary cart-checkout-btn"
-              >
-                FINALIZAR COMPRA
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                onClick={toggleCart}
-                className="btn-primary cart-checkout-btn"
-              >
-                FAZER LOGIN PARA COMPRAR
-              </Link>
-            )}
+            <Link
+              href="/checkout"
+              onClick={toggleCart}
+              className="btn-primary cart-checkout-btn"
+            >
+              FINALIZAR COMPRA
+            </Link>
           </div>
         )}
       </div>

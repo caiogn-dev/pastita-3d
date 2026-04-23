@@ -13,8 +13,39 @@ import axios from 'axios';
 import logger from './logger';
 import { getAccessToken as getStoredAccessToken } from './tokenStorage';
 
+const GUEST_CART_KEY_STORAGE = 'pastita_guest_cart_key';
+
+const generateGuestCartKey = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `cart_${crypto.randomUUID()}`;
+  }
+  return `cart_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
+export const getGuestCartKey = () => {
+  if (typeof window === 'undefined') return null;
+  let cartKey = localStorage.getItem(GUEST_CART_KEY_STORAGE);
+  if (!cartKey) {
+    cartKey = generateGuestCartKey();
+    localStorage.setItem(GUEST_CART_KEY_STORAGE, cartKey);
+  }
+  return cartKey;
+};
+
+const attachGuestCartKey = (config) => {
+  const cartKey = getGuestCartKey();
+  if (!cartKey) return config;
+  config.headers = config.headers || {};
+  config.headers['X-Cart-Key'] = cartKey;
+  config.params = { ...(config.params || {}), cart_key: cartKey };
+  if (config.data && typeof config.data === 'object' && !(config.data instanceof FormData)) {
+    config.data = { ...config.data, cart_key: cartKey };
+  }
+  return config;
+};
+
 // Store slug - can be configured per deployment
-const STORE_SLUG = process.env.NEXT_PUBLIC_STORE_SLUG || 'pastita';
+export const STORE_SLUG = process.env.NEXT_PUBLIC_STORE_SLUG || 'pastita';
 
 // API base URL
 const API_ROOT = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:12000/api/v1').replace(/\/+$/, '');
@@ -131,7 +162,7 @@ storeApi.interceptors.request.use(
         config.headers['X-CSRFToken'] = csrfToken;
       }
     }
-    return config;
+    return attachGuestCartKey(config);
   },
   (error) => Promise.reject(error)
 );

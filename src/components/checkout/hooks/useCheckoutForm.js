@@ -4,29 +4,54 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import * as storeApi from '../../../services/storeApi';
-import { 
-  formatCPF, formatPhone, formatCEP, onlyDigits, 
-  validateCPF, STORE_ADDRESS, splitFullName 
+import useGuestInfo from '../../../hooks/useGuestInfo';
+import {
+  formatCPF, formatPhone, formatCEP, onlyDigits,
+  validateCPF, STORE_ADDRESS, splitFullName
 } from '../utils';
+
+const getDraftKey = () => `checkout_draft:${storeApi.STORE_SLUG || 'pastita'}`;
+
+function loadDraft() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(getDraftKey());
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function saveDraft(data) {
+  if (typeof window === 'undefined') return;
+  try { localStorage.setItem(getDraftKey(), JSON.stringify(data)); } catch { /* ignore */ }
+}
+
+function clearDraft() {
+  if (typeof window === 'undefined') return;
+  try { localStorage.removeItem(getDraftKey()); } catch { /* ignore */ }
+}
 
 export const useCheckoutForm = () => {
   const { profile, user, updateProfile } = useAuth();
+  const { readGuestInfo, saveGuestInfo } = useGuestInfo();
   const deliveryAddressRef = useRef(null);
   const previousSavePref = useRef(true);
   const saveAddressRef = useRef(true);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    cpf: '',
-    address: '',
-    number: '',
-    complement: '',
-    neighborhood: '',
-    city: '',
-    state: '',
-    zip_code: ''
+  const [formData, setFormData] = useState(() => {
+    const draft = loadDraft();
+    return {
+      name: draft?.name || '',
+      email: draft?.email || '',
+      phone: draft?.phone || '',
+      cpf: draft?.cpf || '',
+      address: draft?.address || '',
+      number: draft?.number || '',
+      complement: draft?.complement || '',
+      neighborhood: draft?.neighborhood || '',
+      city: draft?.city || '',
+      state: draft?.state || '',
+      zip_code: draft?.zip_code || '',
+    };
   });
 
   const [errors, setErrors] = useState({});
@@ -48,14 +73,16 @@ export const useCheckoutForm = () => {
     const loadUserData = async () => {
       const currentProfile = profile || user;
       
-      // Check if user has previous orders
-      try {
-        const orders = await storeApi.getUserOrders();
-        if (orders && orders.results && orders.results.length > 0) {
-          setHasPreviousOrder(true);
+      // Check if user has previous orders (only for authenticated users)
+      if (storeApi.getAuthToken()) {
+        try {
+          const orders = await storeApi.getUserOrders();
+          if (orders && orders.results && orders.results.length > 0) {
+            setHasPreviousOrder(true);
+          }
+        } catch {
+          // No previous orders
         }
-      } catch {
-        // No previous orders
       }
 
       if (currentProfile) {
@@ -81,8 +108,19 @@ export const useCheckoutForm = () => {
           state: currentProfile.state || prev.state,
           zip_code: currentProfile.zip_code ? formatCEP(currentProfile.zip_code) : prev.zip_code
         }));
+      } else {
+        // Guest: pré-preenche com dados salvos de pedido anterior
+        const guestInfo = readGuestInfo();
+        if (guestInfo) {
+          setFormData((prev) => ({
+            ...prev,
+            name: prev.name || guestInfo.name || '',
+            email: prev.email || guestInfo.email || '',
+            phone: prev.phone || (guestInfo.phone ? formatPhone(guestInfo.phone) : ''),
+          }));
+        }
       }
-      
+
       setUserDataLoaded(true);
     };
 
@@ -93,6 +131,24 @@ export const useCheckoutForm = () => {
   useEffect(() => {
     saveAddressRef.current = saveAddress;
   }, [saveAddress]);
+
+  // Persist draft on every form change (only fields safe to store)
+  useEffect(() => {
+    if (!userDataLoaded) return;
+    saveDraft({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      number: formData.number,
+      complement: formData.complement,
+      neighborhood: formData.neighborhood,
+      city: formData.city,
+      state: formData.state,
+      zip_code: formData.zip_code,
+      // cpf never goes to draft
+    });
+  }, [formData, userDataLoaded]);
 
   // Handle form field changes
   const handleChange = useCallback((event) => {
@@ -171,8 +227,7 @@ export const useCheckoutForm = () => {
     if (!formData.phone.trim()) newErrors.phone = 'Telefone é obrigatório';
     else if (onlyDigits(formData.phone).length < 10) newErrors.phone = 'Telefone inválido';
     
-    if (!formData.cpf.trim()) newErrors.cpf = 'CPF é obrigatório';
-    else if (!validateCPF(formData.cpf)) newErrors.cpf = 'CPF inválido';
+    if (formData.cpf.trim() && !validateCPF(formData.cpf)) newErrors.cpf = 'CPF inválido';
 
     if (shippingMethod === 'delivery') {
       if (!formData.address.trim()) newErrors.address = 'Endereço é obrigatório';
@@ -256,6 +311,12 @@ export const useCheckoutForm = () => {
     return payload;
   }, [formData, profile, saveAddress]);
 
+  const buildGuestInfoPayload = useCallback(() => ({
+    name: formData.name.trim(),
+    phone: onlyDigits(formData.phone),
+    email: formData.email.trim(),
+  }), [formData]);
+
   return {
     formData,
     errors,
@@ -270,6 +331,9 @@ export const useCheckoutForm = () => {
     validateForm,
     buildCheckoutPayload,
     buildProfileUpdatePayload,
+    buildGuestInfoPayload,
+    saveGuestInfo,
+    clearDraft,
     setSaveAddress,
     setErrors
   };

@@ -175,8 +175,10 @@ const CheckoutPage = () => {
         }
       }
 
-      // Clear cart
+      // Clear cart and persist guest info for next order
       clearCart();
+      checkoutForm.saveGuestInfo(checkoutForm.buildGuestInfoPayload());
+      checkoutForm.clearDraft();
 
       // Navigate based on payment status - use access_token for secure access
       const tokenParam = accessToken ? `token=${accessToken}` : `order=${orderNumber}`;
