@@ -45,7 +45,7 @@ const attachGuestCartKey = (config) => {
 };
 
 // Store slug - can be configured per deployment
-export const STORE_SLUG = process.env.NEXT_PUBLIC_STORE_SLUG || 'pastita';
+const STORE_SLUG = process.env.NEXT_PUBLIC_STORE_SLUG || 'pastita';
 
 // API base URL
 const API_ROOT = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:12000/api/v1').replace(/\/+$/, '');
